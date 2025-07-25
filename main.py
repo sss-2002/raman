@@ -382,7 +382,7 @@ class Preprocessor:
     def msc(self, spectra):
         """多元散射校正(MSC)"""
         mean_spectrum = np.mean(spectra, axis=1)
-        return np.apply_along_axis(lambda x: np.polyval(np.polyfit(mean_spectrum, x, 1), 0, spectra)
+        return np.apply_along_axis(lambda x: np.polyval(np.polyfit(mean_spectrum, x, 1), mean_spectrum), 0, spectra)
     
     def mm_norm(self, spectra):
         """M-M-Norm归一化"""
