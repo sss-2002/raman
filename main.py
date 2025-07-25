@@ -535,12 +535,7 @@ with col1:
                     y_processed = i_squashing(y_processed, m)
                     method_name.append(f"i_squashing(m={m})")
                     
-                elif squashing_method == "DTW挤压":
-                    l = st.selectbox("参数 l", [1, 5], key="l_dtw")
-                    k1 = st.selectbox("参数 k1", ["T", "F"], key="k1_dtw")
-                    k2 = st.selectbox("参数 k2", ["T", "F"], key="k2_dtw")
-                    y_processed = aligned_data
-                    method_name.append(f"DTW(l={l}, k1={k1}, k2={k2})")
+         
                     
         
 
