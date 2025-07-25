@@ -551,10 +551,15 @@ with col1:
             elif filtering_method == "小波变换(DWT)":
                 threshold = st.selectbox("阈值(k)", [0.1, 0.3, 0.5], key="threshold_dwt")
                 filtering_params["threshold"] = threshold
-            elif filtering_method == "卡尔曼滤波":
-                # 论文参数：r∈[1e-5, 1e-3]（根据论文表格补充）
-                r = st.selectbox("过程噪声(r)", [0.00005, 1e-4, 1e-3], key="r_kalman")
-                filtering_params["r"] = r
+           elif filtering_method == "卡尔曼滤波":
+                 # 论文参数：r∈[1e-5, 1e-3]（根据论文表格补充）
+                 # 用字符串显示十进制形式的选项
+                 options = ["0.00001", "0.0001", "0.001"]
+                 # 让用户选择显示的字符串
+                 selected_str = st.selectbox("过程噪声(r)", options, key="r_kalman")
+                 # 将选择的字符串转换为对应的数值类型（float）
+                 r = float(selected_str)
+                 filtering_params["r"] = r
 
         # ===== 缩放处理 =====
         st.subheader("📏 缩放")
