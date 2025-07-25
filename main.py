@@ -498,8 +498,8 @@ with col1:
                 lam = st.selectbox("λ(平滑度)", [10**10, 10**8, 10**7], key="lam_pls")
                 baseline_params["lam"] = lam
             elif baseline_method == "AsLS":
-                p = st.selectbox("p(不对称性)", [0.2, 0.2, 0.1, 0.1], key="p_asls")
-                lam = st.selectbox("λ(平滑度)", [10**9, 10**9, 10**9, 10**6], key="lam_asls")
+                p = st.selectbox("p(不对称性)", [0.2, 0.1], key="p_asls")
+                lam = st.selectbox("λ(平滑度)", [10**9, 10**6], key="lam_asls")
                 baseline_params["p"] = p
                 baseline_params["lam"] = lam
             elif baseline_method == "airPLS":
