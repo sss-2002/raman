@@ -498,6 +498,16 @@ with col1:
                 lam = st.selectbox("λ(平滑度)", [10**7, 10**4, 10**2], key="lam_airpls")
                 baseline_params["lam"] = lam
 
+     
+        # 确保数据已加载
+        if 'raw_data' not in st.session_state:
+            st.error("请先加载光谱数据！")
+            st.stop()
+        
+        # 初始化处理后的数据
+        y_processed = st.session_state.raw_data.copy()
+
+     
         # ===== 挤压处理 =====
         st.subheader("🧪 挤压")
         squashing_method = st.selectbox(
