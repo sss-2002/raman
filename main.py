@@ -517,23 +517,65 @@ with col1:
     # 挤压参数（根据论文表2.4扩展）
         squashing_params = {}
         if squashing_method != "无":
-                if squashing_method == "Sigmoid挤压（原始版）":
+            if squashing_method == "Sigmoid挤压":
+                # Sigmoid挤压无额外参数，按论文表2.4
+                squashing_params["params"] = "无额外参数"
+            elif squashing_method == "改进的Sigmoid挤压":
+                # 改进的Sigmoid挤压无额外参数，按论文表2.4
+                squashing_params["params"] = "无额外参数"
+            elif squashing_method == "逻辑函数":
+                # 逻辑函数无额外参数，按论文表2.4
+                squashing_params["params"] = "无额外参数"
+            elif squashing_method == "改进的逻辑函数":
+                m = st.selectbox(
+                    "参数m", 
+                    [10, 20],  # 对应论文表中改进的逻辑函数m为10、20
+                    key="m_squashing"
+                )
+                squashing_params["m"] = m
+            elif squashing_method == "DTW":
+                l = st.selectbox(
+                    "参数l", 
+                    [1, 5],  # 对应论文表中DTW的l取值1、5
+                    key="l_dtw"
+                )
+                k1 = st.selectbox(
+                    "参数k1", 
+                    ["T", "F"],  # 对应论文表中k1的T、F选项
+                    key="k1_dtw"
+                )
+                k2 = st.selectbox(
+                    "参数k2", 
+                    ["T", "F"],  # 对应论文表中k2的T、F选项
+                    key="k2_dtw"
+                )
+                squashing_params["l"] = l
+                squashing_params["k1"] = k1
+                squashing_params["k2"] = k2
+        
+            try:
+                if squashing_method == "Sigmoid挤压":
+                    from sigmoids import sigmoid
                     y_processed = sigmoid(y_processed)
                     method_name.append("sigmoid")
-                    
-                elif squashing_method == "改进的Sigmoid挤压（归一化版）":
-                    maxn = st.selectbox("参数 maxn", [10, 20], key="maxn_sigmoid")
-                    y_processed = i_sigmoid(y_processed, maxn)
-                    method_name.append(f"i_sigmoid(maxn={maxn})")
-                    
-                elif squashing_method == "逻辑函数（原始版）":
+                elif squashing_method == "改进的Sigmoid挤压":
+                    from i_sigmoid import i_sigmoid
+                    y_processed = i_sigmoid(y_processed)
+                    method_name.append("i_sigmoid")
+                elif squashing_method == "逻辑函数":
+                    from Squashing import squashing
                     y_processed = squashing(y_processed)
                     method_name.append("squashing")
-                    
-                elif squashing_method == "改进的逻辑函数（归一化版）":
-                    m = st.selectbox("参数 m", [10, 20], key="m_squashing")
-                    y_processed = i_squashing(y_processed, m)
-                    method_name.append(f"i_squashing(m={m})")
+                elif squashing_method == "改进的逻辑函数":
+                    from i_squashing import i_squashing
+                    y_processed = i_squashing(y_processed, squashing_params["m"])
+                    method_name.append(f"i_squashing(m={squashing_params['m']})")
+                elif squashing_method == "DTW":
+                    from DTW import DTW
+                    y_processed = DTW(y_processed, l=squashing_params["l"], k1=squashing_params["k1"], k2=squashing_params["k2"])
+                    method_name.append(f"DTW(l={squashing_params['l']}, k1={squashing_params['k1']}, k2={squashing_params['k2']})")
+            except Exception as e:
+                raise ValueError(f"挤压处理失败: {str(e)}")
                     
          
                     
