@@ -15,6 +15,8 @@ from scipy import sparse
 from scipy.sparse.linalg import spsolve
 from scipy.signal import savgol_filter, medfilt
 from scipy.fft import fft, ifft
+from statsmodels.nonparametric.smoothers_lowess import lowess
+import pywt
  
 
 # 设置页面
@@ -28,6 +30,7 @@ if 'processed_data' not in st.session_state:
     st.session_state.processed_data = None
 if 'peaks' not in st.session_state:
     st.session_state.peaks = None
+
 
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
@@ -216,7 +219,7 @@ class Preprocessor:
             "AsLS": asls,
             "airPLS": airpls,
         }
-    # 滤波算法映射
+        # 滤波算法映射
         self.FILTERING_ALGORITHMS = {
             "Savitzky-Golay": self.savitzky_golay,
             "中值滤波(MF)": self.median_filter,
@@ -233,6 +236,14 @@ class Preprocessor:
             "MSC": self.msc,
             "M-M-Norm": self.mm_norm,
             "L-范数": self.l_norm
+        }
+        
+        # 挤压算法映射
+        self.SQUASHING_ALGORITHMS = {
+            "Sigmoid挤压": sigmoid,
+            "改进的Sigmoid挤压": i_sigmoid,
+            "逻辑函数": squashing,
+            "改进的逻辑函数": i_squashing,
         }
 
     def process(self, wavenumbers, data, 
@@ -267,13 +278,20 @@ class Preprocessor:
             except Exception as e:
                 raise ValueError(f"基线校正失败: {str(e)}")
 
-         #挤压处理
+        # 挤压处理
         if squashing_method != "无":
             try:
-                algorithm_func = self.FILTERING_ALGORITHMS[squashing_method]
-                y_processed = algorithm_func(y_processed, **squashing_params)
-                params_str = ', '.join([f'{k}={v}' for k, v in squashing_params.items()])
-                method_name.append(f"{squashing_method}({params_str})")
+                algorithm_func = self.SQUASHING_ALGORITHMS[squashing_method]
+                
+                # 根据挤压方法传递参数
+                if squashing_method == "改进的Sigmoid挤压":
+                    # 使用默认的maxn=10
+                    y_processed = algorithm_func(y_processed)
+                    method_name.append(f"{squashing_method}(maxn=10)")
+                else:
+                    y_processed = algorithm_func(y_processed)
+                    method_name.append(squashing_method)
+                    
             except Exception as e:
                 raise ValueError(f"挤压处理失败: {str(e)}")
 
@@ -301,40 +319,28 @@ class Preprocessor:
     
     def _sd_baseline(self, spectra):
         """示例SD基线校正实现"""
-        # 这里应该是实际的SD算法实现
-        # 这里仅作示例
         return spectra - np.min(spectra, axis=0)
     
     def _fd_baseline(self, spectra):
         """示例FD基线校正实现"""
-        # 这里应该是实际的FD算法实现
-        # 这里仅作示例
         return spectra - np.percentile(spectra, 5, axis=0)
 
-# ===== 滤波算法实现 =====
+    # ===== 滤波算法实现 =====
     def savitzky_golay(self, spectra, k, w):
         """Savitzky-Golay滤波"""
-        window_length = w
-        polyorder = k
-        return savgol_filter(spectra, window_length, polyorder, axis=0)
+        return savgol_filter(spectra, w, k, axis=0)
     
     def median_filter(self, spectra, k, w):
         """中值滤波"""
-        kernel_size = w
-        return medfilt(spectra, kernel_size=(kernel_size, 1))
+        return medfilt(spectra, kernel_size=(w, 1))
     
     def moving_average(self, spectra, k, w):
         """移动平均滤波"""
-        window_size = w
-        # 使用卷积实现移动平均
-        kernel = np.ones(window_size) / window_size
+        kernel = np.ones(w) / w
         return np.apply_along_axis(lambda x: np.convolve(x, kernel, mode='same'), 0, spectra)
     
     def lowess_filter(self, spectra, frac):
         """Lowess平滑滤波"""
-        # 由于Lowess计算较慢，这里使用简化实现
-        # 实际应用中应使用statsmodels的lowess函数
-        from statsmodels.nonparametric.smoothers_lowess import lowess
         result = np.zeros_like(spectra)
         for i in range(spectra.shape[1]):
             smoothed = lowess(spectra[:, i], np.arange(len(spectra)), frac=frac, it=0)
@@ -354,7 +360,6 @@ class Preprocessor:
     
     def wavelet_filter(self, spectra, threshold):
         """小波变换滤波"""
-        import pywt
         coeffs = pywt.wavedec(spectra, 'db4', axis=0)
         # 阈值处理
         coeffs[1:] = [pywt.threshold(c, threshold, mode='soft') for c in coeffs[1:]]
@@ -498,94 +503,30 @@ with col1:
                 lam = st.selectbox("λ(平滑度)", [10**7, 10**4, 10**2], key="lam_airpls")
                 baseline_params["lam"] = lam
 
-
-     
         # ===== 挤压处理 =====
         st.subheader("🧪 挤压")
         squashing_method = st.selectbox(
             "挤压方法",
             ["无", 
-             "Sigmoid挤压(原始版)",  # 对应 from sigmoids import sigmoid
-             "改进的Sigmoid挤压(归一化版)",  # 对应 from i_sigmoid import i_sigmoid
-             "逻辑函数(原始版)",  # 可根据实际函数命名调整
-             "改进的逻辑函数(归一化版)",
-             "DTW挤压"
+             "Sigmoid挤压",
+             "改进的Sigmoid挤压",
+             "逻辑函数",
+             "改进的逻辑函数",
             ],
             key="squashing_method"
         )
 
-    # 挤压参数（根据论文表2.4扩展）
+        # 挤压参数
         squashing_params = {}
         if squashing_method != "无":
-            if squashing_method == "Sigmoid挤压":
-                # Sigmoid挤压无额外参数，按论文表2.4
-                squashing_params["params"] = "无额外参数"
-            elif squashing_method == "改进的Sigmoid挤压":
-                # 改进的Sigmoid挤压无额外参数，按论文表2.4
-                squashing_params["params"] = "无额外参数"
-            elif squashing_method == "逻辑函数":
-                # 逻辑函数无额外参数，按论文表2.4
-                squashing_params["params"] = "无额外参数"
-            elif squashing_method == "改进的逻辑函数":
-                m = st.selectbox(
-                    "参数m", 
-                    [10, 20], 
-                    key="m_squashing"
-                )
-                squashing_params["m"] = m
-            elif squashing_method == "DTW":
-                l = st.selectbox(
-                    "参数l", 
-                    [1, 5],  
-                    key="l_dtw"
-                )
-                k1 = st.selectbox(
-                    "参数k1", 
-                    ["T", "F"], 
-                    key="k1_dtw"
-                )
-                k2 = st.selectbox(
-                    "参数k2", 
-                    ["T", "F"],  
-                    key="k2_dtw"
-                )
-                squashing_params["l"] = l
-                squashing_params["k1"] = k1
-                squashing_params["k2"] = k2
-        
-            try:
-                if squashing_method == "Sigmoid挤压":
-                    from sigmoids import sigmoid
-                    y_processed = sigmoid(y_processed)
-                    method_name.append("sigmoid")
-                elif squashing_method == "改进的Sigmoid挤压":
-                    from i_sigmoid import i_sigmoid
-                    y_processed = i_sigmoid(y_processed)
-                    method_name.append("i_sigmoid")
-                elif squashing_method == "逻辑函数":
-                    from Squashing import squashing
-                    y_processed = squashing(y_processed)
-                    method_name.append("squashing")
-                elif squashing_method == "改进的逻辑函数":
-                    from i_squashing import i_squashing
-                    y_processed = i_squashing(y_processed, squashing_params["m"])
-                    method_name.append(f"i_squashing(m={squashing_params['m']})")
-                elif squashing_method == "DTW":
-                    from DTW import DTW
-                    y_processed = DTW(y_processed, l=squashing_params["l"], k1=squashing_params["k1"], k2=squashing_params["k2"])
-                    method_name.append(f"DTW(l={squashing_params['l']}, k1={squashing_params['k1']}, k2={squashing_params['k2']})")
-            except Exception as e:
-                raise ValueError(f"挤压处理失败: {str(e)}")
-                    
-         
-                    
-        
+            if squashing_method == "改进的Sigmoid挤压":
+                st.info("使用默认参数: maxn=10")
 
         # ===== 滤波处理 =====
         st.subheader("📶 滤波")
         filtering_method = st.selectbox(
             "滤波方法",
-            ["无", "Savitzky-Golay", "中值滤波(MF)", "移动平均(MAF)", "Lowess", "FFT", "小波变换(DWT)", "卡尔曼滤波"],
+            ["无", "Savitzky-Golay", "中值滤波(MF)", "移动平均(MAF)", "Lowess", "FFT", "小波变换(DWT)"],
             key="filtering_method"
         )
 
@@ -603,23 +544,14 @@ with col1:
                 filtering_params["k"] = k
                 filtering_params["w"] = w
             elif filtering_method == "Lowess":
-                frac = st.selectbox("平滑系数(k)", [0.01, 0.03], key="frac_lowess")
+                frac = st.selectbox("平滑系数", [0.01, 0.03], key="frac_lowess")
                 filtering_params["frac"] = frac
             elif filtering_method == "FFT":
-                cutoff = st.selectbox("截止频率(l)", [90, 50, 30], key="cutoff_fft")
+                cutoff = st.selectbox("截止频率", [30, 50, 90], key="cutoff_fft")
                 filtering_params["cutoff"] = cutoff
             elif filtering_method == "小波变换(DWT)":
-                threshold = st.selectbox("阈值(k)", [0.1, 0.3, 0.5], key="threshold_dwt")
+                threshold = st.selectbox("阈值", [0.1, 0.3, 0.5], key="threshold_dwt")
                 filtering_params["threshold"] = threshold
-            elif filtering_method == "卡尔曼滤波":
-                 # 论文参数：r∈[1e-5, 1e-3]（根据论文表格补充）
-                 # 用字符串显示十进制形式的选项
-                 options = ["0.00001", "0.0001", "0.001"]
-                 # 让用户选择显示的字符串
-                 selected_str = st.selectbox("过程噪声(r)", options, key="r_kalman")
-                 # 将选择的字符串转换为对应的数值类型（float）
-                 r = float(selected_str)
-                 filtering_params["r"] = r
 
         # ===== 缩放处理 =====
         st.subheader("📏 缩放")
@@ -632,7 +564,7 @@ with col1:
         # 缩放参数
         scaling_params = {}
         if scaling_method == "L-范数":
-            p = st.selectbox("范数阶数(p)", ["无穷大", "10", "4"], key="p_scaling")
+            p = st.selectbox("范数阶数(p)", ["无穷大", "4", "10"], key="p_scaling")
             scaling_params["p"] = p
 
         # 处理按钮
@@ -662,8 +594,6 @@ with col1:
                 except Exception as e:
                     st.error(f"处理失败: {str(e)}")
 
-        
-
 with col2:
     # ===== 系统信息 =====
     if st.session_state.get('raw_data'):
@@ -681,16 +611,37 @@ with col2:
     st.subheader("📈 光谱可视化")
     if st.session_state.get('raw_data'):
         wavenumbers, y = st.session_state.raw_data
-        chart_data = pd.DataFrame(y, index=wavenumbers)
         
         if st.session_state.get('processed_data'):
             _, y_processed = st.session_state.processed_data
-            chart_data = pd.DataFrame({
-                "原始数据": y.mean(axis=1),
-                "处理后数据": y_processed.mean(axis=1)
-            }, index=wavenumbers)
-        
-        st.line_chart(chart_data)
+            
+            # 创建对比图表
+            if y.shape[1] > 1:
+                # 多条光谱数据，显示平均值
+                chart_data = pd.DataFrame({
+                    "原始数据(平均值)": y.mean(axis=1),
+                    "处理后数据(平均值)": y_processed.mean(axis=1)
+                }, index=wavenumbers)
+            else:
+                # 单条光谱数据，显示原始和处理后的曲线
+                chart_data = pd.DataFrame({
+                    "原始数据": y[:, 0],
+                    "处理后数据": y_processed[:, 0]
+                }, index=wavenumbers)
+            
+            st.line_chart(chart_data)
+        else:
+            # 只显示原始数据
+            if y.shape[1] > 1:
+                chart_data = pd.DataFrame({
+                    "原始数据(平均值)": y.mean(axis=1)
+                }, index=wavenumbers)
+            else:
+                chart_data = pd.DataFrame({
+                    "原始数据": y[:, 0]
+                }, index=wavenumbers)
+            
+            st.line_chart(chart_data)
     else:
         st.info("请先上传并处理数据")
 
@@ -721,4 +672,4 @@ with st.expander("ℹ️ 使用指南", expanded=False):
     **文件格式要求:**
     - 波数文件: 每行一个波数值
     - 光谱数据: 每列代表一条光谱，每行对应相同波数位置
-    """)
+    """)   
