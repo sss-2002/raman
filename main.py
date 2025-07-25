@@ -539,28 +539,6 @@ with col1:
                     l = st.selectbox("参数 l", [1, 5], key="l_dtw")
                     k1 = st.selectbox("参数 k1", ["T", "F"], key="k1_dtw")
                     k2 = st.selectbox("参数 k2", ["T", "F"], key="k2_dtw")
-                    
-                    st.write(f"DTW参数: l={l}, k1={k1}, k2={k2}")
-                    
-                    # 转换参数类型（如果需要）
-                    k1 = True if k1 == "T" else False
-                    k2 = True if k2 == "T" else False
-                    
-                    # 选择参考光谱
-                    reference = y_processed[:, 0]
-                    st.write(f"参考光谱形状: {reference.shape}")
-                    
-                    # 应用 DTW
-                    aligned_data = np.zeros_like(y_processed)
-                    for i in range(y_processed.shape[1]):
-                        query = y_processed[:, i]
-                        st.write(f"处理光谱 {i+1}/{y_processed.shape[1]}")
-                        
-                        # 使用 dtw-python 库
-                        from dtw import dtw
-                        alignment = dtw(query, reference, keep_internals=True)
-                        aligned_data[:, i] = query[alignment.index1]
-                    
                     y_processed = aligned_data
                     method_name.append(f"DTW(l={l}, k1={k1}, k2={k2})")
                     
