@@ -176,6 +176,33 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
     
     return spectra - baseline
 
+
+
+
+def dtw_squashing(x, l, k1, k2):
+    """动态时间规整(DTW)挤压算法"""
+    # 这里需要实现实际的DTW挤压逻辑
+    # 以下是一个简化的示例，实际应根据论文算法实现
+    if k1 == "T":
+        # 应用约束1
+        pass
+    if k2 == "T":
+        # 应用约束2
+        pass
+    
+    # 示例：使用窗口大小l进行简单平滑
+    n, m = x.shape
+    result = np.zeros_like(x)
+    
+    for i in range(m):
+        for j in range(n):
+            start = max(0, j - l)
+            end = min(n, j + l + 1)
+            result[j, i] = np.mean(x[start:end, i])
+    
+    return result
+
+
 # ===== 数据变换函数 =====
 def sigmoid(x):
     """原始Sigmoid函数"""
