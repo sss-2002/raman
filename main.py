@@ -515,54 +515,60 @@ with col1:
     # 挤压参数（根据论文表2.4扩展）
         squashing_params = {}
         if squashing_method != "无":
+            st.write(f"处理前数据形状: {y_processed.shape}")
+            st.write(f"数据类型: {y_processed.dtype}")
+            
             try:
                 if squashing_method == "Sigmoid挤压（原始版）":
-                    # 无额外参数，直接调用
                     y_processed = sigmoid(y_processed)
                     method_name.append("sigmoid")
-        
+                    
                 elif squashing_method == "改进的Sigmoid挤压（归一化版）":
-                    # 论文未明确 maxn 范围，按示例用 10、20（可根据论文实际调整）
-                    maxn = st.selectbox(
-                        "参数 maxn（改进Sigmoid）", 
-                        [10, 20], 
-                        key="maxn_sigmoid"
-                    )
+                    maxn = st.selectbox("参数 maxn", [10, 20], key="maxn_sigmoid")
                     y_processed = i_sigmoid(y_processed, maxn)
                     method_name.append(f"i_sigmoid(maxn={maxn})")
-        
+                    
                 elif squashing_method == "逻辑函数（原始版）":
-                    # 无额外参数，直接调用（需确保 squashing 函数实现正确）
                     y_processed = squashing(y_processed)
                     method_name.append("squashing")
-        
-                elif squashing_method == "改进的逻辑函数（归一化版）":
-                    # 论文表2.4 改进的逻辑函数参数 m：10、20
-                    m = st.selectbox(
-                        "参数 m（改进逻辑函数）", 
-                        [10, 20], 
-                        key="m_squashing"
-                    )
-                    y_processed = i_squashing(y_processed, m)  # 假设函数接收 m 参数
-                    method_name.append(f"i_squashing(m={m})")
-        
-                elif squashing_method == "DTW挤压":
-                    # 论文表2.4 DTW 参数 l、k1、k2
-                    l = st.selectbox(
-                        "参数 l（DTW）", 
-                        [1, 5],  # 论文表中 l 取值 1、5
-                        key="l_dtw"
-                    )
-                    k1_options = ["T", "F"]  # 对应论文表 k1、k2 的 T/F（需确认 T/F 实际含义，这里用字符串占位）
-                    k1 = st.selectbox("参数 k1（DTW）", k1_options, key="k1_dtw")
-                    k2 = st.selectbox("参数 k2（DTW）", k1_options, key="k2_dtw")
                     
-                    # 调用 DTW 函数（需确保 DTW 模块导入并实现正确）
-                    y_processed = DTW(y_processed, l=l, k1=k1, k2=k2)
+                elif squashing_method == "改进的逻辑函数（归一化版）":
+                    m = st.selectbox("参数 m", [10, 20], key="m_squashing")
+                    y_processed = i_squashing(y_processed, m)
+                    method_name.append(f"i_squashing(m={m})")
+                    
+                elif squashing_method == "DTW挤压":
+                    l = st.selectbox("参数 l", [1, 5], key="l_dtw")
+                    k1 = st.selectbox("参数 k1", ["T", "F"], key="k1_dtw")
+                    k2 = st.selectbox("参数 k2", ["T", "F"], key="k2_dtw")
+                    
+                    st.write(f"DTW参数: l={l}, k1={k1}, k2={k2}")
+                    
+                    # 转换参数类型（如果需要）
+                    k1 = True if k1 == "T" else False
+                    k2 = True if k2 == "T" else False
+                    
+                    # 选择参考光谱
+                    reference = y_processed[:, 0]
+                    st.write(f"参考光谱形状: {reference.shape}")
+                    
+                    # 应用 DTW
+                    aligned_data = np.zeros_like(y_processed)
+                    for i in range(y_processed.shape[1]):
+                        query = y_processed[:, i]
+                        st.write(f"处理光谱 {i+1}/{y_processed.shape[1]}")
+                        
+                        # 使用 dtw-python 库
+                        from dtw import dtw
+                        alignment = dtw(query, reference, keep_internals=True)
+                        aligned_data[:, i] = query[alignment.index1]
+                    
+                    y_processed = aligned_data
                     method_name.append(f"DTW(l={l}, k1={k1}, k2={k2})")
-        
+                    
             except Exception as e:
-                raise ValueError(f"挤压处理失败: {str(e)}")
+                st.error(f"挤压处理失败: {type(e).__name__} - {str(e)}")
+                raise  # 保留原始异常，便于调试
         
 
         # ===== 滤波处理 =====
