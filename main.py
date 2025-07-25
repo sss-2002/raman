@@ -529,24 +529,24 @@ with col1:
             elif squashing_method == "改进的逻辑函数":
                 m = st.selectbox(
                     "参数m", 
-                    [10, 20],  # 对应论文表中改进的逻辑函数m为10、20
+                    [10, 20], 
                     key="m_squashing"
                 )
                 squashing_params["m"] = m
             elif squashing_method == "DTW":
                 l = st.selectbox(
                     "参数l", 
-                    [1, 5],  # 对应论文表中DTW的l取值1、5
+                    [1, 5],  
                     key="l_dtw"
                 )
                 k1 = st.selectbox(
                     "参数k1", 
-                    ["T", "F"],  # 对应论文表中k1的T、F选项
+                    ["T", "F"], 
                     key="k1_dtw"
                 )
                 k2 = st.selectbox(
                     "参数k2", 
-                    ["T", "F"],  # 对应论文表中k2的T、F选项
+                    ["T", "F"],  
                     key="k2_dtw"
                 )
                 squashing_params["l"] = l
