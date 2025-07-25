@@ -244,6 +244,7 @@ class Preprocessor:
             "改进的Sigmoid挤压": i_sigmoid,
             "逻辑函数": squashing,
             "改进的逻辑函数": i_squashing,
+            "DTW挤压": dtw_squashing
         }
 
     def process(self, wavenumbers, data, 
@@ -278,16 +279,28 @@ class Preprocessor:
             except Exception as e:
                 raise ValueError(f"基线校正失败: {str(e)}")
 
-        # 挤压处理
+        # 挤压处理（按论文表格调整参数）
         if squashing_method != "无":
             try:
                 algorithm_func = self.SQUASHING_ALGORITHMS[squashing_method]
                 
                 # 根据挤压方法传递参数
                 if squashing_method == "改进的Sigmoid挤压":
-                    # 使用默认的maxn=10
-                    y_processed = algorithm_func(y_processed)
+                    # 对应 maxn=10（论文默认）
+                    y_processed = algorithm_func(y_processed, maxn=10)
                     method_name.append(f"{squashing_method}(maxn=10)")
+                elif squashing_method == "改进的逻辑函数":
+                    # 假设需要参数m，从下拉框选10或20（对应论文表格）
+                    m = squashing_params.get("m", 10)  # 后续在UI补充参数选择
+                    y_processed = algorithm_func(y_processed)  # 若i_squashing需m则调整
+                    method_name.append(f"{squashing_method}(m={m})")
+                elif squashing_method == "DTW挤压":
+                    # 从参数获取l、k1、k2（对应论文表格的DTW参数）
+                    l = squashing_params.get("l", 1)
+                    k1 = squashing_params.get("k1", "T")
+                    k2 = squashing_params.get("k2", "T")
+                    y_processed = algorithm_func(y_processed, l=l, k1=k1, k2=k2)
+                    method_name.append(f"DTW挤压(l={l}, k1={k1}, k2={k2})")
                 else:
                     y_processed = algorithm_func(y_processed)
                     method_name.append(squashing_method)
@@ -404,10 +417,7 @@ class FileHandler:
         # 读取波数数据
         wavenumbers = np.loadtxt(wavenumber_file).ravel()
         
-        # 读取光谱数据
-        ret = self._getfromone(data_file, lines, much)
-        
-        return wavenumbers, ret.T  # 转置为(点数, 光谱数)
+        return wavenumbers, self._getfromone(data_file, lines, much).T 
     
     def _getfromone(self, file, lines, much):
         """从文件中解析光谱数据"""
@@ -512,6 +522,7 @@ with col1:
              "改进的Sigmoid挤压",
              "逻辑函数",
              "改进的逻辑函数",
+             "DTW挤压"
             ],
             key="squashing_method"
         )
@@ -519,8 +530,38 @@ with col1:
         # 挤压参数
         squashing_params = {}
         if squashing_method != "无":
-            if squashing_method == "改进的Sigmoid挤压":
-                st.info("使用默认参数: maxn=10")
+            if squashing_method == "改进的逻辑函数":
+                # 对应论文表格的m参数：10或20
+                m = st.selectbox(
+                    "参数m", 
+                    [10, 20], 
+                    key="m_improved_squash"
+                )
+                squashing_params["m"] = m
+                st.info(f"使用参数: m={m}")
+            elif squashing_method == "DTW挤压":
+                # 对应论文表格的DTW参数：l、k1、k2
+                l = st.selectbox(
+                    "参数l", 
+                    [1, 5],  # 表格中l的取值
+                    key="l_dtw"
+                )
+                k1 = st.selectbox(
+                    "参数k1", 
+                    ["T", "F"],  # 布尔选项
+                    key="k1_dtw"
+                )
+                k2 = st.selectbox(
+                    "参数k2", 
+                    ["T", "F"],  # 布尔选项
+                    key="k2_dtw"
+                )
+                squashing_params["l"] = l
+                squashing_params["k1"] = k1
+                squashing_params["k2"] = k2
+                st.info(f"使用参数: l={l}, k1={k1}, k2={k2}")
+            elif squashing_method == "改进的Sigmoid挤压":
+                st.info("使用默认参数: maxn=10（归一化范围）")
 
         # ===== 滤波处理 =====
         st.subheader("📶 滤波")
