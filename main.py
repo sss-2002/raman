@@ -553,7 +553,7 @@ with col1:
                 filtering_params["threshold"] = threshold
             elif filtering_method == "卡尔曼滤波":
                 # 论文参数：r∈[1e-5, 1e-3]（根据论文表格补充）
-                r = st.selectbox("过程噪声(r)", [1e-5, 1e-4, 1e-3], key="r_kalman")
+                r = st.selectbox("过程噪声(r)", [0.00005, 1e-4, 1e-3], key="r_kalman")
                 filtering_params["r"] = r
 
         # ===== 缩放处理 =====
