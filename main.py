@@ -17,7 +17,7 @@ from scipy.signal import savgol_filter, medfilt
 from scipy.fft import fft, ifft
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
-from DTW import DTW
+from DTW import dtw_path
  
 
 # 设置页面
@@ -177,7 +177,72 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
     
     return spectra - baseline
 
-
+def dtw_squashing(x, l, k1, k2):
+    """动态时间规整(DTW)挤压算法"""
+    n_samples, n_features = x.shape
+    result = np.zeros_like(x)
+    
+    # 选择参考光谱（通常是平均光谱或已知标准光谱）
+    reference = np.mean(x, axis=1)  # 使用平均光谱作为参考
+    
+    for i in range(n_features):
+        spectrum = x[:, i]
+        
+        # 计算DTW路径
+        path, cost = dtw_path(reference, spectrum)
+        
+        # 应用DTW路径进行挤压
+        squashed = np.zeros_like(spectrum)
+        
+        # 应用路径映射
+        for ref_idx, spec_idx in path:
+            squashed[ref_idx] += spectrum[spec_idx]
+        
+        # 归一化处理
+        unique_ref_indices = np.unique([p[0] for p in path])
+        for idx in unique_ref_indices:
+            count = sum(1 for p in path if p[0] == idx)
+            squashed[idx] /= count
+        
+        # 应用约束条件
+        if k1 == "T":
+            # 约束1：限制路径斜率（确保局部点不被映射太远）
+            # 实现示例：限制相邻点在路径中的索引差
+            max_slope = l  # 使用l作为最大斜率限制
+            for j in range(1, len(path)):
+                ref_diff = path[j][0] - path[j-1][0]
+                spec_diff = path[j][1] - path[j-1][1]
+                if ref_diff != 0:  # 避免除零
+                    slope = abs(spec_diff / ref_diff)
+                    if slope > max_slope:
+                        # 调整路径或平滑结果
+                        squashed[path[j][0]] = (squashed[path[j][0]] + squashed[path[j-1][0]]) / 2
+        
+        if k2 == "T":
+            # 约束2：保证一对一映射或区域映射限制
+            # 实现示例：确保每个参考点最多映射到l个原始点
+            ref_map_count = {}
+            for ref_idx, _ in path:
+                ref_map_count[ref_idx] = ref_map_count.get(ref_idx, 0) + 1
+            
+            for ref_idx, count in ref_map_count.items():
+                if count > l:
+                    # 重新分配权重或平滑处理
+                    window = min(l, len(spectrum))
+                    start = max(0, ref_idx - window//2)
+                    end = min(n_samples, ref_idx + window//2 + 1)
+                    squashed[ref_idx] = np.mean(spectrum[start:end])
+        
+        # 应用窗口平滑（如果需要）
+        if l > 1:
+            for j in range(n_samples):
+                start = max(0, j - l)
+                end = min(n_samples, j + l + 1)
+                squashed[j] = np.mean(squashed[start:end])
+        
+        result[:, i] = squashed
+    
+    return result
 
 
 
