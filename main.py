@@ -593,29 +593,7 @@ with col1:
                 except Exception as e:
                     st.error(f"处理失败: {str(e)}")
 
-        # 处理按钮
-        if st.button("🚀 应用处理", type="primary", use_container_width=True):
-            if st.session_state.raw_data is None:
-                st.warning("请先上传数据文件")
-            else:
-                try:
-                    wavenumbers, y = st.session_state.raw_data
-                    
-                    # 执行预处理
-                    processed_data, method_name = preprocessor.process(
-                        wavenumbers, y, 
-                        baseline_method=baseline_method,
-                        baseline_params=baseline_params,
-                        transform_method=transform_method,
-                        transform_params=transform_params,
-                        norm_method=norm_method
-                    )
-                    
-                    st.session_state.processed_data = (wavenumbers, processed_data)
-                    st.session_state.process_method = " → ".join(method_name)
-                    st.success(f"处理完成: {st.session_state.process_method}")
-                except Exception as e:
-                    st.error(f"处理失败: {str(e)}")
+        
 
 with col2:
     # ===== 系统信息 =====
