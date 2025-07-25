@@ -15,6 +15,7 @@ from scipy import sparse
 from scipy.sparse.linalg import spsolve
 from scipy.signal import savgol_filter, medfilt
 from scipy.fft import fft, ifft
+from DTW import DTW 
 
 # 设置页面
 st.set_page_config(layout="wide", page_title="光谱预处理系统")
@@ -505,33 +506,64 @@ with col1:
              "Sigmoid挤压(原始版)",  # 对应 from sigmoids import sigmoid
              "改进的Sigmoid挤压(归一化版)",  # 对应 from i_sigmoid import i_sigmoid
              "逻辑函数(原始版)",  # 可根据实际函数命名调整
-             "改进的逻辑函数(归一化版)" ],
+             "改进的逻辑函数(归一化版)",
+             "DTW挤压"
+            ],
             key="squashing_method"
         )
 
-        # 挤压参数（根据论文表2.4扩展）
-         squashing_params = {}
-         if squashing_method != "无":
+    # 挤压参数（根据论文表2.4扩展）
+       squashing_params = {}
+        if squashing_method != "无":
             try:
-             if squashing_method == "Sigmoid挤压(原始版)":
-            y_processed = sigmoid(y_processed)
-            method_name.append("sigmoid")
-             elif squashing_method == "改进的Sigmoid挤压(归一化版)":
-            maxn = squashing_params.get("maxn", 20)  # 参考论文参数，可调整默认值
-            y_processed = i_sigmoid(y_processed, maxn)
-            method_name.append(f"i_sigmoid(maxn={maxn})")
-              elif squashing_method == "逻辑函数(原始版)":
-            # 假设逻辑函数原始版对应 squashing 函数（需根据实际实现确认）
-            y_processed = squashing(y_processed)
-            method_name.append("squashing")
-              elif squashing_method == "改进的逻辑函数(归一化版)":
-            # 若有 i_squashing 或其他归一化逻辑函数，按实际调用
-            # 示例：假设改进的逻辑函数用 i_squashing，参数可扩展
-            y_processed = i_squashing(y_processed)
-            method_name.append("i_squashing")
+                if squashing_method == "Sigmoid挤压（原始版）":
+                    # 无额外参数，直接调用
+                    y_processed = sigmoid(y_processed)
+                    method_name.append("sigmoid")
+        
+                elif squashing_method == "改进的Sigmoid挤压（归一化版）":
+                    # 论文未明确 maxn 范围，按示例用 10、20（可根据论文实际调整）
+                    maxn = st.selectbox(
+                        "参数 maxn（改进Sigmoid）", 
+                        [10, 20], 
+                        key="maxn_sigmoid"
+                    )
+                    y_processed = i_sigmoid(y_processed, maxn)
+                    method_name.append(f"i_sigmoid(maxn={maxn})")
+        
+                elif squashing_method == "逻辑函数（原始版）":
+                    # 无额外参数，直接调用（需确保 squashing 函数实现正确）
+                    y_processed = squashing(y_processed)
+                    method_name.append("squashing")
+        
+                elif squashing_method == "改进的逻辑函数（归一化版）":
+                    # 论文表2.4 改进的逻辑函数参数 m：10、20
+                    m = st.selectbox(
+                        "参数 m（改进逻辑函数）", 
+                        [10, 20], 
+                        key="m_squashing"
+                    )
+                    y_processed = i_squashing(y_processed, m)  # 假设函数接收 m 参数
+                    method_name.append(f"i_squashing(m={m})")
+        
+                elif squashing_method == "DTW挤压":
+                    # 论文表2.4 DTW 参数 l、k1、k2
+                    l = st.selectbox(
+                        "参数 l（DTW）", 
+                        [1, 5],  # 论文表中 l 取值 1、5
+                        key="l_dtw"
+                    )
+                    k1_options = ["T", "F"]  # 对应论文表 k1、k2 的 T/F（需确认 T/F 实际含义，这里用字符串占位）
+                    k1 = st.selectbox("参数 k1（DTW）", k1_options, key="k1_dtw")
+                    k2 = st.selectbox("参数 k2（DTW）", k1_options, key="k2_dtw")
+                    
+                    # 调用 DTW 函数（需确保 DTW 模块导入并实现正确）
+                    y_processed = DTW(y_processed, l=l, k1=k1, k2=k2)
+                    method_name.append(f"DTW(l={l}, k1={k1}, k2={k2})")
         
             except Exception as e:
-             raise ValueError(f"挤压处理失败: {str(e)}")
+                raise ValueError(f"挤压处理失败: {str(e)}")
+        
 
         # ===== 滤波处理 =====
         st.subheader("📶 滤波")
