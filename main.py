@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
+import re
 from SD import D2
 from FD import D1
 from sigmoids import sigmoid
@@ -12,6 +13,8 @@ from AsLS import baseline_als
 from LPnorm import LPnorm
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
+from scipy.signal import savgol_filter, medfilt
+from scipy.fft import fft, ifft
 
 # 设置页面
 st.set_page_config(layout="wide", page_title="光谱预处理系统")
@@ -212,16 +215,35 @@ class Preprocessor:
             "AsLS": asls,
             "airPLS": airpls,
         }
-    
+    # 滤波算法映射
+        self.FILTERING_ALGORITHMS = {
+            "Savitzky-Golay": self.savitzky_golay,
+            "中值滤波(MF)": self.median_filter,
+            "移动平均(MAF)": self.moving_average,
+            "Lowess": self.lowess_filter,
+            "FFT": self.fft_filter,
+            "小波变换(DWT)": self.wavelet_filter
+        }
+        
+        # 缩放算法映射
+        self.SCALING_ALGORITHMS = {
+            "Peak-Norm": self.peak_norm,
+            "SNV": self.snv,
+            "MSC": self.msc,
+            "M-M-Norm": self.mm_norm,
+            "L-范数": self.l_norm
+        }
+
     def process(self, wavenumbers, data, 
                 baseline_method="无", baseline_params=None,
-                transform_method="无", transform_params=None,
-                norm_method="无"):
+                squashing_method="无", squashing_params=None,
+                filtering_method="无", filtering_params=None,
+                scaling_method="无", scaling_params=None):
         """执行完整的预处理流程"""
-        if baseline_params is None:
-            baseline_params = {}
-        if transform_params is None:
-            transform_params = {}
+        if baseline_params is None: baseline_params = {}
+        if squashing_params is None: squashing_params = {}
+        if filtering_params is None: filtering_params = {}
+        if scaling_params is None: scaling_params = {}
             
         y_processed = data.copy()
         method_name = []
@@ -244,39 +266,44 @@ class Preprocessor:
             except Exception as e:
                 raise ValueError(f"基线校正失败: {str(e)}")
 
-        # 数据变换处理
-        if transform_method != "无":
+        # 挤压处理
+        if squashing_method != "无":
             try:
-                if transform_method == "挤压函数(归一化版)":
+                if squashing_method == "挤压函数(归一化版)":
                     y_processed = i_squashing(y_processed)
                     method_name.append("i_squashing")
-                elif transform_method == "挤压函数(原始版)":
+                elif squashing_method == "挤压函数(原始版)":
                     y_processed = squashing(y_processed)
                     method_name.append("squashing")
-                elif transform_method == "Sigmoid(归一化版)":
-                    maxn = transform_params.get("maxn", 10)
+                elif squashing_method == "Sigmoid(归一化版)":
+                    maxn = squashing_params.get("maxn", 10)
                     y_processed = i_sigmoid(y_processed, maxn)
                     method_name.append(f"i_sigmoid(maxn={maxn})")
-                elif transform_method == "Sigmoid(原始版)":
+                elif squashing_method == "Sigmoid(原始版)":
                     y_processed = sigmoid(y_processed)
                     method_name.append("sigmoid")
             except Exception as e:
-                raise ValueError(f"数据变换失败: {str(e)}")
+                raise ValueError(f"挤压处理失败: {str(e)}")
 
-        # 归一化处理
-        if norm_method != "无":
+        # 滤波处理
+        if filtering_method != "无":
             try:
-                if norm_method == "无穷大范数":
-                    y_processed = LPnorm(y_processed, np.inf)
-                    method_name.append("无穷大范数")
-                elif norm_method == "L10范数":
-                    y_processed = LPnorm(y_processed, 10)
-                    method_name.append("L10范数")
-                elif norm_method == "L4范数":
-                    y_processed = LPnorm(y_processed, 4)
-                    method_name.append("L4范数")
+                algorithm_func = self.FILTERING_ALGORITHMS[filtering_method]
+                y_processed = algorithm_func(y_processed, **filtering_params)
+                params_str = ', '.join([f'{k}={v}' for k, v in filtering_params.items()])
+                method_name.append(f"{filtering_method}({params_str})")
             except Exception as e:
-                raise ValueError(f"归一化失败: {str(e)}")
+                raise ValueError(f"滤波处理失败: {str(e)}")
+
+        # 缩放处理
+        if scaling_method != "无":
+            try:
+                algorithm_func = self.SCALING_ALGORITHMS[scaling_method]
+                y_processed = algorithm_func(y_processed, **scaling_params)
+                params_str = ', '.join([f'{k}={v}' for k, v in scaling_params.items()])
+                method_name.append(f"{scaling_method}({params_str})")
+            except Exception as e:
+                raise ValueError(f"缩放处理失败: {str(e)}")
 
         return y_processed, method_name
     
@@ -291,6 +318,87 @@ class Preprocessor:
         # 这里应该是实际的FD算法实现
         # 这里仅作示例
         return spectra - np.percentile(spectra, 5, axis=0)
+
+# ===== 滤波算法实现 =====
+    def savitzky_golay(self, spectra, k, w):
+        """Savitzky-Golay滤波"""
+        window_length = w
+        polyorder = k
+        return savgol_filter(spectra, window_length, polyorder, axis=0)
+    
+    def median_filter(self, spectra, k, w):
+        """中值滤波"""
+        kernel_size = w
+        return medfilt(spectra, kernel_size=(kernel_size, 1))
+    
+    def moving_average(self, spectra, k, w):
+        """移动平均滤波"""
+        window_size = w
+        # 使用卷积实现移动平均
+        kernel = np.ones(window_size) / window_size
+        return np.apply_along_axis(lambda x: np.convolve(x, kernel, mode='same'), 0, spectra)
+    
+    def lowess_filter(self, spectra, frac):
+        """Lowess平滑滤波"""
+        # 由于Lowess计算较慢，这里使用简化实现
+        # 实际应用中应使用statsmodels的lowess函数
+        from statsmodels.nonparametric.smoothers_lowess import lowess
+        result = np.zeros_like(spectra)
+        for i in range(spectra.shape[1]):
+            smoothed = lowess(spectra[:, i], np.arange(len(spectra)), frac=frac, it=0)
+            result[:, i] = smoothed[:, 1]
+        return result
+    
+    def fft_filter(self, spectra, cutoff):
+        """FFT滤波"""
+        fft_result = fft(spectra, axis=0)
+        frequencies = np.fft.fftfreq(spectra.shape[0])
+        
+        # 创建滤波器
+        filter_mask = np.abs(frequencies) < cutoff
+        fft_result[~filter_mask, :] = 0
+        
+        return np.real(ifft(fft_result, axis=0))
+    
+    def wavelet_filter(self, spectra, threshold):
+        """小波变换滤波"""
+        import pywt
+        coeffs = pywt.wavedec(spectra, 'db4', axis=0)
+        # 阈值处理
+        coeffs[1:] = [pywt.threshold(c, threshold, mode='soft') for c in coeffs[1:]]
+        return pywt.waverec(coeffs, 'db4', axis=0)
+    
+    # ===== 缩放算法实现 =====
+    def peak_norm(self, spectra):
+        """Peak-Norm归一化"""
+        return spectra / np.max(spectra, axis=0)
+    
+    def snv(self, spectra):
+        """标准正态变量变换(SNV)"""
+        mean = np.mean(spectra, axis=0)
+        std = np.std(spectra, axis=0)
+        return (spectra - mean) / std
+    
+    def msc(self, spectra):
+        """多元散射校正(MSC)"""
+        mean_spectrum = np.mean(spectra, axis=1)
+        return np.apply_along_axis(lambda x: np.polyval(np.polyfit(mean_spectrum, x, 1), 0, spectra)
+    
+    def mm_norm(self, spectra):
+        """M-M-Norm归一化"""
+        min_vals = np.min(spectra, axis=0)
+        max_vals = np.max(spectra, axis=0)
+        return (spectra - min_vals) / (max_vals - min_vals)
+    
+    def l_norm(self, spectra, p):
+        """L-范数归一化"""
+        if p == "无穷大":
+            return spectra / np.max(np.abs(spectra), axis=0)
+        else:
+            p_val = float(p)
+            norm = np.linalg.norm(spectra, ord=p_val, axis=0)
+            norm[norm == 0] = 1  # 避免除零错误
+            return spectra / norm
 
 # ===== 文件处理类 =====
 class FileHandler:
@@ -398,28 +506,92 @@ with col1:
                 lam = st.selectbox("λ(平滑度)", [10**7, 10**4, 10**2], key="lam_airpls")
                 baseline_params["lam"] = lam
 
-        # ===== 数据变换 =====
-        st.subheader("🧩 数据测试变换")
-        transform_method = st.selectbox(
-            "变换方法",
+        # ===== 挤压处理 =====
+        st.subheader("🧪 挤压")
+        squashing_method = st.selectbox(
+            "挤压方法",
             ["无", "挤压函数(归一化版)", "挤压函数(原始版)", 
              "Sigmoid(归一化版)", "Sigmoid(原始版)"],
-            key="transform_method"
+            key="squashing_method"
         )
 
-        # 动态参数
-        transform_params = {}
-        if "Sigmoid(归一化版)" in transform_method:
+        # 挤压参数
+        squashing_params = {}
+        if "Sigmoid(归一化版)" in squashing_method:
             maxn = st.slider("归一化系数", 1, 20, 10)
-            transform_params["maxn"] = maxn
+            squashing_params["maxn"] = maxn
 
-        # 归一化
-        st.subheader("归一化")
-        norm_method = st.selectbox(
-            "归一化方法",
-            ["无", "无穷大范数", "L10范数", "L4范数"],
-            key="norm_method"
+        # ===== 滤波处理 =====
+        st.subheader("📶 滤波")
+        filtering_method = st.selectbox(
+            "滤波方法",
+            ["无", "Savitzky-Golay", "中值滤波(MF)", "移动平均(MAF)", "Lowess", "FFT", "小波变换(DWT)"],
+            key="filtering_method"
         )
+
+        # 滤波参数
+        filtering_params = {}
+        if filtering_method != "无":
+            if filtering_method == "Savitzky-Golay":
+                k = st.selectbox("阶数(k)", [3, 7], key="k_sg")
+                w = st.selectbox("窗口大小(w)", [11, 31, 51], key="w_sg")
+                filtering_params["k"] = k
+                filtering_params["w"] = w
+            elif filtering_method in ["中值滤波(MF)", "移动平均(MAF)"]:
+                k = st.selectbox("核大小(k)", [1, 3], key="k_mf")
+                w = st.selectbox("窗口大小(w)", [7, 11], key="w_mf")
+                filtering_params["k"] = k
+                filtering_params["w"] = w
+            elif filtering_method == "Lowess":
+                frac = st.selectbox("平滑系数(l)", [0.01, 0.03], key="frac_lowess")
+                filtering_params["frac"] = frac
+            elif filtering_method == "FFT":
+                cutoff = st.selectbox("截止频率(k)", [0.1, 0.3, 0.5], key="cutoff_fft")
+                filtering_params["cutoff"] = cutoff
+            elif filtering_method == "小波变换(DWT)":
+                threshold = st.selectbox("阈值", [0.1, 0.3, 0.5], key="threshold_dwt")
+                filtering_params["threshold"] = threshold
+
+        # ===== 缩放处理 =====
+        st.subheader("📏 缩放")
+        scaling_method = st.selectbox(
+            "缩放方法",
+            ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数"],
+            key="scaling_method"
+        )
+
+        # 缩放参数
+        scaling_params = {}
+        if scaling_method == "L-范数":
+            p = st.selectbox("范数阶数(p)", ["无穷大", "10", "4"], key="p_scaling")
+            scaling_params["p"] = p
+
+        # 处理按钮
+        if st.button("🚀 应用处理", type="primary", use_container_width=True):
+            if st.session_state.raw_data is None:
+                st.warning("请先上传数据文件")
+            else:
+                try:
+                    wavenumbers, y = st.session_state.raw_data
+                    
+                    # 执行预处理
+                    processed_data, method_name = preprocessor.process(
+                        wavenumbers, y, 
+                        baseline_method=baseline_method,
+                        baseline_params=baseline_params,
+                        squashing_method=squashing_method,
+                        squashing_params=squashing_params,
+                        filtering_method=filtering_method,
+                        filtering_params=filtering_params,
+                        scaling_method=scaling_method,
+                        scaling_params=scaling_params
+                    )
+                    
+                    st.session_state.processed_data = (wavenumbers, processed_data)
+                    st.session_state.process_method = " → ".join(method_name)
+                    st.success(f"处理完成: {st.session_state.process_method}")
+                except Exception as e:
+                    st.error(f"处理失败: {str(e)}")
 
         # 处理按钮
         if st.button("🚀 应用处理", type="primary", use_container_width=True):
