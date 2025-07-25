@@ -1,5 +1,4 @@
 pip>=25.1.1
-
 pandas>=1.5.0
 numpy>=1.24.0
 plotly>=5.14.0
@@ -15,3 +14,5 @@ markdown-it-py==3.0.0
 rich>=10.14.0,<14.0.0 
 pygments==2.19.2
 mdurl==0.1.2
+statsmodels>=0.14.0
+pywavelets>=1.4.1
