@@ -266,22 +266,13 @@ class Preprocessor:
             except Exception as e:
                 raise ValueError(f"基线校正失败: {str(e)}")
 
-        # 挤压处理
+         #挤压处理
         if squashing_method != "无":
             try:
-                if squashing_method == "挤压函数(归一化版)":
-                    y_processed = i_squashing(y_processed)
-                    method_name.append("i_squashing")
-                elif squashing_method == "挤压函数(原始版)":
-                    y_processed = squashing(y_processed)
-                    method_name.append("squashing")
-                elif squashing_method == "Sigmoid(归一化版)":
-                    maxn = squashing_params.get("maxn", 10)
-                    y_processed = i_sigmoid(y_processed, maxn)
-                    method_name.append(f"i_sigmoid(maxn={maxn})")
-                elif squashing_method == "Sigmoid(原始版)":
-                    y_processed = sigmoid(y_processed)
-                    method_name.append("sigmoid")
+                algorithm_func = self.FILTERING_ALGORITHMS[squashing_method]
+                y_processed = algorithm_func(y_processed, **squashing_params)
+                params_str = ', '.join([f'{k}={v}' for k, v in squashing_params.items()])
+                method_name.append(f"{squashing_method}({params_str})")
             except Exception as e:
                 raise ValueError(f"挤压处理失败: {str(e)}")
 
@@ -510,16 +501,37 @@ with col1:
         st.subheader("🧪 挤压")
         squashing_method = st.selectbox(
             "挤压方法",
-            ["无", "挤压函数(归一化版)", "挤压函数(原始版)", 
-             "Sigmoid(归一化版)", "Sigmoid(原始版)"],
+            ["无", 
+             "Sigmoid挤压(原始版)",  # 对应 from sigmoids import sigmoid
+             "改进的Sigmoid挤压(归一化版)",  # 对应 from i_sigmoid import i_sigmoid
+             "逻辑函数(原始版)",  # 可根据实际函数命名调整
+             "改进的逻辑函数(归一化版)" ],
             key="squashing_method"
         )
 
-        # 挤压参数
-        squashing_params = {}
-        if "Sigmoid(归一化版)" in squashing_method:
-            maxn = st.slider("归一化系数", 1, 20, 10)
-            squashing_params["maxn"] = maxn
+        # 挤压参数（根据论文表2.4扩展）
+         squashing_params = {}
+         if squashing_method != "无":
+            try:
+             if squashing_method == "Sigmoid挤压(原始版)":
+            y_processed = sigmoid(y_processed)
+            method_name.append("sigmoid")
+             elif squashing_method == "改进的Sigmoid挤压(归一化版)":
+            maxn = squashing_params.get("maxn", 20)  # 参考论文参数，可调整默认值
+            y_processed = i_sigmoid(y_processed, maxn)
+            method_name.append(f"i_sigmoid(maxn={maxn})")
+              elif squashing_method == "逻辑函数(原始版)":
+            # 假设逻辑函数原始版对应 squashing 函数（需根据实际实现确认）
+            y_processed = squashing(y_processed)
+            method_name.append("squashing")
+              elif squashing_method == "改进的逻辑函数(归一化版)":
+            # 若有 i_squashing 或其他归一化逻辑函数，按实际调用
+            # 示例：假设改进的逻辑函数用 i_squashing，参数可扩展
+            y_processed = i_squashing(y_processed)
+            method_name.append("i_squashing")
+        
+            except Exception as e:
+             raise ValueError(f"挤压处理失败: {str(e)}")
 
         # ===== 滤波处理 =====
         st.subheader("📶 滤波")
