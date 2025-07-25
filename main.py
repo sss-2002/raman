@@ -17,7 +17,7 @@ from scipy.signal import savgol_filter, medfilt
 from scipy.fft import fft, ifft
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
-from DTW import dtw_path
+from DTW import DTW
  
 
 # 设置页面
