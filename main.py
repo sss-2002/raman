@@ -513,8 +513,8 @@ with col1:
         )
 
     # 挤压参数（根据论文表2.4扩展）
-       squashing_params = {}
-        if squashing_method != "无":
+        squashing_params = {}
+           if squashing_method != "无":
             try:
                 if squashing_method == "Sigmoid挤压（原始版）":
                     # 无额外参数，直接调用
