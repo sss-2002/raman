@@ -525,7 +525,7 @@ with col1:
         st.subheader("📶 滤波")
         filtering_method = st.selectbox(
             "滤波方法",
-            ["无", "Savitzky-Golay", "中值滤波(MF)", "移动平均(MAF)", "Lowess", "FFT", "小波变换(DWT)"],
+            ["无", "Savitzky-Golay", "中值滤波(MF)", "移动平均(MAF)", "Lowess", "FFT", "小波变换(DWT)", "卡尔曼滤波"],
             key="filtering_method"
         )
 
@@ -543,14 +543,18 @@ with col1:
                 filtering_params["k"] = k
                 filtering_params["w"] = w
             elif filtering_method == "Lowess":
-                frac = st.selectbox("平滑系数(l)", [0.01, 0.03], key="frac_lowess")
+                frac = st.selectbox("平滑系数(k)", [0.01, 0.03], key="frac_lowess")
                 filtering_params["frac"] = frac
             elif filtering_method == "FFT":
-                cutoff = st.selectbox("截止频率(k)", [0.1, 0.3, 0.5], key="cutoff_fft")
+                cutoff = st.selectbox("截止频率(l)", [90, 50, 30], key="cutoff_fft")
                 filtering_params["cutoff"] = cutoff
             elif filtering_method == "小波变换(DWT)":
-                threshold = st.selectbox("阈值", [0.1, 0.3, 0.5], key="threshold_dwt")
+                threshold = st.selectbox("阈值(k)", [0.1, 0.3, 0.5], key="threshold_dwt")
                 filtering_params["threshold"] = threshold
+            elif filtering_method == "卡尔曼滤波":
+                # 论文参数：r∈[1e-5, 1e-3]（根据论文表格补充）
+                r = st.selectbox("过程噪声(r)", [1e-5, 1e-4, 1e-3], key="r_kalman")
+                filtering_params["r"] = r
 
         # ===== 缩放处理 =====
         st.subheader("📏 缩放")
