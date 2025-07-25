@@ -498,14 +498,6 @@ with col1:
                 lam = st.selectbox("λ(平滑度)", [10**7, 10**4, 10**2], key="lam_airpls")
                 baseline_params["lam"] = lam
 
-     
-        # 确保数据已加载
-        if 'raw_data' not in st.session_state:
-            st.error("请先加载光谱数据！")
-            st.stop()
-        
-        # 初始化处理后的数据
-        y_processed = st.session_state.raw_data.copy()
 
      
         # ===== 挤压处理 =====
@@ -525,10 +517,6 @@ with col1:
     # 挤压参数（根据论文表2.4扩展）
         squashing_params = {}
         if squashing_method != "无":
-            st.write(f"处理前数据形状: {y_processed.shape}")
-            st.write(f"数据类型: {y_processed.dtype}")
-            
-            try:
                 if squashing_method == "Sigmoid挤压（原始版）":
                     y_processed = sigmoid(y_processed)
                     method_name.append("sigmoid")
@@ -576,9 +564,6 @@ with col1:
                     y_processed = aligned_data
                     method_name.append(f"DTW(l={l}, k1={k1}, k2={k2})")
                     
-            except Exception as e:
-                st.error(f"挤压处理失败: {type(e).__name__} - {str(e)}")
-                raise  # 保留原始异常，便于调试
         
 
         # ===== 滤波处理 =====
