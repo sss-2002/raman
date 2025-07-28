@@ -523,7 +523,7 @@ file_handler = FileHandler()
 preprocessor = Preprocessor()
 
 # 创建三列布局：左侧数据管理、中间光谱可视化、右侧预处理设置
-col_left, col_mid, col_right = st.columns([1.2, 2.5, 2])
+col_left, col_mid, col_right = st.columns([1.8, 2.5, 1.2])
 
 # ===== 左侧：数据管理 =====
 with col_left:
