@@ -15,7 +15,7 @@ modules = [
     {
         "name": "1",
         "description": "111111",
-        "target_page": "page1"  # 对应 page1.py 文件，点击跳转到该页面
+        "target_page": "main"  # 对应 page1.py 文件，点击跳转到该页面
     },
     {
         "name": "2",
