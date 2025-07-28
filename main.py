@@ -26,9 +26,9 @@ def main():
      st.title("🌌 光谱预处理系统")
      
      # 返回按钮
-    if st.button("返回主页"):
-        st.session_state.current_page = 'home'
-        st.experimental_rerun()
+     if st.button("返回主页"):
+          st.session_state.current_page = 'home'
+          st.experimental_rerun()
 
 
      # 初始化session状态
