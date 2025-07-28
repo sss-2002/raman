@@ -16,7 +16,7 @@ modules = [
     {
         "name": "1",
         "description": "111111",
-        "page": "SpectraApp"
+        "page": "main"
     },
     {
         "name": "2",
