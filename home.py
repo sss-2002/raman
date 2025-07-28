@@ -7,7 +7,7 @@ if 'current_page' not in st.session_state:
 
 # 主页内容
 def show_home_page():
-    st.title("光谱分析系统")
+    st.title("🔬 光谱分析系统")
     st.markdown("### 欢迎使用光谱预处理与分析平台")
 
     modules = [
