@@ -15,22 +15,22 @@ st.markdown("### 欢迎使用光谱预处理与分析平台")
 modules = [
     {
         "name": "1",
-        "description": "上传光谱数据和波数信息",
+        "description": "111111",
         "page": "SpectraApp"
     },
     {
         "name": "2",
-        "description": "应用基线校正、滤波和归一化",
+        "description": "222222",
         "page": "SpectraApp"
     },
     {
         "name": "3",
-        "description": "执行峰值检测和PCA分析",
+        "description": "3333333",
         "page": "SpectraApp"
     },
     {
         "name": "4",
-        "description": "保存处理后的光谱数据",
+        "description": "44444444",
         "page": "SpectraApp"
     }
 ]
