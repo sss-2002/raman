@@ -21,7 +21,7 @@ from DTW import DTW
  
 
 # 设置页面
-st.set_page_config(layout="wide", page_title="光谱预处理系统")
+st.set_page_config(layout="wide", page_icon="🔬", page_title="光谱预处理系统")
 st.title("🌌 光谱预处理系统")
 
 # 初始化session状态
