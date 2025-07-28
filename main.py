@@ -24,6 +24,14 @@ from DTW import DTW
 st.set_page_config(layout="wide", page_icon="🔬", page_title="光谱预处理系统")
 st.title("🌌 光谱预处理系统")
 
+
+# 添加返回主页面的按钮
+if st.button("返回主页面"):
+    # 跳转到主页面（路径为 /）
+    st.experimental_set_query_params(navigate="home")
+    # 强制刷新页面（可选，确保跳转生效）
+    st.rerun()
+
 # 初始化session状态
 if 'raw_data' not in st.session_state:
     st.session_state.raw_data = None
