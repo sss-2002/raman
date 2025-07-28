@@ -522,11 +522,11 @@ class FileHandler:
 file_handler = FileHandler()
 preprocessor = Preprocessor()
 
-# 创建两列布局
-col1, col2 = st.columns([1.2, 3])
+# 创建三列布局：左侧数据管理、中间光谱可视化、右侧预处理设置
+col_left, col_mid, col_right = st.columns([1.2, 2.5, 2])
 
-with col1:
-    # ===== 数据管理 =====
+# ===== 左侧：数据管理 =====
+with col_left:
     with st.expander("📁 数据管理", expanded=True):
         # 波数文件上传
         wavenumber_file = st.file_uploader("上传波数文件", type=['txt'])
@@ -540,16 +540,84 @@ with col1:
 
         if uploaded_file and wavenumber_file:
             try:
-                # 读取数据
                 st.session_state.raw_data = file_handler.load_data(
                     wavenumber_file, uploaded_file, lines, much
                 )
                 st.success(f"数据加载成功！{lines}条光谱，每条{much}个点")
-                
             except Exception as e:
                 st.error(f"文件加载失败: {str(e)}")
+    
+    # 系统信息
+    if st.session_state.get('raw_data'):
+        wavenumbers, y = st.session_state.raw_data
+        st.info(f"📊 数据维度: {y.shape[1]}条光谱 × {y.shape[0]}点")
+        if st.session_state.get('process_method'):
+            st.success(f"🛠️ 处理流程: {st.session_state.process_method}")
+    
+    # 使用说明
+    with st.expander("ℹ️ 使用指南", expanded=False):
+        st.markdown("""
+        **标准操作流程:**
+        1. 上传波数文件（单列文本）
+        2. 上传光谱数据文件（多列文本）
+        3. 设置光谱条数和数据点数
+        4. 在右侧选择预处理方法
+        5. 点击"应用处理"
+        6. 在中间区域查看结果并导出
+        """)
 
-    # ===== 预处理设置 =====
+ # ===== 中间：光谱可视化与结果导出 =====
+with col_mid:
+    st.subheader("📈 光谱可视化")
+    if st.session_state.get('raw_data'):
+        wavenumbers, y = st.session_state.raw_data
+        
+        if st.session_state.get('processed_data'):
+            _, y_processed = st.session_state.processed_data
+            
+            # 创建对比图表
+            if y.shape[1] > 1:
+                chart_data = pd.DataFrame({
+                    "原始数据(平均值)": y.mean(axis=1),
+                    "处理后数据(平均值)": y_processed.mean(axis=1)
+                }, index=wavenumbers)
+            else:
+                chart_data = pd.DataFrame({
+                    "原始数据": y[:, 0],
+                    "处理后数据": y_processed[:, 0]
+                }, index=wavenumbers)
+            
+            st.line_chart(chart_data)
+        else:
+            # 只显示原始数据
+            if y.shape[1] > 1:
+                chart_data = pd.DataFrame({
+                    "原始数据(平均值)": y.mean(axis=1)
+                }, index=wavenumbers)
+            else:
+                chart_data = pd.DataFrame({
+                    "原始数据": y[:, 0]
+                }, index=wavenumbers)
+            
+            st.line_chart(chart_data)
+        
+        # 结果导出
+        if st.session_state.get('processed_data'):
+            st.subheader("💾 结果导出")
+            export_name = st.text_input("导出文件名", "processed_spectra.txt")
+            
+            if st.button("导出处理结果", type="secondary"):
+                try:
+                    wavenumbers, y_processed = st.session_state.processed_data
+                    file_handler.export_data(export_name, y_processed)
+                    st.success(f"结果已导出到 {export_name}")
+                except Exception as e:
+                    st.error(f"导出失败: {str(e)}")
+    else:
+        st.info("请先在左侧上传数据，在右侧设置预处理参数")
+
+   # ===== 右侧：预处理设置 =====
+with col_right:
     with st.expander("⚙️ 预处理设置", expanded=True):
         # 基线校准
         st.subheader("基线校准")
@@ -583,17 +651,11 @@ with col1:
                 lam = st.selectbox("λ(平滑度)", [10**7, 10**4, 10**2], key="lam_airpls")
                 baseline_params["lam"] = lam
 
-        # ===== 挤压处理 =====
+        # 挤压处理
         st.subheader("🧪 挤压")
         squashing_method = st.selectbox(
             "挤压方法",
-            ["无", 
-             "Sigmoid挤压",
-             "改进的Sigmoid挤压",
-             "逻辑函数",
-             "改进的逻辑函数",
-             "DTW挤压"
-            ],
+            ["无", "Sigmoid挤压", "改进的Sigmoid挤压", "逻辑函数", "改进的逻辑函数", "DTW挤压"],
             key="squashing_method"
         )
 
@@ -601,39 +663,21 @@ with col1:
         squashing_params = {}
         if squashing_method != "无":
             if squashing_method == "改进的逻辑函数":
-                # 对应论文表格的m参数：10或20
-                m = st.selectbox(
-                    "参数m", 
-                    [10, 20], 
-                    key="m_improved_squash"
-                )
+                m = st.selectbox("参数m", [10, 20], key="m_improved_squash")
                 squashing_params["m"] = m
                 st.info(f"使用参数: m={m}")
             elif squashing_method == "DTW挤压":
-                # 对应论文表格的DTW参数：l、k1、k2
-                l = st.selectbox(
-                    "参数l", 
-                    [1, 5],  # 表格中l的取值
-                    key="l_dtw"
-                )
-                k1 = st.selectbox(
-                    "参数k1", 
-                    ["T", "F"],  # 布尔选项
-                    key="k1_dtw"
-                )
-                k2 = st.selectbox(
-                    "参数k2", 
-                    ["T", "F"],  # 布尔选项
-                    key="k2_dtw"
-                )
+                l = st.selectbox("参数l", [1, 5], key="l_dtw")
+                k1 = st.selectbox("参数k1", ["T", "F"], key="k1_dtw")
+                k2 = st.selectbox("参数k2", ["T", "F"], key="k2_dtw")
                 squashing_params["l"] = l
                 squashing_params["k1"] = k1
                 squashing_params["k2"] = k2
                 st.info(f"使用参数: l={l}, k1={k1}, k2={k2}")
             elif squashing_method == "改进的Sigmoid挤压":
-                st.info("使用默认参数: maxn=10（归一化范围）")
+                st.info("使用默认参数: maxn=10")
 
-        # ===== 滤波处理 =====
+        # 滤波处理
         st.subheader("📶 滤波")
         filtering_method = st.selectbox(
             "滤波方法",
@@ -664,7 +708,7 @@ with col1:
                 threshold = st.selectbox("阈值", [0.1, 0.3, 0.5], key="threshold_dwt")
                 filtering_params["threshold"] = threshold
 
-        # ===== 缩放处理 =====
+        # 缩放处理
         st.subheader("📏 缩放")
         scaling_method = st.selectbox(
             "缩放方法",
@@ -681,12 +725,10 @@ with col1:
         # 处理按钮
         if st.button("🚀 应用处理", type="primary", use_container_width=True):
             if st.session_state.raw_data is None:
-                st.warning("请先上传数据文件")
+                st.warning("请先在左侧上传数据文件")
             else:
                 try:
                     wavenumbers, y = st.session_state.raw_data
-                    
-                    # 执行预处理
                     processed_data, method_name = preprocessor.process(
                         wavenumbers, y, 
                         baseline_method=baseline_method,
@@ -704,83 +746,3 @@ with col1:
                     st.success(f"处理完成: {st.session_state.process_method}")
                 except Exception as e:
                     st.error(f"处理失败: {str(e)}")
-
-with col2:
-    # ===== 系统信息 =====
-    if st.session_state.get('raw_data'):
-        wavenumbers, y = st.session_state.raw_data
-        cols = st.columns([1, 2])
-        with cols[0]:
-            st.info(f"📊 数据维度: {y.shape[1]}条光谱 × {y.shape[0]}点")
-        with cols[1]:
-            if st.session_state.get('process_method'):
-                st.success(f"🛠️ 处理流程: {st.session_state.process_method}")
-    
-    st.divider()
-    
-    # ===== 光谱图 =====
-    st.subheader("📈 光谱可视化")
-    if st.session_state.get('raw_data'):
-        wavenumbers, y = st.session_state.raw_data
-        
-        if st.session_state.get('processed_data'):
-            _, y_processed = st.session_state.processed_data
-            
-            # 创建对比图表
-            if y.shape[1] > 1:
-                # 多条光谱数据，显示平均值
-                chart_data = pd.DataFrame({
-                    "原始数据(平均值)": y.mean(axis=1),
-                    "处理后数据(平均值)": y_processed.mean(axis=1)
-                }, index=wavenumbers)
-            else:
-                # 单条光谱数据，显示原始和处理后的曲线
-                chart_data = pd.DataFrame({
-                    "原始数据": y[:, 0],
-                    "处理后数据": y_processed[:, 0]
-                }, index=wavenumbers)
-            
-            st.line_chart(chart_data)
-        else:
-            # 只显示原始数据
-            if y.shape[1] > 1:
-                chart_data = pd.DataFrame({
-                    "原始数据(平均值)": y.mean(axis=1)
-                }, index=wavenumbers)
-            else:
-                chart_data = pd.DataFrame({
-                    "原始数据": y[:, 0]
-                }, index=wavenumbers)
-            
-            st.line_chart(chart_data)
-    else:
-        st.info("请先上传并处理数据")
-
-    # ===== 结果导出 =====
-    if st.session_state.get('processed_data'):
-        st.subheader("💾 结果导出")
-        export_name = st.text_input("导出文件名", "processed_spectra.txt")
-        
-        if st.button("导出处理结果", type="secondary"):
-            try:
-                wavenumbers, y_processed = st.session_state.processed_data
-                file_handler.export_data(export_name, y_processed)
-                st.success(f"结果已导出到 {export_name}")
-            except Exception as e:
-                st.error(f"导出失败: {str(e)}")
-
-# 使用说明
-with st.expander("ℹ️ 使用指南", expanded=False):
-    st.markdown("""
-    **标准操作流程:**
-    1. 上传波数文件（单列文本）
-    2. 上传光谱数据文件（多列文本）
-    3. 设置光谱条数和数据点数
-    4. 选择预处理方法
-    5. 点击"应用处理"
-    6. 导出结果
-
-    **文件格式要求:**
-    - 波数文件: 每行一个波数值
-    - 光谱数据: 每列代表一条光谱，每行对应相同波数位置
-    """)   
