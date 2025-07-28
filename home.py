@@ -16,7 +16,7 @@ modules = [
     {
         "name": "1",
         "description": "111111",
-        "page": "main"
+        "page": "1_main"
     },
     {
         "name": "2",
