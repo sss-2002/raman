@@ -16,7 +16,21 @@ def show_home_page():
             "description": "111111",
             "target_page": "main"
         },
-        # 其他模块...
+        {
+            "name": "2",
+            "description": "222222",
+            "target_page": "main"
+        },
+        {
+            "name": "3",
+            "description": "3333333",
+            "target_page": "main"
+        },
+        {
+            "name": "4",
+            "description": "44444444",
+            "target_page": "main"
+        },
     ]
 
     cols = st.columns(2)
