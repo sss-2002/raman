@@ -14,22 +14,22 @@ st.markdown("### 欢迎使用光谱预处理与分析平台")
 # 定义四个模块的链接和描述
 modules = [
     {
-        "name": "数据导入",
+        "name": "1",
         "description": "上传光谱数据和波数信息",
         "page": "SpectraApp"
     },
     {
-        "name": "预处理",
+        "name": "2",
         "description": "应用基线校正、滤波和归一化",
         "page": "SpectraApp"
     },
     {
-        "name": "分析",
+        "name": "3",
         "description": "执行峰值检测和PCA分析",
         "page": "SpectraApp"
     },
     {
-        "name": "导出",
+        "name": "4",
         "description": "保存处理后的光谱数据",
         "page": "SpectraApp"
     }
