@@ -11,7 +11,6 @@ def set_button_style():
     <style>
     .stButton>button {
         width: 100%;
-        border: none;  /* 去除按钮边框 */
         border-radius: 5px;  /* 设置按钮圆角 */
         padding: 10px 20px;  /* 设置按钮内边距 */
     }
