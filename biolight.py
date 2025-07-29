@@ -1,12 +1,11 @@
 import streamlit as st
 
-
-
- # 返回主页按钮
-    if st.button("返回主页"):
-        st.session_state.current_page = 'home'
-        st.experimental_rerun()
 def main():
+
+  # 返回主页按钮
+    if st.button("返回主页"):
+       st.session_state.current_page = 'home'
+       st.experimental_rerun()
     st.title("西安电子科技大学生物光学实验室（BIOLIGHT LAB）介绍")
     st.markdown("西安电子科技大学生物光学实验室（BIOLIGHT LAB）成立于2015年9月。")
     st.markdown("作为智能医学检测技术的创造者和实践者，实验室始终秉持着成长型思维，全力打造一支勇往直前的生物态团队。")
