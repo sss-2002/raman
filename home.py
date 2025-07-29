@@ -12,23 +12,13 @@ def show_home_page():
 
     modules = [
         {
-            "name": "1",
-            "description": "111111",
+            "name": "生物光学实验室介绍",
+            "description": "西安电子科技大学生物光学实验室（BIOLIGHT LAB）成立于2015年9月，是智能医学检测技术的创造者和实践者，用成长型思维打造勇往直前的生物态团队，致力于培养富有创新精神和实践能力的新时代人才。",
             "target_page": "main"
         },
         {
             "name": "2",
             "description": "222222",
-            "target_page": "main"
-        },
-        {
-            "name": "3",
-            "description": "3333333",
-            "target_page": "main"
-        },
-        {
-            "name": "4",
-            "description": "44444444",
             "target_page": "main"
         },
     ]
