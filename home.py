@@ -5,19 +5,27 @@ import importlib
 if 'current_page' not in st.session_state:
     st.session_state.current_page = 'home'
 
-# 自定义 CSS 样式，设置按钮宽度
-def set_button_width():
+# 自定义 CSS 样式，设置按钮宽度和颜色
+def set_button_style():
     st.markdown("""
     <style>
     .stButton>button {
         width: 100%;
+        background-color: #007BFF;  /* 设置按钮背景颜色为蓝色 */
+        color: white;  /* 设置按钮文字颜色为白色 */
+        border: none;  /* 去除按钮边框 */
+        border-radius: 5px;  /* 设置按钮圆角 */
+        padding: 10px 20px;  /* 设置按钮内边距 */
+    }
+    .stButton>button:hover {
+        background-color: #0056b3;  /* 设置按钮悬停时的背景颜色 */
     }
     </style>
     """, unsafe_allow_html=True)
 
 # 主页内容
 def show_home_page():
-    set_button_width()  # 设置按钮宽度
+    set_button_style()  # 设置按钮样式
     st.title("🔬 光谱分析系统")
     st.markdown("### 欢迎使用光谱预处理与分析平台")
 
