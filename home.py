@@ -30,8 +30,8 @@ def show_home_page():
             "target_page": "biolight"
         },
         {
-            "name": "2",
-            "description": "222222",
+            "name": "拉曼光谱预处理算法",
+            "description": "拉曼光谱预处理的关键不是 “用哪种算法”，而是 **“针对干扰类型选算法”**：噪声强则优先小波或 SG 平滑，荧光背景强则侧重 airPLS 基线校正，样品差异大则需归一化。最终目标是让处理后的光谱 “峰位清晰、基线平坦、强度可对比”，为后续建模（如 PCA、PLS、机器学习）提供高质量输入。",
             "target_page": "main"
         },
     ]
