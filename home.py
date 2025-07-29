@@ -37,10 +37,17 @@ st.markdown("""
         font-size: 16px;
         color: #4E5969;
     }
+    .hidden {
+        display: none;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# 页面函数定义
+# 页面跳转回调函数
+def set_page(page_name):
+    st.session_state.current_page = page_name
+
+# 主页内容
 def home_page():
     st.title("🔬 光谱分析系统")
     st.markdown("### 欢迎使用光谱预处理与分析平台")
@@ -48,8 +55,9 @@ def home_page():
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("""
-        <div class="clickable-card">
+        # 显示可点击卡片
+        st.markdown("""
+        <div class="clickable-card" onclick="document.getElementById('btn-module-1').click()">
             <div class="card-title">生物光学实验室介绍</div>
             <div class="card-description">
                 西安电子科技大学生物光学实验室（BIOLIGHT LAB）成立于2015年9月，
@@ -57,22 +65,47 @@ def home_page():
                 致力于培养富有创新精神和实践能力的新时代人才。
             </div>
         </div>
-        """, unsafe_allow_html=True):
-            st.session_state.current_page = "main"
+        """, unsafe_allow_html=True)
+        
+        # 创建隐藏按钮，用于触发回调
+        st.button(
+            "模块1跳转按钮",
+            key="btn-module-1",
+            on_click=set_page,
+            args=("main",),
+            use_container_width=False
+        )
+        # 通过CSS隐藏按钮
+        st.markdown('<style>div[data-testid="stButton"]:nth-of-type(1) {display: none;}</style>', unsafe_allow_html=True)
     
     with col2:
-        if st.button("""
-        <div class="clickable-card">
+        # 显示可点击卡片
+        st.markdown("""
+        <div class="clickable-card" onclick="document.getElementById('btn-module-2').click()">
             <div class="card-title">2</div>
             <div class="card-description">222222</div>
         </div>
-        """, unsafe_allow_html=True):
-            st.session_state.current_page = "main"
+        """, unsafe_allow_html=True)
+        
+        # 创建隐藏按钮，用于触发回调
+        st.button(
+            "模块2跳转按钮",
+            key="btn-module-2",
+            on_click=set_page,
+            args=("main",),
+            use_container_width=False
+        )
+        # 通过CSS隐藏按钮
+        st.markdown('<style>div[data-testid="stButton"]:nth-of-type(2) {display: none;}</style>', unsafe_allow_html=True)
 
+# 主页面内容
 def main_page():
     st.title("主页面")
     st.write("这是主页面内容")
     # 在这里添加你的主页面功能代码
+    
+    if st.button("返回主页"):
+        st.session_state.current_page = "home"
 
 # 初始化会话状态
 if 'current_page' not in st.session_state:
