@@ -23,10 +23,13 @@ def show_home_page():
         },
     ]
 
-    cols = st.columns(2)
+    # 使用 st.columns 创建两列，每列宽度相同
+    cols = st.columns(len(modules))
     for idx, module in enumerate(modules):
-        with cols[idx % 2]:
-            if st.button(f"{module['name']}\n\n{module['description']}"):
+        with cols[idx]:
+            # 设置按钮的样式，使其大小一致
+            button_text = f"{module['name']}\n\n{module['description']}"
+            if st.button(button_text):
                 st.session_state.current_page = module['target_page']
                 st.experimental_rerun()  # 刷新页面
 
