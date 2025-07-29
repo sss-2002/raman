@@ -15,9 +15,6 @@ def set_button_style():
         border-radius: 5px;  /* 设置按钮圆角 */
         padding: 10px 20px;  /* 设置按钮内边距 */
     }
-    .stButton>button:hover {
-        background-color: #0056b3;  /* 设置按钮悬停时的背景颜色 */
-    }
     </style>
     """, unsafe_allow_html=True)
 
