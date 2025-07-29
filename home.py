@@ -5,8 +5,19 @@ import importlib
 if 'current_page' not in st.session_state:
     st.session_state.current_page = 'home'
 
+# 自定义 CSS 样式，设置按钮宽度
+def set_button_width():
+    st.markdown("""
+    <style>
+    .stButton>button {
+        width: 100%;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 # 主页内容
 def show_home_page():
+    set_button_width()  # 设置按钮宽度
     st.title("🔬 光谱分析系统")
     st.markdown("### 欢迎使用光谱预处理与分析平台")
 
@@ -23,13 +34,10 @@ def show_home_page():
         },
     ]
 
-    # 使用 st.columns 创建两列，每列宽度相同
-    cols = st.columns(len(modules))
+    cols = st.columns(2)
     for idx, module in enumerate(modules):
-        with cols[idx]:
-            # 设置按钮的样式，使其大小一致
-            button_text = f"{module['name']}\n\n{module['description']}"
-            if st.button(button_text):
+        with cols[idx % 2]:
+            if st.button(f"{module['name']}\n\n{module['description']}"):
                 st.session_state.current_page = module['target_page']
                 st.experimental_rerun()  # 刷新页面
 
