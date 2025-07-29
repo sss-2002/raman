@@ -27,7 +27,6 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         justify-content: center;
-        cursor: pointer;
     }
     .module-card:hover {
         transform: translateY(-5px);
@@ -43,6 +42,14 @@ st.markdown("""
         font-size: 16px;
         color: #4E5969;
     }
+    .stButton>button {
+        width: 400px;
+        height: 200px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        outline: none;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -56,8 +63,8 @@ def show_home_page():
     
     # 模块1 - 生物光学实验室介绍
     with col1:
-        st.markdown(f"""
-        <div class="module-card" onclick="document.getElementById('target-page-1').click()">
+        if st.button("""
+        <div class="module-card">
             <div class="module-title">生物光学实验室介绍</div>
             <div class="module-description">
                 西安电子科技大学生物光学实验室（BIOLIGHT LAB）成立于2015年9月，
@@ -65,24 +72,20 @@ def show_home_page():
                 致力于培养富有创新精神和实践能力的新时代人才。
             </div>
         </div>
-        <button id="target-page-1" class="hidden" onclick="
-            st.session_state.current_page = 'main';
-            st.experimental_rerun();
-        "></button>
-        """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True):
+            st.session_state.current_page = 'main'
+            st.experimental_rerun()
     
     # 模块2 - 示例模块
     with col2:
-        st.markdown(f"""
-        <div class="module-card" onclick="document.getElementById('target-page-2').click()">
+        if st.button("""
+        <div class="module-card">
             <div class="module-title">2</div>
             <div class="module-description">222222</div>
         </div>
-        <button id="target-page-2" class="hidden" onclick="
-            st.session_state.current_page = 'main';
-            st.experimental_rerun();
-        "></button>
-        """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True):
+            st.session_state.current_page = 'main'
+            st.experimental_rerun()
 
 # 动态加载目标页面
 def show_target_page(page_name):
