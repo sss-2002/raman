@@ -7,9 +7,24 @@ if 'current_page' not in st.session_state:
 
 # 主页内容
 def show_home_page():
+    # 设置页面布局
+    st.set_page_config(layout="wide")
+    
+    # 标题区域
     st.title("🔬 光谱分析系统")
     st.markdown("### 欢迎使用光谱预处理与分析平台")
-
+    st.markdown("---")
+    
+    # 添加图表描述（根据图片内容）
+    st.markdown("## 图表")
+    st.markdown("""
+    - 图表中关于光谱的描述
+    - 图表中关于光谱的描述（laouloir Lua）是基于2015年9月，随着数据传输速率逐渐增加的趋势和变化，
+      用最长周期进行测量结果的数据显示，致力于对光谱的解释和实现能力的影响。
+    """)
+    st.markdown("---")
+    
+    # 创建模块信息
     modules = [
         {
             "name": "生物光学实验室介绍",
@@ -17,21 +32,42 @@ def show_home_page():
             "target_page": "main"
         },
         {
-            "name": "2",
-            "description": "222222",
+            "name": "光谱分析模块",
+            "description": "提供专业的光谱数据处理与分析功能，包括数据预处理、特征提取、模型建立和结果可视化等完整流程，支持多种光谱仪器的数据格式导入。",
             "target_page": "main"
         },
     ]
 
-    cols = st.columns(2)
-    for idx, module in enumerate(modules):
-        with cols[idx % 2]:
-            if st.button(f"{module['name']}\n\n{module['description']}"):
-                st.session_state.current_page = module['target_page']
-                st.experimental_rerun()  # 刷新页面
+    # 使用两列布局，设置列宽比例
+    col1, col2 = st.columns([1, 1])  # 各占50%宽度
+    
+    # 左侧模块
+    with col1:
+        container = st.container(border=True, height=200)  # 固定高度容器
+        with container:
+            st.subheader(modules[0]["name"])
+            st.write(modules[0]["description"])
+            if st.button("进入模块", key="btn1", use_container_width=True):
+                st.session_state.current_page = modules[0]["target_page"]
+                st.experimental_rerun()
+    
+    # 右侧模块
+    with col2:
+        container = st.container(border=True, height=200)  # 固定高度容器
+        with container:
+            st.subheader(modules[1]["name"])
+            st.write(modules[1]["description"])
+            if st.button("进入模块", key="btn2", use_container_width=True):
+                st.session_state.current_page = modules[1]["target_page"]
+                st.experimental_rerun()
 
 # 动态加载目标页面
 def show_target_page(page_name):
+    # 添加返回主页按钮
+    if st.button("返回主页"):
+        st.session_state.current_page = 'home'
+        st.experimental_rerun()
+    
     try:
         module = importlib.import_module(page_name)
         if hasattr(module, 'main'):
