@@ -1,16 +1,16 @@
 import streamlit as st
 import importlib
 
-# 初始化会话状态
-if 'current_page' not in st.session_state:
-    st.session_state.current_page = 'home'
-
-# 设置页面配置
+# 必须在最开始调用且仅调用一次
 st.set_page_config(
     page_title="光谱分析系统",
     page_icon="🔬",
     layout="wide"
 )
+
+# 初始化会话状态
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = 'home'
 
 # 自定义CSS样式
 st.markdown("""
@@ -40,16 +40,15 @@ st.markdown("""
         font-size: 16px;
         color: #4E5969;
     }
-    .hidden {
+    .hidden-button {
         display: none;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 页面跳转回调函数
+# 页面跳转函数 - 不使用rerun，利用Streamlit的自动重渲染机制
 def navigate_to(page):
     st.session_state.current_page = page
-    st.experimental_rerun()
 
 # 主页内容
 def show_home_page():
@@ -78,11 +77,13 @@ def show_home_page():
             key="btn-module-1",
             on_click=navigate_to,
             args=("main",),
-            kwargs=None,
+            use_container_width=False,
+            type="primary",
             help=None,
-            disabled=False,
-            use_container_width=False
+            disabled=False
         )
+        # 通过CSS隐藏按钮
+        st.markdown('<style>div[data-testid="stButton"]:nth-of-type(1) {display: none;}</style>', unsafe_allow_html=True)
     
     # 模块2 - 示例模块
     with col2:
@@ -99,15 +100,18 @@ def show_home_page():
             key="btn-module-2",
             on_click=navigate_to,
             args=("main",),
-            kwargs=None,
+            use_container_width=False,
+            type="primary",
             help=None,
-            disabled=False,
-            use_container_width=False
+            disabled=False
         )
+        # 通过CSS隐藏按钮
+        st.markdown('<style>div[data-testid="stButton"]:nth-of-type(2) {display: none;}</style>', unsafe_allow_html=True)
 
 # 动态加载目标页面
 def show_target_page(page_name):
     try:
+        # 确保被加载的页面不会再次调用set_page_config
         module = importlib.import_module(page_name)
         if hasattr(module, 'main'):
             module.main()  # 调用 main.py 中的 main() 函数
@@ -120,4 +124,4 @@ def show_target_page(page_name):
 if st.session_state.current_page == 'home':
     show_home_page()
 else:
-    show_target_page(st.session_state.current_page)    
+    show_target_page(st.session_state.current_page)
