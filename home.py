@@ -5,7 +5,7 @@ import importlib
 if "current_page" not in st.session_state:
     st.session_state.current_page = "home"
 
-# 自定义 CSS 样式 - 优化颜色搭配和卡片布局
+# 自定义 CSS 样式 - 确保所有卡片大小一致
 def set_custom_style():
     st.markdown(
         """
@@ -80,10 +80,13 @@ def set_custom_style():
             margin: 0 0 30px 0;
         }
         
-        /* 卡片样式 - 确保大小一致 */
+        /* 卡片样式 - 强制所有卡片大小一致 */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
         .card-container {
-            display: flex;
-            flex-direction: column;
             height: 100%;
         }
         .card {
@@ -91,8 +94,7 @@ def set_custom_style():
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             padding: 25px;
-            margin: 10px;
-            height: 100%;
+            height: 420px; /* 固定卡片高度 */
             display: flex;
             flex-direction: column;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -116,8 +118,12 @@ def set_custom_style():
             color: #4B5563;
             font-size: 14px;
             line-height: 1.6;
-            flex-grow: 1; /* 让描述部分填充空间，确保卡片高度一致 */
+            flex-grow: 1; /* 让描述部分填充空间 */
             margin: 0 0 20px 0;
+            overflow-y: auto; /* 内容过多时可滚动 */
+        }
+        .card-button {
+            margin-top: auto; /* 按钮始终在底部 */
         }
         </style>
         """,
@@ -154,29 +160,29 @@ def show_home_page():
     st.markdown('<h1 class="title-text">🔬 光谱分析系统</h1>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle-text">欢迎使用专业的光谱预处理与分析平台</p>', unsafe_allow_html=True)
 
-    # 功能模块
+    # 功能模块 - 统一各模块描述长度，确保卡片均衡
     modules = [
         {
             "name": "生物光学实验室介绍",
-            "description": "西安电子科技大学生物光学实验室（BIOLIGHT LAB）成立于2015年9月，是智能医学检测技术的创造者和实践者，用成长型思维打造勇往直前的生物态团队，致力于培养富有创新精神和实践能力的新时代人才。",
+            "description": "西安电子科技大学生物光学实验室（BIOLIGHT LAB）成立于2015年9月，是智能医学检测技术的创造者和实践者。实验室用成长型思维打造勇往直前的生物态团队，致力于培养富有创新精神和实践能力的新时代人才，推动生物光学领域的前沿研究与应用。",
             "target_page": "biolight",
             "icon": "🏫",
         },
         {
             "name": "拉曼光谱预处理算法",
-            "description": "拉曼光谱预处理的关键不是 “用哪种算法”，而是 “针对干扰类型选算法”：噪声强则优先小波或 SG 平滑，荧光背景强则侧重 airPLS 基线校正，样品差异大则需归一化。",
+            "description": "拉曼光谱预处理的关键不是“用哪种算法”，而是“针对干扰类型选算法”：噪声强则优先小波或SG平滑，荧光背景强则侧重airPLS基线校正，样品差异大则需归一化。最终目标是让处理后的光谱“峰位清晰、基线平坦、强度可对比”，为后续建模提供高质量输入。",
             "target_page": "main",
             "icon": "🔬",
         },
         {
             "name": "高值化合物分析",
-            "description": "对各类高价值化合物进行光谱特征分析与研究，通过先进算法提取特征峰，建立成分与光谱特征的关联模型，助力相关科研与应用。",
+            "description": "对各类高价值化合物进行光谱特征分析与研究，通过先进算法提取特征峰，建立成分与光谱特征的关联模型。系统支持多种化合物的快速识别与定量分析，为新材料研发、药物分析等领域提供高效可靠的检测手段，助力相关科研与应用。",
             "target_page": "compound",
             "icon": "🧪",
         },
         {
             "name": "个人中心",
-            "description": "管理个人实验数据、分析报告和系统设置，查看历史分析记录，保存常用分析参数，个性化定制您的分析工作流。",
+            "description": "管理个人实验数据、分析报告和系统设置，查看历史分析记录，保存常用分析参数，个性化定制您的分析工作流。支持数据备份与分享，多设备同步分析结果，设置个人偏好与通知，让光谱分析工作更加高效便捷。",
             "target_page": "personal",
             "icon": "👤",
         },
@@ -193,7 +199,7 @@ def show_home_page():
                         <div class="card-icon">{module['icon']}</div>
                         <h3 class="card-title">{module['name']}</h3>
                         <p class="card-description">{module['description']}</p>
-                        <button onclick="pageChange('{module['target_page']}')">进入</button>
+                        <button class="card-button" onclick="pageChange('{module['target_page']}')">进入</button>
                     </div>
                 </div>
                 """,
@@ -270,3 +276,4 @@ def show_target_page(page_name):
 # 根据状态显示内容
 current_page = st.session_state.get("current_page", "home")
 show_target_page(current_page)
+    
