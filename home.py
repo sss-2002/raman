@@ -5,43 +5,119 @@ import importlib
 if "current_page" not in st.session_state:
     st.session_state.current_page = "home"
 
-# 自定义 CSS 样式
+# 自定义 CSS 样式 - 优化颜色搭配和卡片布局
 def set_custom_style():
     st.markdown(
         """
         <style>
+        /* 页面整体样式 */
+        .main {
+            background-color: #f5f7fa;
+            padding: 0px 10px;
+        }
+        
+        /* 按钮样式 */
         .stButton > button {
             width: 100%;
-            border-radius: 5px;
-            padding: 15px 25px;
-            background-color: #007bff;
+            border-radius: 6px;
+            padding: 10px 0;
+            background-color: #165DFF;
             color: white;
             border: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
         }
         .stButton > button:hover {
-            background-color: #0056b3;
+            background-color: #0E42D2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(22, 93, 255, 0.2);
+        }
+        
+        /* 导航栏样式 */
+        .navbar {
+            background-color: #165DFF;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 10px 0 25px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         .nav-link {
             color: white;
             text-decoration: none;
-            margin: 0 10px;
+            margin: 0 15px;
             font-size: 16px;
+            font-weight: 500;
+            padding: 5px 0;
+            position: relative;
         }
-        .nav-link:hover {
-            text-decoration: underline;
+        .nav-link:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: 0;
+            left: 0;
+            background-color: white;
+            transition: width 0.3s ease;
         }
+        .nav-link:hover:after {
+            width: 100%;
+        }
+        .nav-link.login {
+            float: right;
+        }
+        
+        /* 标题样式 */
         .title-text {
-            font-size: 24px;
-            font-weight: bold;
-            color: #007bff;
-            margin-bottom: 20px;
+            font-size: 28px;
+            font-weight: 700;
+            color: #1D2939;
+            margin: 0 0 15px 0;
+            padding: 0;
+        }
+        .subtitle-text {
+            color: #4B5563;
+            margin: 0 0 30px 0;
+        }
+        
+        /* 卡片样式 - 确保大小一致 */
+        .card-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
         .card {
             background-color: white;
             border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 25px;
             margin: 10px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+        .card-icon {
+            font-size: 28px;
+            margin-bottom: 15px;
+            color: #165DFF;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1D2939;
+            margin: 0 0 15px 0;
+        }
+        .card-description {
+            color: #4B5563;
+            font-size: 14px;
+            line-height: 1.6;
+            flex-grow: 1; /* 让描述部分填充空间，确保卡片高度一致 */
+            margin: 0 0 20px 0;
         }
         </style>
         """,
@@ -52,12 +128,12 @@ def set_custom_style():
 def show_navbar():
     st.markdown(
         """
-        <div style="background-color: #007bff; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+        <div class="navbar">
             <a href="#" class="nav-link" onclick="pageChange('home')">首页</a>
             <a href="#" class="nav-link" onclick="pageChange('about')">关于我们</a>
             <a href="#" class="nav-link" onclick="pageChange('contact')">联系我们</a>
             <a href="#" class="nav-link" onclick="pageChange('help')">帮助中心</a>
-            <a href="#" class="nav-link" style="float: right;" onclick="pageChange('login')">登录</a>
+            <a href="#" class="nav-link login" onclick="pageChange('login')">登录</a>
         </div>
         <script>
         function pageChange(page) {
@@ -73,9 +149,12 @@ def show_navbar():
 def show_home_page():
     set_custom_style()
     show_navbar()
-    st.markdown('<div class="title-text">光谱分析系统</div>', unsafe_allow_html=True)
-    st.markdown("### 欢迎使用光谱预处理与分析平台")
+    
+    # 页面标题
+    st.markdown('<h1 class="title-text">🔬 光谱分析系统</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle-text">欢迎使用专业的光谱预处理与分析平台</p>', unsafe_allow_html=True)
 
+    # 功能模块
     modules = [
         {
             "name": "生物光学实验室介绍",
@@ -85,68 +164,86 @@ def show_home_page():
         },
         {
             "name": "拉曼光谱预处理算法",
-            "description": "拉曼光谱预处理的关键不是 “用哪种算法”，而是 **“针对干扰类型选算法”**：噪声强则优先小波或 SG 平滑，荧光背景强则侧重 airPLS 基线校正，样品差异大则需归一化。最终目标是让处理后的光谱 “峰位清晰、基线平坦、强度可对比”，为后续建模（如 PCA、PLS、机器学习）提供高质量输入。",
+            "description": "拉曼光谱预处理的关键不是 “用哪种算法”，而是 “针对干扰类型选算法”：噪声强则优先小波或 SG 平滑，荧光背景强则侧重 airPLS 基线校正，样品差异大则需归一化。",
             "target_page": "main",
             "icon": "🔬",
         },
         {
             "name": "高值化合物分析",
-            "description": "对各类高价值化合物进行光谱特征分析与研究，助力相关科研与应用。",
+            "description": "对各类高价值化合物进行光谱特征分析与研究，通过先进算法提取特征峰，建立成分与光谱特征的关联模型，助力相关科研与应用。",
             "target_page": "compound",
             "icon": "🧪",
         },
         {
             "name": "个人中心",
-            "description": "管理个人相关设置与信息。",
+            "description": "管理个人实验数据、分析报告和系统设置，查看历史分析记录，保存常用分析参数，个性化定制您的分析工作流。",
             "target_page": "personal",
             "icon": "👤",
         },
     ]
 
+    # 创建2列布局，确保卡片大小一致
     cols = st.columns(2)
     for idx, module in enumerate(modules):
         with cols[idx % 2]:
             st.markdown(
                 f"""
-                <div class="card">
-                    <h3>{module['icon']} {module['name']}</h3>
-                    <p>{module['description']}</p>
-                    <button onclick="pageChange('{module['target_page']}')" style="width: 100%; border-radius: 5px; padding: 10px; background-color: #007bff; color: white; border: none;">进入</button>
+                <div class="card-container">
+                    <div class="card">
+                        <div class="card-icon">{module['icon']}</div>
+                        <h3 class="card-title">{module['name']}</h3>
+                        <p class="card-description">{module['description']}</p>
+                        <button onclick="pageChange('{module['target_page']}')">进入</button>
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-# 关于我们页面
+# 其他页面内容
 def show_about_page():
     set_custom_style()
     show_navbar()
     st.title("关于我们")
-    st.markdown("这里是关于我们的详细介绍...")
+    st.markdown("""
+    ### 西安电子科技大学生物光学实验室
+    成立于2015年9月，专注于智能医学检测技术的研究与应用。
+    
+    我们的使命是：用创新科技推动生物医学领域的发展，为人类健康事业贡献力量。
+    """)
 
-# 联系我们页面
 def show_contact_page():
     set_custom_style()
     show_navbar()
     st.title("联系我们")
-    st.markdown("联系方式：xxx@example.com")
+    st.markdown("""
+    - 地址：陕西省西安市雁塔区西安电子科技大学
+    - 邮箱：biolight@xidian.edu.cn
+    - 电话：029-XXXXXXXX
+    """)
 
-# 帮助中心页面
 def show_help_page():
     set_custom_style()
     show_navbar()
     st.title("帮助中心")
-    st.markdown("常见问题解答...")
+    st.markdown("""
+    ### 常见问题
+    
+    1. **如何选择合适的光谱预处理算法？**
+    答：根据您的光谱特点选择，噪声强则优先平滑算法，背景干扰强则选择基线校正算法。
+    
+    2. **分析结果如何导出？**
+    答：在分析结果页面，点击右上角"导出"按钮，可选择导出格式。
+    """)
 
-# 登录页面
 def show_login_page():
     set_custom_style()
     show_navbar()
-    st.title("登录")
+    st.title("用户登录")
     username = st.text_input("用户名")
     password = st.text_input("密码", type="password")
     if st.button("登录"):
-        st.success("登录成功")
+        st.success("登录成功！")
 
 # 动态加载目标页面
 def show_target_page(page_name):
