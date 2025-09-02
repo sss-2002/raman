@@ -5,7 +5,7 @@ import importlib
 if "current_page" not in st.session_state:
     st.session_state.current_page = "home"
 
-# 自定义 CSS 样式 - 确保所有卡片大小一致
+# 自定义 CSS 样式 - 导航栏改为白色
 def set_custom_style():
     st.markdown(
         """
@@ -33,16 +33,17 @@ def set_custom_style():
             box-shadow: 0 4px 8px rgba(22, 93, 255, 0.2);
         }
         
-        /* 导航栏样式 */
+        /* 导航栏样式 - 改为白色背景 */
         .navbar {
-            background-color: #165DFF;
+            background-color: white;
             padding: 15px 20px;
             border-radius: 8px;
             margin: 10px 0 25px 0;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid #f0f0f0; /* 轻微边框增加层次感 */
         }
         .nav-link {
-            color: white;
+            color: #1D2939; /* 深色文字 */
             text-decoration: none;
             margin: 0 15px;
             font-size: 16px;
@@ -57,14 +58,22 @@ def set_custom_style():
             height: 2px;
             bottom: 0;
             left: 0;
-            background-color: white;
+            background-color: #165DFF; /* 蓝色下划线 */
             transition: width 0.3s ease;
+        }
+        .nav-link:hover {
+            color: #165DFF; /* hover时文字变蓝 */
         }
         .nav-link:hover:after {
             width: 100%;
         }
         .nav-link.login {
             float: right;
+            color: #165DFF; /* 登录按钮文字蓝色 */
+            font-weight: 600;
+        }
+        .nav-link.login:hover {
+            color: #0E42D2;
         }
         
         /* 标题样式 */
@@ -80,12 +89,7 @@ def set_custom_style():
             margin: 0 0 30px 0;
         }
         
-        /* 卡片样式 - 强制所有卡片大小一致 */
-        .card-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-        }
+        /* 卡片样式 - 保持大小一致 */
         .card-container {
             height: 100%;
         }
@@ -160,7 +164,7 @@ def show_home_page():
     st.markdown('<h1 class="title-text">🔬 光谱分析系统</h1>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle-text">欢迎使用专业的光谱预处理与分析平台</p>', unsafe_allow_html=True)
 
-    # 功能模块 - 统一各模块描述长度，确保卡片均衡
+    # 功能模块
     modules = [
         {
             "name": "生物光学实验室介绍",
