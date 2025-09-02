@@ -5,7 +5,12 @@ import importlib
 if "current_page" not in st.session_state:
     st.session_state.current_page = "home"
 
-# 自定义 CSS 样式 - 导航栏改为白色
+# 页面跳转函数 - 使用Streamlit原生机制
+def navigate_to(page):
+    st.session_state.current_page = page
+    st.experimental_rerun()
+
+# 自定义CSS样式
 def set_custom_style():
     st.markdown(
         """
@@ -33,19 +38,22 @@ def set_custom_style():
             box-shadow: 0 4px 8px rgba(22, 93, 255, 0.2);
         }
         
-        /* 导航栏样式 - 改为白色背景 */
+        /* 导航栏样式 */
         .navbar {
             background-color: white;
             padding: 15px 20px;
             border-radius: 8px;
             margin: 10px 0 25px 0;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            border: 1px solid #f0f0f0; /* 轻微边框增加层次感 */
+            border: 1px solid #f0f0f0;
+        }
+        .nav-item {
+            display: inline-block;
+            margin: 0 15px;
         }
         .nav-link {
-            color: #1D2939; /* 深色文字 */
+            color: #1D2939;
             text-decoration: none;
-            margin: 0 15px;
             font-size: 16px;
             font-weight: 500;
             padding: 5px 0;
@@ -58,22 +66,17 @@ def set_custom_style():
             height: 2px;
             bottom: 0;
             left: 0;
-            background-color: #165DFF; /* 蓝色下划线 */
+            background-color: #165DFF;
             transition: width 0.3s ease;
         }
         .nav-link:hover {
-            color: #165DFF; /* hover时文字变蓝 */
+            color: #165DFF;
         }
         .nav-link:hover:after {
             width: 100%;
         }
-        .nav-link.login {
+        .login-container {
             float: right;
-            color: #165DFF; /* 登录按钮文字蓝色 */
-            font-weight: 600;
-        }
-        .nav-link.login:hover {
-            color: #0E42D2;
         }
         
         /* 标题样式 */
@@ -89,16 +92,13 @@ def set_custom_style():
             margin: 0 0 30px 0;
         }
         
-        /* 卡片样式 - 保持大小一致 */
-        .card-container {
-            height: 100%;
-        }
+        /* 卡片样式 */
         .card {
             background-color: white;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             padding: 25px;
-            height: 285px; /* 固定卡片高度 */
+            height: 420px;
             display: flex;
             flex-direction: column;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -122,38 +122,39 @@ def set_custom_style():
             color: #4B5563;
             font-size: 14px;
             line-height: 1.6;
-            flex-grow: 1; /* 让描述部分填充空间 */
+            flex-grow: 1;
             margin: 0 0 20px 0;
-            overflow-y: auto; /* 内容过多时可滚动 */
-        }
-        .card-button {
-            margin-top: auto; /* 按钮始终在底部 */
+            overflow-y: auto;
         }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-# 顶部导航栏
+# 顶部导航栏 - 使用Streamlit按钮实现跳转
 def show_navbar():
-    st.markdown(
-        """
-        <div class="navbar">
-            <a href="#" class="nav-link" onclick="pageChange('home')">首页</a>
-            <a href="#" class="nav-link" onclick="pageChange('about')">关于我们</a>
-            <a href="#" class="nav-link" onclick="pageChange('contact')">联系我们</a>
-            <a href="#" class="nav-link" onclick="pageChange('help')">帮助中心</a>
-            <a href="#" class="nav-link login" onclick="pageChange('login')">登录</a>
-        </div>
-        <script>
-        function pageChange(page) {
-            sessionStorage.setItem('current_page', page);
-            window.parent.location.reload();
-        }
-        </script>
-        """,
-        unsafe_allow_html=True,
-    )
+    # 创建导航容器
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
+    
+    with col1:
+        if st.button("首页", key="nav_home"):
+            navigate_to("home")
+    
+    with col2:
+        if st.button("关于我们", key="nav_about"):
+            navigate_to("about")
+    
+    with col3:
+        if st.button("联系我们", key="nav_contact"):
+            navigate_to("contact")
+    
+    with col4:
+        if st.button("帮助中心", key="nav_help"):
+            navigate_to("help")
+    
+    with col5:
+        if st.button("登录", key="nav_login"):
+            navigate_to("login")
 
 # 主页内容
 def show_home_page():
@@ -192,23 +193,23 @@ def show_home_page():
         },
     ]
 
-    # 创建2列布局，确保卡片大小一致
+    # 创建2列布局
     cols = st.columns(2)
     for idx, module in enumerate(modules):
         with cols[idx % 2]:
             st.markdown(
                 f"""
-                <div class="card-container">
-                    <div class="card">
-                        <div class="card-icon">{module['icon']}</div>
-                        <h3 class="card-title">{module['name']}</h3>
-                        <p class="card-description">{module['description']}</p>
-                        <button class="card-button" onclick="pageChange('{module['target_page']}')">进入</button>
-                    </div>
+                <div class="card">
+                    <div class="card-icon">{module['icon']}</div>
+                    <h3 class="card-title">{module['name']}</h3>
+                    <p class="card-description">{module['description']}</p>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
+            # 使用Streamlit原生按钮实现跳转
+            if st.button(f"进入 {module['name']}", key=f"btn_{module['target_page']}"):
+                navigate_to(module['target_page'])
 
 # 其他页面内容
 def show_about_page():
@@ -221,6 +222,9 @@ def show_about_page():
     
     我们的使命是：用创新科技推动生物医学领域的发展，为人类健康事业贡献力量。
     """)
+    # 返回首页按钮
+    if st.button("返回首页"):
+        navigate_to("home")
 
 def show_contact_page():
     set_custom_style()
@@ -231,6 +235,8 @@ def show_contact_page():
     - 邮箱：biolight@xidian.edu.cn
     - 电话：029-XXXXXXXX
     """)
+    if st.button("返回首页"):
+        navigate_to("home")
 
 def show_help_page():
     set_custom_style()
@@ -245,6 +251,8 @@ def show_help_page():
     2. **分析结果如何导出？**
     答：在分析结果页面，点击右上角"导出"按钮，可选择导出格式。
     """)
+    if st.button("返回首页"):
+        navigate_to("home")
 
 def show_login_page():
     set_custom_style()
@@ -254,6 +262,9 @@ def show_login_page():
     password = st.text_input("密码", type="password")
     if st.button("登录"):
         st.success("登录成功！")
+        navigate_to("home")
+    if st.button("返回首页"):
+        navigate_to("home")
 
 # 动态加载目标页面
 def show_target_page(page_name):
@@ -269,13 +280,21 @@ def show_target_page(page_name):
         elif page_name == "login":
             show_login_page()
         else:
+            # 尝试导入外部模块
             module = importlib.import_module(page_name)
             if hasattr(module, "main"):
                 module.main()
+                # 外部页面添加返回首页按钮
+                if st.button("返回首页"):
+                    navigate_to("home")
             else:
                 st.write(f"请在 {page_name}.py 中定义 main() 函数")
+                if st.button("返回首页"):
+                    navigate_to("home")
     except Exception as e:
         st.error(f"加载页面失败: {e}")
+        if st.button("返回首页"):
+            navigate_to("home")
 
 # 根据状态显示内容
 current_page = st.session_state.get("current_page", "home")
