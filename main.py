@@ -25,11 +25,6 @@ def main():
      st.set_page_config(layout="wide", page_icon="🔬", page_title="光谱预处理系统")
      st.title("🌌 光谱预处理系统")
      
-     # 返回按钮
-     if st.button("返回主页"):
-          st.session_state.current_page = 'home'
-          st.experimental_rerun()
-
 
      # 初始化session状态
      if 'raw_data' not in st.session_state:
@@ -753,3 +748,4 @@ def main():
                          st.success(f"处理完成: {st.session_state.process_method}")
                      except Exception as e:
                          st.error(f"处理失败: {str(e)}")
+
