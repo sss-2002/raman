@@ -98,7 +98,7 @@ def set_custom_style():
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             padding: 25px;
-            height: 420px;
+            height: 285px;
             display: flex;
             flex-direction: column;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
