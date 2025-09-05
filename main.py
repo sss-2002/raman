@@ -653,31 +653,19 @@ def main():
                      lam = st.selectbox("λ(平滑度)", [10**7, 10**4, 10**2], key="lam_airpls")
                      baseline_params["lam"] = lam
      
-             # 挤压处理
-             st.subheader("🧪 挤压")
-             squashing_method = st.selectbox(
-                 "挤压方法",
-                 ["无", "Sigmoid挤压", "改进的Sigmoid挤压", "逻辑函数", "改进的逻辑函数", "DTW挤压"],
-                 key="squashing_method"
+             # 缩放处理
+             st.subheader("📏 缩放")
+             scaling_method = st.selectbox(
+                 "缩放方法",
+                 ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数"],
+                 key="scaling_method"
              )
      
-             # 挤压参数
-             squashing_params = {}
-             if squashing_method != "无":
-                 if squashing_method == "改进的逻辑函数":
-                     m = st.selectbox("参数m", [10, 20], key="m_improved_squash")
-                     squashing_params["m"] = m
-                     st.info(f"使用参数: m={m}")
-                 elif squashing_method == "DTW挤压":
-                     l = st.selectbox("参数l", [1, 5], key="l_dtw")
-                     k1 = st.selectbox("参数k1", ["T", "F"], key="k1_dtw")
-                     k2 = st.selectbox("参数k2", ["T", "F"], key="k2_dtw")
-                     squashing_params["l"] = l
-                     squashing_params["k1"] = k1
-                     squashing_params["k2"] = k2
-                     st.info(f"使用参数: l={l}, k1={k1}, k2={k2}")
-                 elif squashing_method == "改进的Sigmoid挤压":
-                     st.info("使用默认参数: maxn=10")
+             # 缩放参数
+             scaling_params = {}
+             if scaling_method == "L-范数":
+                 p = st.selectbox("范数阶数(p)", ["无穷大", "4", "10"], key="p_scaling")
+                 scaling_params["p"] = p
      
              # 滤波处理
              st.subheader("📶 滤波")
@@ -709,20 +697,34 @@ def main():
                  elif filtering_method == "小波变换(DWT)":
                      threshold = st.selectbox("阈值", [0.1, 0.3, 0.5], key="threshold_dwt")
                      filtering_params["threshold"] = threshold
-     
-             # 缩放处理
-             st.subheader("📏 缩放")
-             scaling_method = st.selectbox(
-                 "缩放方法",
-                 ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数"],
-                 key="scaling_method"
+
+             # 挤压处理
+             st.subheader("🧪 挤压")
+             squashing_method = st.selectbox(
+                 "挤压方法",
+                 ["无", "Sigmoid挤压", "改进的Sigmoid挤压", "逻辑函数", "改进的逻辑函数", "DTW挤压"],
+                 key="squashing_method"
              )
      
-             # 缩放参数
-             scaling_params = {}
-             if scaling_method == "L-范数":
-                 p = st.selectbox("范数阶数(p)", ["无穷大", "4", "10"], key="p_scaling")
-                 scaling_params["p"] = p
+             # 挤压参数
+             squashing_params = {}
+             if squashing_method != "无":
+                 if squashing_method == "改进的逻辑函数":
+                     m = st.selectbox("参数m", [10, 20], key="m_improved_squash")
+                     squashing_params["m"] = m
+                     st.info(f"使用参数: m={m}")
+                 elif squashing_method == "DTW挤压":
+                     l = st.selectbox("参数l", [1, 5], key="l_dtw")
+                     k1 = st.selectbox("参数k1", ["T", "F"], key="k1_dtw")
+                     k2 = st.selectbox("参数k2", ["T", "F"], key="k2_dtw")
+                     squashing_params["l"] = l
+                     squashing_params["k1"] = k1
+                     squashing_params["k2"] = k2
+                     st.info(f"使用参数: l={l}, k1={k1}, k2={k2}")
+                 elif squashing_method == "改进的Sigmoid挤压":
+                     st.info("使用默认参数: maxn=10")
+     
+             
      
              # 处理按钮
              if st.button("🚀 应用处理", type="primary", use_container_width=True):
@@ -748,4 +750,5 @@ def main():
                          st.success(f"处理完成: {st.session_state.process_method}")
                      except Exception as e:
                          st.error(f"处理失败: {str(e)}")
+
 
