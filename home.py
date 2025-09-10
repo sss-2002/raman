@@ -10,7 +10,7 @@ def navigate_to(page):
     st.session_state.current_page = page
     st.experimental_rerun()
 
-# 自定义CSS样式
+# 自定义CSS样式（保留其他样式，移除导航栏相关样式）
 def set_custom_style():
     st.markdown(
         """
@@ -36,47 +36,6 @@ def set_custom_style():
             background-color: #0E42D2;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(22, 93, 255, 0.2);
-        }
-        
-        /* 导航栏样式 */
-        .navbar {
-            background-color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin: 10px 0 25px 0;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            border: 1px solid #f0f0f0;
-        }
-        .nav-item {
-            display: inline-block;
-            margin: 0 15px;
-        }
-        .nav-link {
-            color: #1D2939;
-            text-decoration: none;
-            font-size: 16px;
-            font-weight: 500;
-            padding: 5px 0;
-            position: relative;
-        }
-        .nav-link:after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 2px;
-            bottom: 0;
-            left: 0;
-            background-color: #165DFF;
-            transition: width 0.3s ease;
-        }
-        .nav-link:hover {
-            color: #165DFF;
-        }
-        .nav-link:hover:after {
-            width: 100%;
-        }
-        .login-container {
-            float: right;
         }
         
         /* 标题样式 */
@@ -131,35 +90,9 @@ def set_custom_style():
         unsafe_allow_html=True,
     )
 
-# 顶部导航栏 - 使用Streamlit按钮实现跳转
-def show_navbar():
-    # 创建导航容器
-    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
-    
-    with col1:
-        if st.button("首页", key="nav_home"):
-            navigate_to("home")
-    
-    with col2:
-        if st.button("关于我们", key="nav_about"):
-            navigate_to("about")
-    
-    with col3:
-        if st.button("联系我们", key="nav_contact"):
-            navigate_to("contact")
-    
-    with col4:
-        if st.button("帮助中心", key="nav_help"):
-            navigate_to("help")
-    
-    with col5:
-        if st.button("登录", key="nav_login"):
-            navigate_to("login")
-
-# 主页内容
+# 主页内容（移除了导航栏调用）
 def show_home_page():
     set_custom_style()
-    show_navbar()
     
     # 页面标题
     st.markdown('<h1 class="title-text">🔬 光谱分析系统</h1>', unsafe_allow_html=True)
@@ -211,10 +144,9 @@ def show_home_page():
             if st.button(f"进入 {module['name']}", key=f"btn_{module['target_page']}"):
                 navigate_to(module['target_page'])
 
-# 其他页面内容
+# 其他页面内容（均移除了导航栏调用）
 def show_about_page():
     set_custom_style()
-    show_navbar()
     st.title("关于我们")
     st.markdown("""
     ### 西安电子科技大学生物光学实验室
@@ -228,7 +160,6 @@ def show_about_page():
 
 def show_contact_page():
     set_custom_style()
-    show_navbar()
     st.title("联系我们")
     st.markdown("""
     - 地址：陕西省西安市雁塔区西安电子科技大学
@@ -240,7 +171,6 @@ def show_contact_page():
 
 def show_help_page():
     set_custom_style()
-    show_navbar()
     st.title("帮助中心")
     st.markdown("""
     ### 常见问题
@@ -256,7 +186,6 @@ def show_help_page():
 
 def show_login_page():
     set_custom_style()
-    show_navbar()
     st.title("用户登录")
     username = st.text_input("用户名")
     password = st.text_input("密码", type="password")
@@ -299,4 +228,3 @@ def show_target_page(page_name):
 # 根据状态显示内容
 current_page = st.session_state.get("current_page", "home")
 show_target_page(current_page)
-    
