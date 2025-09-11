@@ -647,7 +647,7 @@ def main():
                     st.info("请在右侧设置预处理参数并点击'应用处理'或'推荐应用'")
              
              # 结果导出（支持导出当前选中的排列结果）
-            if st.session_state.arrangement_results or st.session_state.get('processed_data'):
+             if st.session_state.arrangement_results or st.session_state.get('processed_data'):
                 st.subheader("💾 结果导出")
                 export_name = st.text_input("导出文件名", "processed_spectra.txt")
                 
@@ -664,7 +664,7 @@ def main():
                         st.success(f"结果已导出到 {export_name}")
                     except Exception as e:
                         st.error(f"导出失败: {str(e)}")
-        else:
+         else:
             st.info("请先在左侧上传数据")
 
      
