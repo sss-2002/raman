@@ -22,8 +22,8 @@ from DTW import DTW
 
 def main():
      # 设置页面
-     st.set_page_config(layout="wide", page_icon="🔬", page_title="排列组合预处理模型")
-     st.title("🌌 排列组合预处理模型")
+     st.set_page_config(layout="wide", page_icon="🔬", page_title="排列&组合预处理模型")
+     st.title("🌌 排列&组合预处理模型")
      
 
      # 初始化session状态
