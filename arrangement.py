@@ -634,7 +634,7 @@ def main():
                         "预处理后光谱": arr_data[:, random_idx]
                     }, index=wavenumbers)
                     st.line_chart(compare_data)
-            else:
+             else:
                 if st.session_state.get('processed_data'):
                     # 兼容旧版处理结果
                     _, y_processed = st.session_state.processed_data
