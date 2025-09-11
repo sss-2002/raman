@@ -33,6 +33,8 @@ def main():
          st.session_state.processed_data = None
      if 'peaks' not in st.session_state:
          st.session_state.peaks = None
+     if 'train_test_split_ratio' not in st.session_state:
+         st.session_state.train_test_split_ratio = 0.8  # 默认训练集占比80%
      
      
      # ===== 算法实现 =====
@@ -539,6 +541,17 @@ def main():
              # 参数设置
              lines = st.number_input("光谱条数", min_value=1, value=1)
              much = st.number_input("每条光谱数据点数", min_value=1, value=2000)
+
+             # 训练集测试集划分比例
+             train_test_ratio = st.slider(
+                "训练集测试集划分比例",
+                min_value=0.1,
+                max_value=0.9,
+                value=0.8,
+                step=0.1,
+                format="%.1f"
+             )
+             st.session_state.train_test_split_ratio = train_test_ratio
      
              if uploaded_file and wavenumber_file:
                  try:
@@ -553,6 +566,7 @@ def main():
          if st.session_state.get('raw_data'):
              wavenumbers, y = st.session_state.raw_data
              st.info(f"📊 数据维度: {y.shape[1]}条光谱 × {y.shape[0]}点")
+             st.info(f"🔢 训练集比例: {split_ratio:.1f}，测试集比例: {1 - split_ratio:.1f}")
              if st.session_state.get('process_method'):
                  st.success(f"🛠️ 处理流程: {st.session_state.process_method}")
          
@@ -573,9 +587,40 @@ def main():
          st.subheader("📈 光谱可视化")
          if st.session_state.get('raw_data'):
              wavenumbers, y = st.session_state.raw_data
+
+            # ---- 原始光谱展示 ----
+             st.subheader("原始光谱")
+             st.caption("(暂时先显示一条, 如果输入多条就随机显示一条)")
+             # 随机选一条原始光谱
+             random_idx = np.random.randint(0, y.shape[1])
+             raw_chart_data = pd.DataFrame({
+                 "原始光谱": y[:, random_idx]
+             }, index=wavenumbers)
+             st.line_chart(raw_chart_data)
              
              if st.session_state.get('processed_data'):
                  _, y_processed = st.session_state.processed_data
+
+               # ---- 预处理后的光谱展示 ----
+                 st.subheader("预处理后的光谱")
+                 st.caption("(也是显示一条, 显示原始光谱展示的那一条经过预处理后的)")
+                 processed_chart_data = pd.DataFrame({
+                     "预处理后光谱": y_processed[:, random_idx]
+                 }, index=wavenumbers)
+                 st.line_chart(processed_chart_data)
+
+                 # ---- k值曲线展示（示例，需根据实际k值逻辑调整） ----
+                 st.subheader("k值曲线")
+                 # 这里模拟k值曲线，实际需替换为真实k值计算逻辑
+                 k_vals = np.random.rand(much) * 5
+                 k_chart_data = pd.DataFrame({
+                     "k值": k_vals
+                 }, index=wavenumbers)
+                 st.line_chart(k_chart_data)
+              else:
+                  st.info("请在右侧设置预处理参数并点击'应用处理'")
+          else:
+              st.info("请先在左侧上传数据")
                  
                  # 创建对比图表
                  if y.shape[1] > 1:
