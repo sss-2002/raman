@@ -856,8 +856,8 @@ def main():
                             st.error(f"推荐处理失败: {str(e)}")
             
             # 显示排列下拉框（新增）
-            st.subheader("🔍 显示排列")
-            if st.session_state.arrangement_results:
+             st.subheader("🔍 显示排列")
+             if st.session_state.arrangement_results:
                 selected = st.selectbox(
                     "选择历史排列结果",
                     st.session_state.arrangement_results,
@@ -870,7 +870,7 @@ def main():
                 
                 # 显示当前排列的方法详情
                 st.caption(f"当前方法: {st.session_state.arrangement_details[selected]['method']}")
-            else:
+             else:
                 st.info("暂无排列结果，请先处理数据")
                  
 __name__ == "__main__":
