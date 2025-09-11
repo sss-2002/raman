@@ -817,7 +817,7 @@ def main():
                         except Exception as e:
                             st.error(f"处理失败: {str(e)}")
             
-            with col_buttons[1]:
+             with col_buttons[1]:
                 if st.button("🌟 推荐应用", type="primary", use_container_width=True):
                     if st.session_state.raw_data is None:
                         st.warning("请先在左侧上传数据文件")
