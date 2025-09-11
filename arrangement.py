@@ -777,8 +777,8 @@ def main():
              
      
              # 应用处理与推荐应用按钮（并排显示）
-            col_buttons = st.columns(2)
-            with col_buttons[0]:
+             col_buttons = st.columns(2)
+             with col_buttons[0]:
                 if st.button("🚀 应用处理", type="primary", use_container_width=True):
                     if st.session_state.raw_data is None:
                         st.warning("请先在左侧上传数据文件")
