@@ -619,7 +619,7 @@ def main():
                  st.line_chart(k_chart_data)
              else:
                  st.info("请在右侧设置预处理参数并点击'应用处理'")
-          else:
+         else:
              st.info("请先在左侧上传数据")
                  
                  # 创建对比图表
