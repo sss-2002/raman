@@ -582,45 +582,7 @@ def main():
              6. 在中间区域查看结果并导出
              """)
      
-      # ===== 中间：光谱可视化与结果导出 =====
-     with col_mid:
-         st.subheader("📈 光谱可视化")
-         if st.session_state.get('raw_data'):
-             wavenumbers, y = st.session_state.raw_data
-
-            # ---- 原始光谱展示 ----
-             st.subheader("原始光谱")
-             st.caption("(暂时先显示一条, 如果输入多条就随机显示一条)")
-             # 随机选一条原始光谱
-             random_idx = np.random.randint(0, y.shape[1])
-             raw_chart_data = pd.DataFrame({
-                 "原始光谱": y[:, random_idx]
-             }, index=wavenumbers)
-             st.line_chart(raw_chart_data)
-             
-             if st.session_state.get('processed_data'):
-                 _, y_processed = st.session_state.processed_data
-
-               # ---- 预处理后的光谱展示 ----
-                 st.subheader("预处理后的光谱")
-                 st.caption("(也是显示一条, 显示原始光谱展示的那一条经过预处理后的)")
-                 processed_chart_data = pd.DataFrame({
-                     "预处理后光谱": y_processed[:, random_idx]
-                 }, index=wavenumbers)
-                 st.line_chart(processed_chart_data)
-
-                 # ---- k值曲线展示（示例，需根据实际k值逻辑调整） ----
-                 st.subheader("k值曲线")
-                 # 这里模拟k值曲线，实际需替换为真实k值计算逻辑
-                 k_vals = np.random.rand(much) * 5
-                 k_chart_data = pd.DataFrame({
-                     "k值": k_vals
-                 }, index=wavenumbers)
-                 st.line_chart(k_chart_data)
-             else:
-                 st.info("请在右侧设置预处理参数并点击'应用处理'")
-         else:
-             st.info("请先在左侧上传数据")
+      
                  
                  # 创建对比图表
                  if y.shape[1] > 1:
