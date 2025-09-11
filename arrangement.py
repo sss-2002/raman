@@ -581,8 +581,13 @@ def main():
              5. 点击"应用处理"
              6. 在中间区域查看结果并导出
              """)
-     
-      
+     with col_mid:
+         st.subheader("📈 光谱可视化")
+         if st.session_state.get('raw_data'):
+             wavenumbers, y = st.session_state.raw_data
+             
+             if st.session_state.get('processed_data'):
+                 _, y_processed = st.session_state.processed_data
                  
                  # 创建对比图表
                  if y.shape[1] > 1:
