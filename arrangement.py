@@ -601,7 +601,7 @@ def main():
              st.line_chart(raw_chart_data)
              
              # 排列结果展示（新增）
-            if st.session_state.arrangement_results:
+             if st.session_state.arrangement_results:
                 st.subheader("🔄 排列结果对比")
                 selected_arr = st.session_state.selected_arrangement
                 if selected_arr:
