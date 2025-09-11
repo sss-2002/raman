@@ -158,8 +158,4 @@ with st.container(border=True):
 
 # ---------------------- 5. 页脚说明 ----------------------
 st.divider()
-st.markdown("""
-    <div style="text-align: center; color: #666;">
-        部署说明：此工具基于 Streamlit 构建，可直接在 GitHub 配合 Streamlit Community Cloud 部署。
-    </div>
-""", unsafe_allow_html=True)
+
