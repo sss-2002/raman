@@ -18,7 +18,7 @@ from scipy.fft import fft, ifft
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 from DTW import DTW
-
+from dtw import dtw_path  # 补充DTW路径计算依赖
 
 def main():
      # 设置页面
@@ -35,6 +35,13 @@ def main():
          st.session_state.peaks = None
      if 'train_test_split_ratio' not in st.session_state:
          st.session_state.train_test_split_ratio = 0.8  # 默认训练集占比80%
+          # 新增排列结果管理状态
+     if 'arrangement_results' not in st.session_state:
+         st.session_state.arrangement_results = []  # 存储所有排列结果
+     if 'selected_arrangement' not in st.session_state:
+         st.session_state.selected_arrangement = None  # 当前选中的排列结果
+     if 'arrangement_details' not in st.session_state:
+         st.session_state.arrangement_details = {}  # 存储每个排列的详细信息（数据+方法）
      
      
      # ===== 算法实现 =====
@@ -251,26 +258,25 @@ def main():
      
      
      # ===== 数据变换函数 =====
-     def sigmoid(x):
-         """原始Sigmoid函数"""
-         return 1 / (1 + np.exp(-x))
+     def sigmoid_func(x):
+        """原始Sigmoid函数（重命名避免冲突）"""
+        return 1 / (1 + np.exp(-x))
      
-     def squashing(x):
-         """原始挤压函数"""
-         return x / np.sqrt(1 + x**2)
+     def squashing_func(x):
+        """原始挤压函数（重命名避免冲突）"""
+        return x / np.sqrt(1 + x**2)
      
-     def i_sigmoid(x, maxn=10):
-         """归一化版Sigmoid函数"""
-         x_norm = x / maxn
-         return sigmoid(x_norm)
+     def i_sigmoid_func(x, maxn=10):
+        """归一化版Sigmoid函数"""
+        x_norm = x / maxn
+        return sigmoid_func(x_norm)
      
-     def i_squashing(x):
-         """归一化版挤压函数"""
-         # 先归一化到[-1,1]
-         x_min = np.min(x, axis=0)
-         x_max = np.max(x, axis=0)
-         x_norm = 2 * (x - x_min) / (x_max - x_min) - 1
-         return squashing(x_norm)
+     def i_squashing_func(x):
+        """归一化版挤压函数"""
+        x_min = np.min(x, axis=0)
+        x_max = np.max(x, axis=0)
+        x_norm = 2 * (x - x_min) / (x_max - x_min) - 1
+        return squashing_func(x_norm)
      
      # ===== LP范数归一化 =====
      def LPnorm(x, p):
@@ -566,21 +572,20 @@ def main():
          if st.session_state.get('raw_data'):
              wavenumbers, y = st.session_state.raw_data
              st.info(f"📊 数据维度: {y.shape[1]}条光谱 × {y.shape[0]}点")
-             st.info(f"🔢 训练集比例: {split_ratio:.1f}，测试集比例: {1 - split_ratio:.1f}")
+             st.info(f"🔢 训练集比例: {st.session_state.train_test_split_ratio:.1f}，测试集比例: {1 - st.session_state.train_test_split_ratio:.1f}")
              if st.session_state.get('process_method'):
                  st.success(f"🛠️ 处理流程: {st.session_state.process_method}")
          
          # 使用说明
          with st.expander("ℹ️ 使用指南", expanded=False):
              st.markdown("""
-             **标准操作流程:**
-             1. 上传波数文件（单列文本）
-             2. 上传光谱数据文件（多列文本）
-             3. 设置光谱条数和数据点数
-             4. 在右侧选择预处理方法
-             5. 点击"应用处理"
-             6. 在中间区域查看结果并导出
-             """)
+            **标准操作流程:**
+            1. 上传波数文件（单列文本）和光谱数据文件（多列文本）
+            2. 设置光谱条数、数据点数和训练集比例
+            3. 在右侧选择预处理方法，或直接点击"推荐应用"
+            4. 处理完成后，可在右侧"显示排列"选择历史结果
+            5. 在中间区域查看对比图谱并导出结果
+            """)
           # ===== 中间：光谱可视化与结果导出 =====
      with col_mid:
          st.subheader("📈 光谱可视化")
@@ -588,72 +593,79 @@ def main():
              wavenumbers, y = st.session_state.raw_data
              # ---- 原始光谱展示 ----
              st.subheader("原始光谱")
-             st.caption("(暂时先显示一条, 如果输入多条就随机显示一条)")
-             # 随机选一条原始光谱
+             st.caption("(随机显示一条，若有多条)")
              random_idx = np.random.randint(0, y.shape[1])
              raw_chart_data = pd.DataFrame({
-                 "原始光谱": y[:, random_idx]
+                "原始光谱": y[:, random_idx]
              }, index=wavenumbers)
              st.line_chart(raw_chart_data)
              
-             if st.session_state.get('processed_data'):
-                 _, y_processed = st.session_state.processed_data
-                  # ---- 预处理后的光谱展示 ----
-                 st.subheader("预处理后的光谱")
-                 st.caption("(也是显示一条, 显示原始光谱展示的那一条经过预处理后的)")
-                 processed_chart_data = pd.DataFrame({
-                     "预处理后光谱": y_processed[:, random_idx]
-                 }, index=wavenumbers)
-                 st.line_chart(processed_chart_data)
-                  # ---- k值曲线展示 ----
-                 st.subheader("k值曲线")
-                 # 模拟k值曲线（实际使用时替换为真实计算逻辑）
-                 k_vals = np.random.rand(len(wavenumbers)) * 5
-                 k_chart_data = pd.DataFrame({
-                     "k值": k_vals
-                 }, index=wavenumbers)
-                 st.line_chart(k_chart_data)
-                 
-                 # 创建对比图表
-                 if y.shape[1] > 1:
-                     chart_data = pd.DataFrame({
-                         "原始数据(平均值)": y.mean(axis=1),
-                         "处理后数据(平均值)": y_processed.mean(axis=1)
-                     }, index=wavenumbers)
-                 else:
-                     chart_data = pd.DataFrame({
-                         "原始数据": y[:, 0],
-                         "处理后数据": y_processed[:, 0]
-                     }, index=wavenumbers)
-                 
-                 st.line_chart(chart_data)
-             else:
-                 # 只显示原始数据
-                 if y.shape[1] > 1:
-                     chart_data = pd.DataFrame({
-                         "原始数据(平均值)": y.mean(axis=1)
-                     }, index=wavenumbers)
-                 else:
-                     chart_data = pd.DataFrame({
-                         "原始数据": y[:, 0]
-                     }, index=wavenumbers)
-                 
-                 st.line_chart(chart_data)
+             # 排列结果展示（新增）
+            if st.session_state.arrangement_results:
+                st.subheader("🔄 排列结果对比")
+                selected_arr = st.session_state.selected_arrangement
+                if selected_arr:
+                    # 获取当前选中排列的详细数据
+                    arr_data = st.session_state.arrangement_details[selected_arr]['data']
+                    arr_method = st.session_state.arrangement_details[selected_arr]['method']
+                    
+                    st.caption(f"处理方法: {arr_method}")
+                    
+                    # ---- 预处理后的光谱展示 ----
+                    st.subheader("预处理后的光谱")
+                    processed_chart_data = pd.DataFrame({
+                        "预处理后光谱": arr_data[:, random_idx]
+                    }, index=wavenumbers)
+                    st.line_chart(processed_chart_data)
+                    
+                    # ---- k值曲线展示（优化为真实计算逻辑）----
+                    st.subheader("k值曲线")
+                    # 计算k值：预处理后与原始数据的比值（示例逻辑，可根据实际需求调整）
+                    k_vals = np.abs(arr_data[:, random_idx] / (y[:, random_idx] + 1e-8))  # 加微小值避免除零
+                    k_chart_data = pd.DataFrame({
+                        "k值": k_vals
+                    }, index=wavenumbers)
+                    st.line_chart(k_chart_data)
+                    
+                    # 原始与处理后对比图
+                    st.subheader("原始与处理后对比")
+                    compare_data = pd.DataFrame({
+                        "原始光谱": y[:, random_idx],
+                        "预处理后光谱": arr_data[:, random_idx]
+                    }, index=wavenumbers)
+                    st.line_chart(compare_data)
+            else:
+                if st.session_state.get('processed_data'):
+                    # 兼容旧版处理结果
+                    _, y_processed = st.session_state.processed_data
+                    st.subheader("预处理后的光谱")
+                    processed_chart_data = pd.DataFrame({
+                        "预处理后光谱": y_processed[:, random_idx]
+                    }, index=wavenumbers)
+                    st.line_chart(processed_chart_data)
+                else:
+                    st.info("请在右侧设置预处理参数并点击'应用处理'或'推荐应用'")
              
-             # 结果导出
-             if st.session_state.get('processed_data'):
-                 st.subheader("💾 结果导出")
-                 export_name = st.text_input("导出文件名", "processed_spectra.txt")
-                 
-                 if st.button("导出处理结果", type="secondary"):
-                     try:
-                         wavenumbers, y_processed = st.session_state.processed_data
-                         file_handler.export_data(export_name, y_processed)
-                         st.success(f"结果已导出到 {export_name}")
-                     except Exception as e:
-                         st.error(f"导出失败: {str(e)}")
-         else:
-             st.info("请先在左侧上传数据，在右侧设置预处理参数")
+             # 结果导出（支持导出当前选中的排列结果）
+            if st.session_state.arrangement_results or st.session_state.get('processed_data'):
+                st.subheader("💾 结果导出")
+                export_name = st.text_input("导出文件名", "processed_spectra.txt")
+                
+                if st.button("导出处理结果", type="secondary"):
+                    try:
+                        if st.session_state.selected_arrangement:
+                            # 导出选中的排列结果
+                            arr_data = st.session_state.arrangement_details[st.session_state.selected_arrangement]['data']
+                            file_handler.export_data(export_name, arr_data)
+                        else:
+                            # 导出最新处理结果
+                            wavenumbers, y_processed = st.session_state.processed_data
+                            file_handler.export_data(export_name, y_processed)
+                        st.success(f"结果已导出到 {export_name}")
+                    except Exception as e:
+                        st.error(f"导出失败: {str(e)}")
+        else:
+            st.info("请先在左侧上传数据")
 
      
         # ===== 右侧：预处理设置 =====
@@ -764,28 +776,102 @@ def main():
      
              
      
-             # 处理按钮
-             if st.button("🚀 应用处理", type="primary", use_container_width=True):
-                 if st.session_state.raw_data is None:
-                     st.warning("请先在左侧上传数据文件")
-                 else:
-                     try:
-                         wavenumbers, y = st.session_state.raw_data
-                         processed_data, method_name = preprocessor.process(
-                             wavenumbers, y, 
-                             baseline_method=baseline_method,
-                             baseline_params=baseline_params,
-                             squashing_method=squashing_method,
-                             squashing_params=squashing_params,
-                             filtering_method=filtering_method,
-                             filtering_params=filtering_params,
-                             scaling_method=scaling_method,
-                             scaling_params=scaling_params
-                         )
-                         
-                         st.session_state.processed_data = (wavenumbers, processed_data)
-                         st.session_state.process_method = " → ".join(method_name)
-                         st.success(f"处理完成: {st.session_state.process_method}")
-                     except Exception as e:
-                         st.error(f"处理失败: {str(e)}")
-
+             # 应用处理与推荐应用按钮（并排显示）
+            col_buttons = st.columns(2)
+            with col_buttons[0]:
+                if st.button("🚀 应用处理", type="primary", use_container_width=True):
+                    if st.session_state.raw_data is None:
+                        st.warning("请先在左侧上传数据文件")
+                    else:
+                        try:
+                            wavenumbers, y = st.session_state.raw_data
+                            processed_data, method_name = preprocessor.process(
+                                wavenumbers, y, 
+                                baseline_method=baseline_method,
+                                baseline_params=baseline_params,
+                                squashing_method=squashing_method,
+                                squashing_params=squashing_params,
+                                filtering_method=filtering_method,
+                                filtering_params=filtering_params,
+                                scaling_method=scaling_method,
+                                scaling_params=scaling_params
+                            )
+                            
+                            # 更新排列结果管理
+                            arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
+                            st.session_state.arrangement_results.append(arr_name)
+                            st.session_state.arrangement_details[arr_name] = {
+                                'data': processed_data,
+                                'method': " → ".join(method_name),
+                                'params': {
+                                    'baseline': (baseline_method, baseline_params),
+                                    'scaling': (scaling_method, scaling_params),
+                                    'filtering': (filtering_method, filtering_params),
+                                    'squashing': (squashing_method, squashing_params)
+                                }
+                            }
+                            st.session_state.selected_arrangement = arr_name
+                            st.session_state.processed_data = (wavenumbers, processed_data)
+                            st.session_state.process_method = " → ".join(method_name)
+                            st.success(f"处理完成: {st.session_state.process_method}")
+                        except Exception as e:
+                            st.error(f"处理失败: {str(e)}")
+            
+            with col_buttons[1]:
+                if st.button("🌟 推荐应用", type="primary", use_container_width=True):
+                    if st.session_state.raw_data is None:
+                        st.warning("请先在左侧上传数据文件")
+                    else:
+                        try:
+                            wavenumbers, y = st.session_state.raw_data
+                            # 推荐策略：自动选择常用预处理组合（示例逻辑，可根据实际需求优化）
+                            recommended_params = {
+                                'baseline_method': "airPLS",
+                                'baseline_params': {'lam': 10**4},
+                                'scaling_method': "SNV",
+                                'scaling_params': {},
+                                'filtering_method': "Savitzky-Golay",
+                                'filtering_params': {'k': 3, 'w': 11},
+                                'squashing_method': "改进的Sigmoid挤压",
+                                'squashing_params': {}
+                            }
+                            
+                            processed_data, method_name = preprocessor.process(
+                                wavenumbers, y,** recommended_params
+                            )
+                            
+                            # 更新排列结果管理
+                            arr_name = f"推荐排列_{len(st.session_state.arrangement_results) + 1}"
+                            st.session_state.arrangement_results.append(arr_name)
+                            st.session_state.arrangement_details[arr_name] = {
+                                'data': processed_data,
+                                'method': " → ".join(method_name),
+                                'params': recommended_params
+                            }
+                            st.session_state.selected_arrangement = arr_name
+                            st.session_state.processed_data = (wavenumbers, processed_data)
+                            st.session_state.process_method = " → ".join(method_name)
+                            st.success(f"推荐处理完成: {st.session_state.process_method}")
+                        except Exception as e:
+                            st.error(f"推荐处理失败: {str(e)}")
+            
+            # 显示排列下拉框（新增）
+            st.subheader("🔍 显示排列")
+            if st.session_state.arrangement_results:
+                selected = st.selectbox(
+                    "选择历史排列结果",
+                    st.session_state.arrangement_results,
+                    index=st.session_state.arrangement_results.index(st.session_state.selected_arrangement) 
+                    if st.session_state.selected_arrangement else 0
+                )
+                if selected != st.session_state.selected_arrangement:
+                    st.session_state.selected_arrangement = selected
+                    st.experimental_rerun()  # 刷新页面显示选中的排列结果
+                
+                # 显示当前排列的方法详情
+                st.caption(f"当前方法: {st.session_state.arrangement_details[selected]['method']}")
+            else:
+                st.info("暂无排列结果，请先处理数据")
+                 
+__name__ == "__main__":
+main()
