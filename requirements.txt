@@ -16,3 +16,4 @@ pygments==2.19.2
 mdurl==0.1.2
 statsmodels>=0.14.0
 pywavelets>=1.4.1
+tkinter>=8.6
