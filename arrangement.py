@@ -1,200 +1,165 @@
-import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox
+import streamlit as st
 import random
 import numpy as np
 
-class PermutationPreprocessor:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("排列预处理工具")
-        self.root.geometry("800x600")
-        self.root.resizable(True, True)
-        
-        # 设置样式
-        self.style = ttk.Style()
-        self.style.configure("TLabel", font=("SimHei", 10))
-        self.style.configure("TButton", font=("SimHei", 10))
-        self.style.configure("TCheckbutton", font=("SimHei", 10))
-        self.style.configure("TRadiobutton", font=("SimHei", 10))
-        
-        # 创建主框架
-        self.main_frame = ttk.Frame(root, padding="10")
-        self.main_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # 创建输入区域
-        self.create_input_section()
-        
-        # 创建预处理选项区域
-        self.create_preprocessing_options()
-        
-        # 创建结果展示区域
-        self.create_result_section()
-        
-        # 创建按钮区域
-        self.create_button_section()
-        
-    def create_input_section(self):
-        input_frame = ttk.LabelFrame(self.main_frame, text="输入数据", padding="10")
-        input_frame.pack(fill=tk.X, pady=5)
-        
-        ttk.Label(input_frame, text="请输入需要处理的序列（用逗号分隔）:").pack(anchor=tk.W, pady=5)
-        
-        self.input_entry = ttk.Entry(input_frame, width=80)
-        self.input_entry.pack(anchor=tk.W, pady=5, fill=tk.X)
-        self.input_entry.insert(0, "1,3,5,2,4,6,8,7,9")  # 默认示例数据
-        
-        ttk.Label(input_frame, text="或随机生成序列:").pack(anchor=tk.W, pady=5)
-        
-        random_frame = ttk.Frame(input_frame)
-        random_frame.pack(anchor=tk.W, pady=5)
-        
-        ttk.Label(random_frame, text="元素数量:").pack(side=tk.LEFT, padx=5)
-        self.random_count = tk.StringVar(value="10")
-        ttk.Entry(random_frame, textvariable=self.random_count, width=10).pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(random_frame, text="生成随机序列", command=self.generate_random_sequence).pack(side=tk.LEFT, padx=5)
-        
-    def create_preprocessing_options(self):
-        options_frame = ttk.LabelFrame(self.main_frame, text="预处理选项", padding="10")
-        options_frame.pack(fill=tk.X, pady=5)
-        
-        # 预处理类型选择
-        ttk.Label(options_frame, text="选择预处理类型:").pack(anchor=tk.W, pady=5)
-        
-        self.preprocess_type = tk.StringVar(value="basic")
-        
-        ttk.Radiobutton(options_frame, text="基础排序", variable=self.preprocess_type, value="basic").pack(anchor=tk.W)
-        ttk.Radiobutton(options_frame, text="去重后排序", variable=self.preprocess_type, value="unique").pack(anchor=tk.W)
-        ttk.Radiobutton(options_frame, text="反向排序", variable=self.preprocess_type, value="reverse").pack(anchor=tk.W)
-        ttk.Radiobutton(options_frame, text="打乱顺序", variable=self.preprocess_type, value="shuffle").pack(anchor=tk.W)
-        
-        # 额外选项
-        self.sort_ascending = tk.BooleanVar(value=True)
-        ttk.Checkbutton(options_frame, text="升序排列（基础排序时生效）", variable=self.sort_ascending).pack(anchor=tk.W, pady=5)
-        
-    def create_result_section(self):
-        result_frame = ttk.LabelFrame(self.main_frame, text="处理结果", padding="10")
-        result_frame.pack(fill=tk.BOTH, expand=True, pady=5)
-        
-        ttk.Label(result_frame, text="原始序列:").pack(anchor=tk.W)
-        self.original_text = scrolledtext.ScrolledText(result_frame, height=3, wrap=tk.WORD)
-        self.original_text.pack(fill=tk.X, pady=5)
-        self.original_text.config(state=tk.DISABLED)
-        
-        ttk.Label(result_frame, text="处理后序列:").pack(anchor=tk.W)
-        self.processed_text = scrolledtext.ScrolledText(result_frame, height=3, wrap=tk.WORD)
-        self.processed_text.pack(fill=tk.X, pady=5)
-        self.processed_text.config(state=tk.DISABLED)
-        
-        ttk.Label(result_frame, text="处理日志:").pack(anchor=tk.W)
-        self.log_text = scrolledtext.ScrolledText(result_frame, height=10, wrap=tk.WORD)
-        self.log_text.pack(fill=tk.BOTH, expand=True, pady=5)
-        self.log_text.config(state=tk.DISABLED)
-        
-    def create_button_section(self):
-        button_frame = ttk.Frame(self.main_frame, padding="10")
-        button_frame.pack(fill=tk.X, pady=5)
-        
-        ttk.Button(button_frame, text="执行预处理", command=self.process_sequence).pack(side=tk.LEFT, padx=10)
-        ttk.Button(button_frame, text="清除结果", command=self.clear_results).pack(side=tk.LEFT, padx=10)
-        ttk.Button(button_frame, text="退出", command=self.root.quit).pack(side=tk.RIGHT, padx=10)
-        
-    def generate_random_sequence(self):
-        try:
-            count = int(self.random_count.get())
-            if count <= 0:
-                messagebox.showerror("错误", "请输入有效的元素数量")
-                return
-                
-            sequence = [random.randint(1, 100) for _ in range(count)]
-            self.input_entry.delete(0, tk.END)
-            self.input_entry.insert(0, ",".join(map(str, sequence)))
-        except ValueError:
-            messagebox.showerror("错误", "请输入有效的数字")
-            
-    def log(self, message):
-        self.log_text.config(state=tk.NORMAL)
-        self.log_text.insert(tk.END, message + "\n")
-        self.log_text.see(tk.END)
-        self.log_text.config(state=tk.DISABLED)
-        
-    def process_sequence(self):
-        # 清除之前的结果
-        self.clear_results()
-        
-        # 获取输入序列
-        input_str = self.input_entry.get().strip()
-        if not input_str:
-            messagebox.showerror("错误", "请输入序列或生成随机序列")
-            return
-            
-        try:
-            # 解析输入序列
-            sequence = list(map(int, input_str.split(',')))
-            self.log(f"解析输入序列: {sequence}")
-            
-            # 显示原始序列
-            self.original_text.config(state=tk.NORMAL)
-            self.original_text.insert(tk.END, ", ".join(map(str, sequence)))
-            self.original_text.config(state=tk.DISABLED)
-            
-            # 根据选择的预处理类型进行处理
-            processed = sequence.copy()
-            preprocess_type = self.preprocess_type.get()
-            
-            if preprocess_type == "basic":
-                self.log("执行基础排序...")
-                processed.sort(reverse=not self.sort_ascending.get())
-                order = "升序" if self.sort_ascending.get() else "降序"
-                self.log(f"完成{order}排序")
-                
-            elif preprocess_type == "unique":
-                self.log("执行去重后排序...")
-                processed = list(np.unique(processed))
-                if self.sort_ascending.get():
-                    processed.sort()
-                else:
-                    processed.sort(reverse=True)
-                order = "升序" if self.sort_ascending.get() else "降序"
-                self.log(f"完成去重并按{order}排序")
-                
-            elif preprocess_type == "reverse":
-                self.log("执行反向排序...")
-                processed = processed[::-1]
-                self.log("完成反向排序")
-                
-            elif preprocess_type == "shuffle":
-                self.log("执行打乱顺序...")
-                random.shuffle(processed)
-                self.log("完成打乱顺序")
-            
-            # 显示处理后的序列
-            self.processed_text.config(state=tk.NORMAL)
-            self.processed_text.insert(tk.END, ", ".join(map(str, processed)))
-            self.processed_text.config(state=tk.DISABLED)
-            
-            self.log("预处理完成!")
-            
-        except ValueError:
-            messagebox.showerror("错误", "输入格式不正确，请使用逗号分隔的数字")
-        except Exception as e:
-            messagebox.showerror("错误", f"处理过程中发生错误: {str(e)}")
-            
-    def clear_results(self):
-        self.original_text.config(state=tk.NORMAL)
-        self.original_text.delete(1.0, tk.END)
-        self.original_text.config(state=tk.DISABLED)
-        
-        self.processed_text.config(state=tk.NORMAL)
-        self.processed_text.delete(1.0, tk.END)
-        self.processed_text.config(state=tk.DISABLED)
-        
-        self.log_text.config(state=tk.NORMAL)
-        self.log_text.delete(1.0, tk.END)
-        self.log_text.config(state=tk.DISABLED)
+# 设置页面配置（标题、图标，必须放在所有 Streamlit 命令之前）
+st.set_page_config(
+    page_title="排列预处理工具",
+    page_icon="🔢",
+    layout="wide"  # 宽屏布局，适配更多内容
+)
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    # 确保中文显示正常
-    app = PermutationPreprocessor(root)
-    root.mainloop()
+# ---------------------- 1. 页面标题与说明 ----------------------
+st.title("🔢 排列预处理工具")
+st.markdown("""
+    支持序列的基础排序、去重排序、反向排序、打乱顺序等预处理操作。
+    可手动输入序列或生成随机序列，实时查看处理结果与日志。
+""")
+st.divider()  # 分割线，优化视觉
+
+# ---------------------- 2. 输入区域（手动输入 + 随机生成） ----------------------
+with st.container(border=True):  # 带边框的容器，区分区域
+    st.subheader("📥 输入数据")
+    
+    # 手动输入序列
+    input_str = st.text_input(
+        label="请输入需要处理的序列（用逗号分隔，例如：1,3,5,2）",
+        value="1,3,5,2,4,6,8,7,9",  # 默认示例数据
+        help="输入格式：数字之间用英文逗号分隔，无需空格"
+    )
+    
+    # 随机生成序列（折叠面板，避免占用过多空间）
+    with st.expander("🔀 生成随机序列（点击展开）"):
+        col1, col2 = st.columns([1, 2])  # 分两列布局，优化排版
+        with col1:
+            random_count = st.number_input(
+                label="元素数量",
+                min_value=1,  # 最少1个元素
+                max_value=100,  # 最多100个元素
+                value=10,  # 默认10个元素
+                step=1
+            )
+        with col2:
+            if st.button("生成随机序列", use_container_width=True):
+                # 生成 1-100 之间的随机整数序列
+                random_seq = [random.randint(1, 100) for _ in range(random_count)]
+                # 更新输入框内容（覆盖原有手动输入）
+                input_str = ",".join(map(str, random_seq))
+                # 用 Streamlit 的会话状态缓存随机序列，避免刷新后丢失
+                st.session_state["input_str"] = input_str
+                # 刷新页面，让输入框显示新生成的序列
+                st.rerun()
+
+# 从会话状态恢复输入（如果之前生成过随机序列）
+if "input_str" in st.session_state:
+    input_str = st.session_state["input_str"]
+
+# ---------------------- 3. 预处理选项（单选按钮 + 复选框） ----------------------
+with st.container(border=True):
+    st.subheader("⚙️ 预处理选项")
+    
+    # 预处理类型（单选按钮）
+    preprocess_type = st.radio(
+        label="选择预处理类型",
+        options=[
+            ("basic", "基础排序"),
+            ("unique", "去重后排序"),
+            ("reverse", "反向排序"),
+            ("shuffle", "打乱顺序")
+        ],
+        format_func=lambda x: x[1],  # 显示选项的中文名称
+        index=0,  # 默认选择“基础排序”
+        horizontal=True  # 水平排列，节省空间
+    )[0]  # 取元组的第一个元素（实际值：basic/unique/reverse/shuffle）
+    
+    # 额外选项：升序/降序（仅基础排序时显示）
+    sort_ascending = True
+    if preprocess_type == "basic":
+        sort_ascending = st.checkbox(
+            label="升序排列",
+            value=True,  # 默认升序
+            help="取消勾选则为降序排列"
+        )
+
+# ---------------------- 4. 执行预处理与结果展示 ----------------------
+with st.container(border=True):
+    st.subheader("📊 处理结果")
+    
+    # 初始化结果变量
+    original_seq = None
+    processed_seq = None
+    log = []
+    
+    # 执行预处理按钮（点击后触发逻辑）
+    if st.button("▶️ 执行预处理", use_container_width=True, type="primary"):
+        # 1. 验证并解析输入序列
+        if not input_str.strip():
+            st.error("❌ 请输入序列或生成随机序列后再执行！")
+            st.stop()  # 终止后续逻辑
+        
+        try:
+            # 分割字符串并转换为整数列表
+            original_seq = list(map(int, input_str.split(',')))
+            log.append(f"✅ 解析输入序列：{original_seq}")
+        except ValueError:
+            st.error("❌ 输入格式错误！请使用英文逗号分隔数字（例如：1,3,5,2）。")
+            st.stop()
+        
+        # 2. 执行对应的预处理逻辑
+        processed_seq = original_seq.copy()
+        if preprocess_type == "basic":
+            log.append("🔄 开始执行：基础排序")
+            processed_seq.sort(reverse=not sort_ascending)
+            order = "升序" if sort_ascending else "降序"
+            log.append(f"✅ 完成 {order} 排序")
+        
+        elif preprocess_type == "unique":
+            log.append("🔄 开始执行：去重后排序")
+            processed_seq = list(np.unique(processed_seq))  # 去重
+            processed_seq.sort(reverse=not sort_ascending)  # 排序
+            order = "升序" if sort_ascending else "降序"
+            log.append(f"✅ 完成去重 + {order} 排序")
+        
+        elif preprocess_type == "reverse":
+            log.append("🔄 开始执行：反向排序")
+            processed_seq = processed_seq[::-1]  # 反转列表
+            log.append("✅ 完成反向排序")
+        
+        elif preprocess_type == "shuffle":
+            log.append("🔄 开始执行：打乱顺序")
+            random.shuffle(processed_seq)  # 打乱列表
+            log.append("✅ 完成打乱顺序")
+        
+        log.append("🎉 预处理全部完成！")
+    
+    # 3. 展示结果（仅当处理完成后显示）
+    if original_seq is not None and processed_seq is not None:
+        # 分两列展示“原始序列”和“处理后序列”
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**原始序列**")
+            st.code(", ".join(map(str, original_seq)))  # 用代码块展示，更清晰
+        with col2:
+            st.markdown("**处理后序列**")
+            st.code(", ".join(map(str, processed_seq)))
+        
+        # 展示处理日志（折叠面板）
+        with st.expander("📝 查看处理日志（点击展开）"):
+            for line in log:
+                st.write(line)
+    
+    # 清除结果按钮
+    if st.button("🗑️ 清除结果", use_container_width=True):
+        # 重置会话状态和输入框
+        if "input_str" in st.session_state:
+            del st.session_state["input_str"]
+        # 刷新页面
+        st.rerun()
+
+# ---------------------- 5. 页脚说明 ----------------------
+st.divider()
+st.markdown("""
+    <div style="text-align: center; color: #666;">
+        部署说明：此工具基于 Streamlit 构建，可直接在 GitHub 配合 Streamlit Community Cloud 部署。
+    </div>
+""", unsafe_allow_html=True)
