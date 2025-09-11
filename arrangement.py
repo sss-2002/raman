@@ -873,5 +873,5 @@ def main():
              else:
                 st.info("暂无排列结果，请先处理数据")
                  
-__name__ == "__main__":
-main()
+if __name__ == "__main__":
+    main()
