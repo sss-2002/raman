@@ -586,9 +586,33 @@ def main():
          st.subheader("📈 光谱可视化")
          if st.session_state.get('raw_data'):
              wavenumbers, y = st.session_state.raw_data
+             # ---- 原始光谱展示 ----
+             st.subheader("原始光谱")
+             st.caption("(暂时先显示一条, 如果输入多条就随机显示一条)")
+             # 随机选一条原始光谱
+             random_idx = np.random.randint(0, y.shape[1])
+             raw_chart_data = pd.DataFrame({
+                 "原始光谱": y[:, random_idx]
+             }, index=wavenumbers)
+             st.line_chart(raw_chart_data)
              
              if st.session_state.get('processed_data'):
                  _, y_processed = st.session_state.processed_data
+                  # ---- 预处理后的光谱展示 ----
+                 st.subheader("预处理后的光谱")
+                 st.caption("(也是显示一条, 显示原始光谱展示的那一条经过预处理后的)")
+                 processed_chart_data = pd.DataFrame({
+                     "预处理后光谱": y_processed[:, random_idx]
+                 }, index=wavenumbers)
+                 st.line_chart(processed_chart_data)
+                  # ---- k值曲线展示 ----
+                 st.subheader("k值曲线")
+                 # 模拟k值曲线（实际使用时替换为真实计算逻辑）
+                 k_vals = np.random.rand(len(wavenumbers)) * 5
+                 k_chart_data = pd.DataFrame({
+                     "k值": k_vals
+                 }, index=wavenumbers)
+                 st.line_chart(k_chart_data)
                  
                  # 创建对比图表
                  if y.shape[1] > 1:
