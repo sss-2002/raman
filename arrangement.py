@@ -156,6 +156,5 @@ with st.container(border=True):
         # 刷新页面
         st.rerun()
 
-# ---------------------- 5. 页脚说明 ----------------------
-st.divider()
+
 
