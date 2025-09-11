@@ -18,7 +18,7 @@ from scipy.fft import fft, ifft
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 from DTW import DTW
-from dtw import dtw_path  # 补充DTW路径计算依赖
+from DTW import DTW_path  # 补充DTW路径计算依赖
 
 def main():
      # 设置页面
