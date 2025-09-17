@@ -21,9 +21,6 @@ from DTW import DTW
 
 
 def main():
-     # 设置页面
-     st.set_page_config(layout="wide", page_icon="🔬", page_title="排列预处理模型")
-     st.title("🌌 排列预处理模型")
 
      required_states = {
          'raw_data': None,
@@ -39,6 +36,11 @@ def main():
      for key, value in required_states.items():
          if key not in st.session_state:
              st.session_state[key] = value
+     # 设置页面
+     st.set_page_config(layout="wide", page_icon="🔬", page_title="排列预处理模型")
+     st.title("🌌 排列预处理模型")
+
+     
      
 
      # 初始化session状态
