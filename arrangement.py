@@ -855,23 +855,33 @@ def main():
                         except Exception as e:
                             st.error(f"推荐处理失败: {str(e)}")
             
-            # 显示排列下拉框（新增）
-             st.subheader("🔍 显示排列")
-             if st.session_state.arrangement_results:
-                selected = st.selectbox(
-                    "选择历史排列结果",
-                    st.session_state.arrangement_results,
-                    index=st.session_state.arrangement_results.index(st.session_state.selected_arrangement) 
-                    if st.session_state.selected_arrangement else 0
-                )
-                if selected != st.session_state.selected_arrangement:
-                    st.session_state.selected_arrangement = selected
-                    st.experimental_rerun()  # 刷新页面显示选中的排列结果
-                
-                # 显示当前排列的方法详情
-                st.caption(f"当前方法: {st.session_state.arrangement_details[selected]['method']}")
-             else:
-                st.info("暂无排列结果，请先处理数据")
+            # 切换显示排列的按钮
+             if st.button("🔍 显示排列", type="secondary", use_container_width=True):
+                 # 切换显示状态
+                 st.session_state.show_arrangements = not st.session_state.show_arrangements
+                 # 如果是首次点击且有排列结果，默认选中第一个
+                 if st.session_state.show_arrangements and st.session_state.arrangement_results and not st.session_state.selected_arrangement:
+                     st.session_state.selected_arrangement = st.session_state.arrangement_results[0]
+                 st.experimental_rerun()
+                 
+             # 当显示排列状态为True且有排列结果时，显示排列列表
+             if st.session_state.show_arrangements and st.session_state.arrangement_results:
+                 st.subheader("排列列表")
+                 # 显示排列选择下拉框
+                 selected = st.selectbox(
+                     "选择排列结果",
+                     st.session_state.arrangement_results,
+                     index=st.session_state.arrangement_results.index(st.session_state.selected_arrangement) 
+                     if st.session_state.selected_arrangement else 0
+                 )
+                 if selected != st.session_state.selected_arrangement:
+                     st.session_state.selected_arrangement = selected
+                     st.experimental_rerun()
+                 
+                 # 显示当前排列的方法详情
+                 st.caption(f"当前方法: {st.session_state.arrangement_details[selected]['method']}")
+             elif st.session_state.show_arrangements and not st.session_state.arrangement_results:
+                 st.info("暂无排列结果，请先处理数据")
                  
 if __name__ == "__main__":
     main()
