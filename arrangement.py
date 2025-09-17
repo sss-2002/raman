@@ -36,7 +36,9 @@ def main():
         'selected_arrangement': None,
         'arrangement_details': {},
         'algorithm_permutations': [],  # 存储65种算法排列组合
-        'current_algorithms': {}       # 存储当前选择的算法
+        'current_algorithms': {},       # 存储当前选择的算法
+        'filtered_perms': [],           # 存储筛选后的排列方案（新增）
+        'selected_perm_idx': 0          # 存储当前选中的排列索引（新增）
     }
     for key, value in other_states.items():
         if key not in st.session_state:
@@ -555,9 +557,9 @@ def main():
            **标准操作流程:**
            1. 上传波数文件和光谱数据文件
            2. 设置光谱参数和训练集比例
-           3. 在右侧侧选择预处理方法（可全不选）
+           3. 在右侧选择预处理方法（可全不选）
            4. 点击"显示排列"按钮，系统会生成65种算法排列组合（含原始光谱）
-           5. 选择一种排列方案并应用
+           5. 在右侧选择一种排列方案并应用
            6. 查看结果并导出
            """)
      
@@ -575,110 +577,42 @@ def main():
             }, index=wavenumbers)
             st.line_chart(raw_chart_data)
             
-            # 排列结果展示
-            if st.session_state.show_arrangements:
-                # 显示算法排列组合
-                if st.session_state.algorithm_permutations:
-                    st.subheader("🔄 算法排列方案 (共65种)")
-                    
-                    # 添加排列数量筛选器（包含无预处理选项）
-                    algo_count = st.selectbox(
-                        "选择使用的算法数量",
-                        ["全部", "0种算法（原始光谱）", "1种算法", "2种算法", "3种算法", "4种算法"]
-                    )
-                    
-                    # 根据选择筛选排列
-                    filtered_perms = []
-                    if algo_count == "全部":
-                        filtered_perms = st.session_state.algorithm_permutations
-                    else:
-                        count = int(algo_count[0])  # 提取数字部分
-                        filtered_perms = [p for p in st.session_state.algorithm_permutations if p["count"] == count]
-                    
-                    # 显示筛选后的排列
-                    selected_perm_idx = st.selectbox(
-                        f"选择预处理算法顺序 (共{len(filtered_perms)}种)",
-                        range(len(filtered_perms)),
-                        format_func=lambda x: filtered_perms[x]["name"]
-                    )
-                    selected_perm = filtered_perms[selected_perm_idx]
-                    
-                    # 显示当前排列的算法顺序详情
-                    st.caption(f"算法执行顺序: {selected_perm['name']}")
-                    
-                    # 应用此排列方案
-                    if st.button("应用此排列方案", type="primary"):
-                        try:
-                            algos = st.session_state.current_algorithms
-                            
-                            processed_data, method_name = preprocessor.process(
-                                wavenumbers, y, 
-                                baseline_method=algos['baseline_method'],
-                                baseline_params=algos['baseline_params'],
-                                squashing_method=algos['squashing_method'],
-                                squashing_params=algos['squashing_params'],
-                                filtering_method=algos['filtering_method'],
-                                filtering_params=algos['filtering_params'],
-                                scaling_method=algos['scaling_method'],
-                                scaling_params=algos['scaling_params'],
-                                algorithm_order=selected_perm['order']  # 传入算法顺序
-                            )
-                            
-                            # 更新排列结果
-                            arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
-                            st.session_state.arrangement_results.append(arr_name)
-                            st.session_state.arrangement_details[arr_name] = {
-                                'data': processed_data,
-                                'method': " → ".join(method_name),
-                                'order': selected_perm['order'],
-                                'params': algos
-                            }
-                            st.session_state.selected_arrangement = arr_name
-                            st.session_state.processed_data = (wavenumbers, processed_data)
-                            st.session_state.process_method = " → ".join(method_name)
-                            st.success(f"排列处理完成: {st.session_state.process_method}")
-                        except Exception as e:
-                            st.error(f"处理失败: {str(e)}")
+            # 处理结果展示（移除原排列选择逻辑，只保留结果显示）
+            if st.session_state.get('selected_arrangement'):
+                st.subheader("🔍 处理结果")
+                selected_arr = st.session_state.selected_arrangement
+                arr_data = st.session_state.arrangement_details[selected_arr]['data']
+                arr_method = st.session_state.arrangement_details[selected_arr]['method']
+                arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
                 
-                # 显示处理结果
-                if st.session_state.arrangement_results:
-                    st.subheader("🔍 处理结果")
-                    selected_arr = st.session_state.selected_arrangement
-                    if selected_arr:
-                        arr_data = st.session_state.arrangement_details[selected_arr]['data']
-                        arr_method = st.session_state.arrangement_details[selected_arr]['method']
-                        arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
-                        
-                        st.caption(f"处理方法: {arr_method}")
-                        st.caption(f"执行顺序: {arr_order if arr_order else '无预处理'}")
-                        
-                        # 预处理后的光谱展示
-                        st.subheader("预处理后的光谱")
-                        processed_chart_data = pd.DataFrame({
-                            "预处理后光谱": arr_data[:, random_idx]
-                        }, index=wavenumbers)
-                        st.line_chart(processed_chart_data)
-                        
-                        # k值曲线展示（无预处理时不显示）
-                        if arr_order:  # 只有使用了算法才显示k值曲线
-                            st.subheader("k值曲线")
-                            k_vals = np.abs(arr_data[:, random_idx] / (y[:, random_idx] + 1e-8))
-                            k_chart_data = pd.DataFrame({
-                                "k值": k_vals
-                            }, index=wavenumbers)
-                            st.line_chart(k_chart_data)
-                        else:
-                            st.info("无预处理（原始光谱），不显示k值曲线")
-                        
-                        # 原始与处理后对比图
-                        st.subheader("原始与处理后对比")
-                        compare_data = pd.DataFrame({
-                            "原始光谱": y[:, random_idx],
-                            "预处理后光谱": arr_data[:, random_idx]
-                        }, index=wavenumbers)
-                        st.line_chart(compare_data)
+                st.caption(f"处理方法: {arr_method}")
+                st.caption(f"执行顺序: {arr_order if arr_order else '无预处理'}")
+                
+                # 预处理后的光谱展示
+                st.subheader("预处理后的光谱")
+                processed_chart_data = pd.DataFrame({
+                    "预处理后光谱": arr_data[:, random_idx]
+                }, index=wavenumbers)
+                st.line_chart(processed_chart_data)
+                
+                # k值曲线展示（无预处理时不显示）
+                if arr_order:  # 只有使用了算法才显示k值曲线
+                    st.subheader("k值曲线")
+                    k_vals = np.abs(arr_data[:, random_idx] / (y[:, random_idx] + 1e-8))
+                    k_chart_data = pd.DataFrame({
+                        "k值": k_vals
+                    }, index=wavenumbers)
+                    st.line_chart(k_chart_data)
                 else:
-                    st.info("请选择一种排列方案并点击'应用此排列方案'")
+                    st.info("无预处理（原始光谱），不显示k值曲线")
+                
+                # 原始与处理后对比图
+                st.subheader("原始与处理后对比")
+                compare_data = pd.DataFrame({
+                    "原始光谱": y[:, random_idx],
+                    "预处理后光谱": arr_data[:, random_idx]
+                }, index=wavenumbers)
+                st.line_chart(compare_data)
             elif st.session_state.get('processed_data'):
                 # 显示最新处理结果
                 _, y_processed = st.session_state.processed_data
@@ -688,12 +622,12 @@ def main():
                 }, index=wavenumbers)
                 st.line_chart(processed_chart_data)
             else:
-                st.info("请在右侧设置预处理参数并点击'应用处理'或'推荐应用'")
+                st.info("请在右侧设置预处理参数并点击'应用处理'或'推荐应用'，或选择排列方案并应用")
             
             # 结果导出
             if st.session_state.arrangement_results or st.session_state.get('processed_data'):
                 st.subheader("💾 结果导出")
-                export_name = st.text_input("导出出文件名", "processed_spectra.txt")
+                export_name = st.text_input("导出文件名", "processed_spectra.txt")
                 
                 if st.button("导出处理结果", type="secondary"):
                     try:
@@ -710,7 +644,7 @@ def main():
             st.info("请先在左侧上传数据")
 
     
-    # ===== 右侧：预处理设置 =====
+    # ===== 右侧：预处理设置 + 排列方案选择（核心修改区）=====
     with col_right:
         with st.expander("⚙️ 预处理设置", expanded=True):
             # 基线校准
@@ -901,6 +835,7 @@ def main():
                         except Exception as e:
                             st.error(f"推荐处理失败: {str(e)}")
         
+            # ---------------------- 核心修改：排列方案选择移到此处 ----------------------
             # 显示排列按钮
             if st.button("🔍 显示排列", type="secondary", use_container_width=True):
                 # 切换显示状态
@@ -918,10 +853,91 @@ def main():
                     
                     # 生成包含原始光谱的65种排列
                     st.session_state.algorithm_permutations = generate_65_permutations(selected_algorithms)
+                    # 初始化筛选结果（默认显示全部）
+                    st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"已生成{len(st.session_state.algorithm_permutations)}种算法排列组合（含原始光谱）！")
+                else:
+                    # 隐藏排列时清空筛选结果
+                    st.session_state.filtered_perms = []
                 
+                # 刷新页面以更新布局
                 st.experimental_rerun()
+            
+            # 显示排列方案（仅当show_arrangements为True且有排列数据时）
+            if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
+                st.subheader("🔄 算法排列方案")
                 
+                # 算法数量筛选器（放在下拉框上方）
+                algo_count = st.selectbox(
+                    "选择使用的算法数量",
+                    ["全部", "0种算法（原始光谱）", "1种算法", "2种算法", "3种算法", "4种算法"],
+                    key="algo_count_filter"
+                )
+                
+                # 根据选择筛选排列
+                if algo_count == "全部":
+                    st.session_state.filtered_perms = st.session_state.algorithm_permutations
+                else:
+                    count = int(algo_count[0])  # 提取数字部分
+                    st.session_state.filtered_perms = [
+                        p for p in st.session_state.algorithm_permutations 
+                        if p["count"] == count
+                    ]
+                
+                # 排列方案下拉框（核心控件，放在按钮下方）
+                if st.session_state.filtered_perms:
+                    st.session_state.selected_perm_idx = st.selectbox(
+                        f"选择预处理算法顺序（共{len(st.session_state.filtered_perms)}种）",
+                        range(len(st.session_state.filtered_perms)),
+                        format_func=lambda x: st.session_state.filtered_perms[x]["name"],
+                        key="perm_select_box"
+                    )
+                    
+                    # 显示当前选中的排列详情
+                    selected_perm = st.session_state.filtered_perms[st.session_state.selected_perm_idx]
+                    st.caption(f"当前选择: {selected_perm['name']}")
+                    
+                    # 应用选中的排列方案按钮
+                    if st.button("✅ 应用此排列方案", type="primary", use_container_width=True):
+                        if st.session_state.raw_data is None:
+                            st.warning("请先在左侧上传数据文件")
+                        else:
+                            try:
+                                wavenumbers, y = st.session_state.raw_data
+                                algos = st.session_state.current_algorithms
+                                
+                                # 执行选中的排列方案
+                                processed_data, method_name = preprocessor.process(
+                                    wavenumbers, y, 
+                                    baseline_method=algos['baseline_method'],
+                                    baseline_params=algos['baseline_params'],
+                                    squashing_method=algos['squashing_method'],
+                                    squashing_params=algos['squashing_params'],
+                                    filtering_method=algos['filtering_method'],
+                                    filtering_params=algos['filtering_params'],
+                                    scaling_method=algos['scaling_method'],
+                                    scaling_params=algos['scaling_params'],
+                                    algorithm_order=selected_perm['order']  # 传入选中的算法顺序
+                                )
+                                
+                                # 保存处理结果
+                                arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
+                                st.session_state.arrangement_results.append(arr_name)
+                                st.session_state.arrangement_details[arr_name] = {
+                                    'data': processed_data,
+                                    'method': " → ".join(method_name),
+                                    'order': selected_perm['order'],
+                                    'params': algos
+                                }
+                                st.session_state.selected_arrangement = arr_name
+                                st.session_state.processed_data = (wavenumbers, processed_data)
+                                st.session_state.process_method = " → ".join(method_name)
+                                st.success(f"排列方案应用完成: {st.session_state.process_method}")
+                            except Exception as e:
+                                st.error(f"排列应用失败: {str(e)}")
+                else:
+                    st.info("暂无符合条件的排列方案")
+        # --------------------------------------------------------------------------
+
 if __name__ == "__main__":
     main()
-    
