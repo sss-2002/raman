@@ -24,6 +24,21 @@ def main():
      # 设置页面
      st.set_page_config(layout="wide", page_icon="🔬", page_title="排列预处理模型")
      st.title("🌌 排列预处理模型")
+
+     required_states = {
+         'raw_data': None,
+         'processed_data': None,
+         'peaks': None,
+         'train_test_split_ratio': 0.8,
+         'arrangement_results': [],
+         'selected_arrangement': None,
+         'arrangement_details': {},
+         'show_arrangements': False  # 确保这个状态变量被初始化
+     }
+     
+     for key, value in required_states.items():
+         if key not in st.session_state:
+             st.session_state[key] = value
      
 
      # 初始化session状态
