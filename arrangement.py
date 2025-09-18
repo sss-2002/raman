@@ -186,17 +186,10 @@ def main():
             result[:, i] = squashed
         return result
     
-    # 核心修改：生成包含原始光谱的65种算法排列组合，并添加第一步算法类型标识
+    # 修复：确保所有排列都有first_step_type属性
     def generate_65_permutations(algorithms):
         """
-        生成完整的65种算法排列组合：
-        - 0种算法（原始光谱）：1种
-        - 使用1种算法：4种
-        - 使用2种算法：12种
-        - 使用3种算法：24种
-        - 使用4种算法：24种
-        总计：1+4+12+24+24=65种
-        并为每种排列添加第一步算法类型标识
+        生成完整的65种算法排列组合，并确保每种排列都有first_step_type属性
         """
         # 为四种算法分配编号1-4
         algorithm_list = [
@@ -235,34 +228,34 @@ def main():
                 perm[2][2] != "无" and perm[3][2] != "无"):
                 all_permutations.append(list(perm))
         
-        # 格式化排列结果，便于显示，并添加第一步算法类型标识
+        # 格式化排列结果，确保每种排列都有first_step_type
         formatted_perms = []
         for i, perm in enumerate(all_permutations):
+            # 初始化默认值，确保属性存在
+            perm_dict = {
+                "name": f"排列方案 {i+1}",
+                "order": [],
+                "details": perm,
+                "count": len(perm),
+                "first_step_type": "未知"  # 默认值，确保属性存在
+            }
+            
             if not perm:  # 无预处理情况
-                perm_name = f"排列方案 {i+1}: 无预处理（原始光谱）"
-                formatted_perms.append({
-                    "name": perm_name,
-                    "order": [],  # 空列表表示不执行任何算法
-                    "details": perm,
-                    "count": 0,  # 算法数量为0
-                    "first_step_type": "无预处理"  # 新增：第一步算法类型标识
-                })
+                perm_dict["name"] = f"排列方案 {i+1}: 无预处理（原始光谱）"
+                perm_dict["first_step_type"] = "无预处理"
             else:
                 # 获取第一步算法的类型名称
-                first_step_type = perm[0][1]
+                first_step_type = perm[0][1] if perm and len(perm) > 0 else "未知"
+                perm_dict["first_step_type"] = first_step_type
                 
-                perm_name = f"排列方案 {i+1}: "
+                # 生成排列名称
                 perm_details = []
                 for step in perm:
                     perm_details.append(f"{step[0]}.{step[1]}({step[2]})")
-                perm_name += " → ".join(perm_details)
-                formatted_perms.append({
-                    "name": perm_name,
-                    "order": [step[0] for step in perm],  # 存储算法编号顺序
-                    "details": perm,
-                    "count": len(perm),  # 记录使用的算法数量
-                    "first_step_type": first_step_type  # 新增：第一步算法类型标识
-                })
+                perm_dict["name"] = f"排列方案 {i+1}: " + " → ".join(perm_details)
+                perm_dict["order"] = [step[0] for step in perm]
+            
+            formatted_perms.append(perm_dict)
         
         return formatted_perms
     
@@ -650,7 +643,7 @@ def main():
             st.info("请先在左侧上传数据")
 
     
-    # ===== 右侧：预处理设置 + 排列方案选择（核心修改区）=====
+    # ===== 右侧：预处理设置 + 排列方案选择 =====
     with col_right:
         with st.expander("⚙️ 预处理设置", expanded=True):
             # 基线校准
@@ -872,9 +865,19 @@ def main():
             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
                 st.subheader("🔄 算法排列方案")
                 
-                # 核心修改：按第一步算法类型筛选（替换原算法数量筛选）
-                # 获取所有可能的第一步算法类型（去重）
-                all_first_step_types = list({perm["first_step_type"] for perm in st.session_state.algorithm_permutations})
+                # 修复：安全获取所有第一步算法类型
+                try:
+                    # 使用集合推导式获取所有第一步类型，并处理可能的缺失值
+                    all_first_step_types = list({
+                        perm.get("first_step_type", "未知") 
+                        for perm in st.session_state.algorithm_permutations
+                    })
+                    # 排序使显示更一致
+                    all_first_step_types.sort()
+                except Exception as e:
+                    st.error(f"获取排列类型时出错: {str(e)}")
+                    all_first_step_types = ["全部", "无预处理", "基线校准", "缩放", "滤波", "挤压"]
+                
                 selected_first_step = st.selectbox(
                     "选择第一步算法类型",
                     ["全部"] + all_first_step_types,  # 选项：全部 + 所有第一步类型
@@ -885,9 +888,10 @@ def main():
                 if selected_first_step == "全部":
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                 else:
+                    # 修复：使用get方法安全访问属性
                     st.session_state.filtered_perms = [
                         p for p in st.session_state.algorithm_permutations 
-                        if p["first_step_type"] == selected_first_step
+                        if p.get("first_step_type") == selected_first_step
                     ]
                 
                 # 排列方案下拉框
@@ -895,52 +899,55 @@ def main():
                     st.session_state.selected_perm_idx = st.selectbox(
                         f"选择预处理算法顺序（共{len(st.session_state.filtered_perms)}种）",
                         range(len(st.session_state.filtered_perms)),
-                        format_func=lambda x: st.session_state.filtered_perms[x]["name"],
+                        format_func=lambda x: st.session_state.filtered_perms[x].get("name", f"排列方案 {x+1}"),
                         key="perm_select_box"
                     )
                     
                     # 显示当前选中的排列详情
-                    selected_perm = st.session_state.filtered_perms[st.session_state.selected_perm_idx]
-                    st.caption(f"当前选择: {selected_perm['name']}")
-                    
-                    # 应用选中的排列方案按钮
-                    if st.button("✅ 应用此排列方案", type="primary", use_container_width=True):
-                        if st.session_state.raw_data is None:
-                            st.warning("请先在左侧上传数据文件")
-                        else:
-                            try:
-                                wavenumbers, y = st.session_state.raw_data
-                                algos = st.session_state.current_algorithms
-                                
-                                # 执行选中的排列方案
-                                processed_data, method_name = preprocessor.process(
-                                    wavenumbers, y, 
-                                    baseline_method=algos['baseline_method'],
-                                    baseline_params=algos['baseline_params'],
-                                    squashing_method=algos['squashing_method'],
-                                    squashing_params=algos['squashing_params'],
-                                    filtering_method=algos['filtering_method'],
-                                    filtering_params=algos['filtering_params'],
-                                    scaling_method=algos['scaling_method'],
-                                    scaling_params=algos['scaling_params'],
-                                    algorithm_order=selected_perm['order']  # 传入选中的算法顺序
-                                )
-                                
-                                # 保存处理结果
-                                arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
-                                st.session_state.arrangement_results.append(arr_name)
-                                st.session_state.arrangement_details[arr_name] = {
-                                    'data': processed_data,
-                                    'method': " → ".join(method_name),
-                                    'order': selected_perm['order'],
-                                    'params': algos
-                                }
-                                st.session_state.selected_arrangement = arr_name
-                                st.session_state.processed_data = (wavenumbers, processed_data)
-                                st.session_state.process_method = " → ".join(method_name)
-                                st.success(f"排列方案应用完成: {st.session_state.process_method}")
-                            except Exception as e:
-                                st.error(f"排列应用失败: {str(e)}")
+                    try:
+                        selected_perm = st.session_state.filtered_perms[st.session_state.selected_perm_idx]
+                        st.caption(f"当前选择: {selected_perm.get('name', '未知排列')}")
+                        
+                        # 应用选中的排列方案按钮
+                        if st.button("✅ 应用此排列方案", type="primary", use_container_width=True):
+                            if st.session_state.raw_data is None:
+                                st.warning("请先在左侧上传数据文件")
+                            else:
+                                try:
+                                    wavenumbers, y = st.session_state.raw_data
+                                    algos = st.session_state.current_algorithms
+                                    
+                                    # 执行选中的排列方案
+                                    processed_data, method_name = preprocessor.process(
+                                        wavenumbers, y, 
+                                        baseline_method=algos['baseline_method'],
+                                        baseline_params=algos['baseline_params'],
+                                        squashing_method=algos['squashing_method'],
+                                        squashing_params=algos['squashing_params'],
+                                        filtering_method=algos['filtering_method'],
+                                        filtering_params=algos['filtering_params'],
+                                        scaling_method=algos['scaling_method'],
+                                        scaling_params=algos['scaling_params'],
+                                        algorithm_order=selected_perm.get('order', [])  # 安全获取order属性
+                                    )
+                                    
+                                    # 保存处理结果
+                                    arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
+                                    st.session_state.arrangement_results.append(arr_name)
+                                    st.session_state.arrangement_details[arr_name] = {
+                                        'data': processed_data,
+                                        'method': " → ".join(method_name),
+                                        'order': selected_perm.get('order', []),
+                                        'params': algos
+                                    }
+                                    st.session_state.selected_arrangement = arr_name
+                                    st.session_state.processed_data = (wavenumbers, processed_data)
+                                    st.session_state.process_method = " → ".join(method_name)
+                                    st.success(f"排列方案应用完成: {st.session_state.process_method}")
+                                except Exception as e:
+                                    st.error(f"排列应用失败: {str(e)}")
+                    except Exception as e:
+                        st.error(f"处理排列方案时出错: {str(e)}")
                 else:
                     st.info("暂无符合条件的排列方案（可能未选择该类型的算法）")
 
