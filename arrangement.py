@@ -186,10 +186,10 @@ def main():
             result[:, i] = squashed
         return result
     
-    # 修复：确保所有排列都有first_step_type属性
+    # 核心修改：生成排列时不包含编号
     def generate_65_permutations(algorithms):
         """
-        生成完整的65种算法排列组合，并确保每种排列都有first_step_type属性
+        生成完整的65种算法排列组合，排列名称不包含编号
         """
         # 为四种算法分配编号1-4
         algorithm_list = [
@@ -228,12 +228,12 @@ def main():
                 perm[2][2] != "无" and perm[3][2] != "无"):
                 all_permutations.append(list(perm))
         
-        # 格式化排列结果，确保每种排列都有first_step_type
+        # 格式化排列结果，确保每种排列都有first_step_type，且名称不包含编号
         formatted_perms = []
         for i, perm in enumerate(all_permutations):
             # 初始化默认值，确保属性存在
             perm_dict = {
-                "name": f"排列方案 {i+1}",
+                "name": "",
                 "order": [],
                 "details": perm,
                 "count": len(perm),
@@ -241,18 +241,20 @@ def main():
             }
             
             if not perm:  # 无预处理情况
-                perm_dict["name"] = f"排列方案 {i+1}: 无预处理（原始光谱）"
+                # 修改：移除"排列方案 X: "前缀
+                perm_dict["name"] = "无预处理（原始光谱）"
                 perm_dict["first_step_type"] = "无预处理"
             else:
                 # 获取第一步算法的类型名称
                 first_step_type = perm[0][1] if perm and len(perm) > 0 else "未知"
                 perm_dict["first_step_type"] = first_step_type
                 
-                # 生成排列名称
+                # 生成排列名称，不包含编号
                 perm_details = []
                 for step in perm:
                     perm_details.append(f"{step[0]}.{step[1]}({step[2]})")
-                perm_dict["name"] = f"排列方案 {i+1}: " + " → ".join(perm_details)
+                # 修改：移除"排列方案 X: "前缀
+                perm_dict["name"] = " → ".join(perm_details)
                 perm_dict["order"] = [step[0] for step in perm]
             
             formatted_perms.append(perm_dict)
@@ -865,7 +867,7 @@ def main():
             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
                 st.subheader("🔄 算法排列方案")
                 
-                # 修复：安全获取所有第一步算法类型
+                # 安全获取所有第一步算法类型
                 try:
                     # 使用集合推导式获取所有第一步类型，并处理可能的缺失值
                     all_first_step_types = list({
@@ -888,7 +890,7 @@ def main():
                 if selected_first_step == "全部":
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                 else:
-                    # 修复：使用get方法安全访问属性
+                    # 使用get方法安全访问属性
                     st.session_state.filtered_perms = [
                         p for p in st.session_state.algorithm_permutations 
                         if p.get("first_step_type") == selected_first_step
