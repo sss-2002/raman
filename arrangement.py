@@ -3,6 +3,9 @@ import numpy as np
 import pandas as pd
 import re
 import itertools
+import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, cohen_kappa_score, confusion_matrix
+import seaborn as sns
 from SD import D2
 from FD import D1
 from sigmoids import sigmoid
@@ -26,6 +29,15 @@ def main():
     if 'show_arrangements' not in st.session_state:
         st.session_state.show_arrangements = False
     
+    # 初始化测试相关的session状态变量
+    test_states = {
+        'k_value': 5,               # 默认k值
+        'test_results': None,       # 存储测试结果
+        'labels': None,             # 存储样本标签
+        'train_indices': None,      # 训练集索引
+        'test_indices': None        # 测试集索引
+    }
+    
     # 初始化其他必要的session状态变量
     other_states = {
         'raw_data': None,
@@ -40,7 +52,10 @@ def main():
         'filtered_perms': [],           # 存储筛选后的排列方案
         'selected_perm_idx': 0          # 存储当前选中的排列索引
     }
-    for key, value in other_states.items():
+    
+    # 合并所有状态变量并初始化
+    all_states = {**test_states,** other_states}
+    for key, value in all_states.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
@@ -186,7 +201,7 @@ def main():
             result[:, i] = squashed
         return result
     
-    # 核心修改：生成排列时不包含编号
+    # 生成排列时不包含编号
     def generate_65_permutations(algorithms):
         """
         生成完整的65种算法排列组合，排列名称不包含编号
@@ -241,7 +256,6 @@ def main():
             }
             
             if not perm:  # 无预处理情况
-                # 修改：移除"排列方案 X: "前缀
                 perm_dict["name"] = "无预处理（原始光谱）"
                 perm_dict["first_step_type"] = "无预处理"
             else:
@@ -253,7 +267,6 @@ def main():
                 perm_details = []
                 for step in perm:
                     perm_details.append(f"{step[0]}.{step[1]}({step[2]})")
-                # 修改：移除"排列方案 X: "前缀
                 perm_dict["name"] = " → ".join(perm_details)
                 perm_dict["order"] = [step[0] for step in perm]
             
@@ -261,6 +274,25 @@ def main():
         
         return formatted_perms
     
+    # ===== 分类算法实现 =====
+    def knn_classify(train_data, train_labels, test_data, k=5):
+        """K近邻分类算法实现"""
+        # 转置数据以适应样本数×特征数的格式
+        train_data = train_data.T
+        test_data = test_data.T
+        
+        predictions = []
+        for test_sample in test_data:
+            # 计算与所有训练样本的欧氏距离
+            distances = np.sqrt(np.sum((train_data - test_sample) **2, axis=1))
+            # 获取最近的k个样本的索引
+            k_indices = np.argsort(distances)[:k]
+            # 获取这些样本的标签
+            k_nearest_labels = [train_labels[i] for i in k_indices]
+            # 多数投票决定预测标签
+            most_common = np.bincount(k_nearest_labels).argmax()
+            predictions.append(most_common)
+        return np.array(predictions)
     
     # ===== 数据变换函数 =====
     def sigmoid_func(x):
@@ -522,6 +554,14 @@ def main():
             wavenumber_file = st.file_uploader("上传波数文件", type=['txt'])
             uploaded_file = st.file_uploader("上传光谱数据文件", type=['txt'])
             
+            # 添加标签输入功能
+            st.subheader("样本标签")
+            num_classes = st.number_input("类别数量", min_value=1, value=2)
+            labels_input = st.text_input(
+                "样本标签（用逗号分隔，与光谱顺序一致）", 
+                placeholder="例如：0,0,1,1,2,2 表示前两个样本为类别0，中间两个为类别1，后两个为类别2"
+            )
+            
             lines = st.number_input("光谱条数", min_value=1, value=1)
             much = st.number_input("每条光谱数据点数", min_value=1, value=2000)
 
@@ -540,7 +580,32 @@ def main():
                     st.session_state.raw_data = file_handler.load_data(
                         wavenumber_file, uploaded_file, lines, much
                     )
-                    st.success(f"数据加载成功！{lines}条光谱，每条{much}个点")
+                    
+                    # 处理标签
+                    if labels_input:
+                        try:
+                            labels = np.array([int(l.strip()) for l in labels_input.split(',')])
+                            # 检查标签数量是否与光谱数量匹配
+                            if len(labels) == st.session_state.raw_data[1].shape[1]:
+                                st.session_state.labels = labels
+                                
+                                # 划分训练集和测试集
+                                n_samples = len(labels)
+                                train_size = int(n_samples * train_test_ratio)
+                                indices = np.random.permutation(n_samples)
+                                st.session_state.train_indices = indices[:train_size]
+                                st.session_state.test_indices = indices[train_size:]
+                                
+                                st.success(f"数据和标签加载成功！{lines}条光谱，{len(np.unique(labels))}个类别")
+                            else:
+                                st.warning(f"标签数量({len(labels)})与光谱数量({st.session_state.raw_data[1].shape[1]})不匹配")
+                                st.session_state.labels = None
+                        except Exception as e:
+                            st.warning(f"标签格式错误: {str(e)}")
+                            st.session_state.labels = None
+                    else:
+                        st.success(f"数据加载成功！{lines}条光谱，每条{much}个点")
+                        st.warning("请输入样本标签以进行分类测试")
                 except Exception as e:
                     st.error(f"文件加载失败: {str(e)}")
         
@@ -549,6 +614,9 @@ def main():
             wavenumbers, y = st.session_state.raw_data
             st.info(f"📊 数据维度: {y.shape[1]}条光谱 × {y.shape[0]}点")
             st.info(f"🔢 训练集比例: {st.session_state.train_test_split_ratio:.1f}，测试集比例: {1 - st.session_state.train_test_split_ratio:.1f}")
+            if st.session_state.get('labels') is not None:
+                class_counts = np.bincount(st.session_state.labels)
+                st.info(f"🏷️ 类别分布: {', '.join([f'类别{i}: {count}个样本' for i, count in enumerate(class_counts) if count > 0])}")
             if st.session_state.get('process_method'):
                 st.success(f"🛠️ 处理流程: {st.session_state.process_method}")
         
@@ -557,11 +625,12 @@ def main():
             st.markdown("""
            **标准操作流程:**
            1. 上传波数文件和光谱数据文件
-           2. 设置光谱参数和训练集比例
-           3. 在右侧选择预处理方法（可全不选）
-           4. 点击"显示排列"按钮，系统会生成65种算法排列组合（含原始光谱）
-           5. 在右侧选择一种排列方案并应用
-           6. 查看结果并导出
+           2. 设置光谱参数、类别数量和样本标签
+           3. 设置训练集比例
+           4. 在右侧选择预处理方法（可全不选）
+           5. 点击"显示排列"按钮，系统会生成65种算法排列组合（含原始光谱）
+           6. 选择k值，点击"测试"按钮进行分类测试
+           7. 查看结果（准确率、卡帕系数、混淆矩阵）并导出
            """)
      
     # ===== 中间：光谱可视化与结果导出 =====
@@ -614,6 +683,27 @@ def main():
                     "预处理后光谱": arr_data[:, random_idx]
                 }, index=wavenumbers)
                 st.line_chart(compare_data)
+                
+                # 显示测试结果
+                if st.session_state.get('test_results') is not None:
+                    st.subheader("📊 测试结果")
+                    results = st.session_state.test_results
+                    
+                    # 显示准确率和卡帕系数
+                    metrics_col1, metrics_col2 = st.columns(2)
+                    with metrics_col1:
+                        st.metric("准确率", f"{results['accuracy']:.4f}")
+                    with metrics_col2:
+                        st.metric("卡帕系数", f"{results['kappa']:.4f}")
+                    
+                    # 显示混淆矩阵
+                    st.subheader("混淆矩阵")
+                    fig, ax = plt.subplots(figsize=(8, 6))
+                    sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax)
+                    ax.set_xlabel('预测标签')
+                    ax.set_ylabel('真实标签')
+                    ax.set_title('分类混淆矩阵')
+                    st.pyplot(fig)
             elif st.session_state.get('processed_data'):
                 # 显示最新处理结果
                 _, y_processed = st.session_state.processed_data
@@ -645,7 +735,7 @@ def main():
             st.info("请先在左侧上传数据")
 
     
-    # ===== 右侧：预处理设置 + 排列方案选择 =====
+    # ===== 右侧：预处理设置 + 排列方案选择 + 测试功能 =====
     with col_right:
         with st.expander("⚙️ 预处理设置", expanded=True):
             # 基线校准
@@ -952,6 +1042,84 @@ def main():
                         st.error(f"处理排列方案时出错: {str(e)}")
                 else:
                     st.info("暂无符合条件的排列方案（可能未选择该类型的算法）")
+                
+                # 添加k值输入框和测试按钮
+                st.subheader("📝 分类测试")
+                k_col, btn_col = st.columns([2, 1])
+                with k_col:
+                    k_value = st.number_input(
+                        "请输入您想选择的k值", 
+                        min_value=1, 
+                        value=st.session_state.k_value,
+                        step=1,
+                        key="k_input"
+                    )
+                    # 保存k值到session state
+                    st.session_state.k_value = k_value
+                
+                with btn_col:
+                    if st.button("确定", type="secondary", use_container_width=True):
+                        st.session_state.k_value = k_value
+                        st.success(f"k值已设置为: {k_value}")
+                
+                # 测试按钮和结果显示区域
+                test_btn_col, _ = st.columns([1, 1])
+                with test_btn_col:
+                    if st.button("测试", type="primary", use_container_width=True):
+                        # 检查必要条件
+                        if st.session_state.raw_data is None:
+                            st.warning("请先上传数据")
+                        elif st.session_state.selected_arrangement is None:
+                            st.warning("请先选择并应用排列方案")
+                        elif st.session_state.labels is None:
+                            st.warning("请先输入样本标签")
+                        elif st.session_state.train_indices is None or st.session_state.test_indices is None:
+                            st.warning("无法划分训练集和测试集，请检查数据和标签")
+                        else:
+                            try:
+                                # 获取处理后的数据
+                                selected_arr = st.session_state.selected_arrangement
+                                processed_data = st.session_state.arrangement_details[selected_arr]['data']
+                                
+                                # 获取训练集和测试集
+                                train_idx = st.session_state.train_indices
+                                test_idx = st.session_state.test_indices
+                                
+                                # 划分训练数据和测试数据
+                                train_data = processed_data[:, train_idx]
+                                test_data = processed_data[:, test_idx]
+                                
+                                # 获取对应的标签
+                                train_labels = st.session_state.labels[train_idx]
+                                test_labels = st.session_state.labels[test_idx]
+                                
+                                # 执行KNN分类
+                                with st.spinner("正在进行分类测试..."):
+                                    predictions = knn_classify(
+                                        train_data, 
+                                        train_labels, 
+                                        test_data, 
+                                        k=st.session_state.k_value
+                                    )
+                                
+                                # 计算评估指标
+                                accuracy = accuracy_score(test_labels, predictions)
+                                kappa = cohen_kappa_score(test_labels, predictions)
+                                cm = confusion_matrix(test_labels, predictions)
+                                
+                                # 保存结果到session state
+                                st.session_state.test_results = {
+                                    'accuracy': accuracy,
+                                    'kappa': kappa,
+                                    'confusion_matrix': cm,
+                                    'predictions': predictions,
+                                    'test_labels': test_labels
+                                }
+                                
+                                st.success("测试完成！结果已显示在中间面板")
+                                
+                            except Exception as e:
+                                st.error(f"测试失败: {str(e)}")
 
 if __name__ == "__main__":
     main()
