@@ -37,8 +37,8 @@ def main():
         'arrangement_details': {},
         'algorithm_permutations': [],  # 存储65种算法排列组合
         'current_algorithms': {},       # 存储当前选择的算法
-        'filtered_perms': [],           # 存储筛选后的排列方案（新增）
-        'selected_perm_idx': 0          # 存储当前选中的排列索引（新增）
+        'filtered_perms': [],           # 存储筛选后的排列方案
+        'selected_perm_idx': 0          # 存储当前选中的排列索引
     }
     for key, value in other_states.items():
         if key not in st.session_state:
@@ -186,7 +186,7 @@ def main():
             result[:, i] = squashed
         return result
     
-    # 核心修改：生成包含原始光谱的65种算法排列组合
+    # 核心修改：生成包含原始光谱的65种算法排列组合，并添加第一步算法类型标识
     def generate_65_permutations(algorithms):
         """
         生成完整的65种算法排列组合：
@@ -196,6 +196,7 @@ def main():
         - 使用3种算法：24种
         - 使用4种算法：24种
         总计：1+4+12+24+24=65种
+        并为每种排列添加第一步算法类型标识
         """
         # 为四种算法分配编号1-4
         algorithm_list = [
@@ -234,7 +235,7 @@ def main():
                 perm[2][2] != "无" and perm[3][2] != "无"):
                 all_permutations.append(list(perm))
         
-        # 格式化排列结果，便于显示
+        # 格式化排列结果，便于显示，并添加第一步算法类型标识
         formatted_perms = []
         for i, perm in enumerate(all_permutations):
             if not perm:  # 无预处理情况
@@ -243,9 +244,13 @@ def main():
                     "name": perm_name,
                     "order": [],  # 空列表表示不执行任何算法
                     "details": perm,
-                    "count": 0  # 算法数量为0
+                    "count": 0,  # 算法数量为0
+                    "first_step_type": "无预处理"  # 新增：第一步算法类型标识
                 })
             else:
+                # 获取第一步算法的类型名称
+                first_step_type = perm[0][1]
+                
                 perm_name = f"排列方案 {i+1}: "
                 perm_details = []
                 for step in perm:
@@ -255,7 +260,8 @@ def main():
                     "name": perm_name,
                     "order": [step[0] for step in perm],  # 存储算法编号顺序
                     "details": perm,
-                    "count": len(perm)  # 记录使用的算法数量
+                    "count": len(perm),  # 记录使用的算法数量
+                    "first_step_type": first_step_type  # 新增：第一步算法类型标识
                 })
         
         return formatted_perms
@@ -577,7 +583,7 @@ def main():
             }, index=wavenumbers)
             st.line_chart(raw_chart_data)
             
-            # 处理结果展示（移除原排列选择逻辑，只保留结果显示）
+            # 处理结果展示
             if st.session_state.get('selected_arrangement'):
                 st.subheader("🔍 处理结果")
                 selected_arr = st.session_state.selected_arrangement
@@ -835,7 +841,6 @@ def main():
                         except Exception as e:
                             st.error(f"推荐处理失败: {str(e)}")
         
-            # ---------------------- 核心修改：排列方案选择移到此处 ----------------------
             # 显示排列按钮
             if st.button("🔍 显示排列", type="secondary", use_container_width=True):
                 # 切换显示状态
@@ -867,24 +872,25 @@ def main():
             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
                 st.subheader("🔄 算法排列方案")
                 
-                # 算法数量筛选器（放在下拉框上方）
-                algo_count = st.selectbox(
-                    "选择使用的算法数量",
-                    ["全部", "0种算法（原始光谱）", "1种算法", "2种算法", "3种算法", "4种算法"],
-                    key="algo_count_filter"
+                # 核心修改：按第一步算法类型筛选（替换原算法数量筛选）
+                # 获取所有可能的第一步算法类型（去重）
+                all_first_step_types = list({perm["first_step_type"] for perm in st.session_state.algorithm_permutations})
+                selected_first_step = st.selectbox(
+                    "选择第一步算法类型",
+                    ["全部"] + all_first_step_types,  # 选项：全部 + 所有第一步类型
+                    key="first_step_filter"
                 )
                 
-                # 根据选择筛选排列
-                if algo_count == "全部":
+                # 根据选择的第一步算法类型筛选排列
+                if selected_first_step == "全部":
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                 else:
-                    count = int(algo_count[0])  # 提取数字部分
                     st.session_state.filtered_perms = [
                         p for p in st.session_state.algorithm_permutations 
-                        if p["count"] == count
+                        if p["first_step_type"] == selected_first_step
                     ]
                 
-                # 排列方案下拉框（核心控件，放在按钮下方）
+                # 排列方案下拉框
                 if st.session_state.filtered_perms:
                     st.session_state.selected_perm_idx = st.selectbox(
                         f"选择预处理算法顺序（共{len(st.session_state.filtered_perms)}种）",
@@ -936,8 +942,7 @@ def main():
                             except Exception as e:
                                 st.error(f"排列应用失败: {str(e)}")
                 else:
-                    st.info("暂无符合条件的排列方案")
-        # --------------------------------------------------------------------------
+                    st.info("暂无符合条件的排列方案（可能未选择该类型的算法）")
 
 if __name__ == "__main__":
     main()
