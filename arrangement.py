@@ -102,21 +102,6 @@ def main():
             baseline[:, i] = y
         return spectra - baseline
     
-    def imodpoly(wavenumbers, spectra, k):
-        """Improved ModPoly (I-ModPoly) 基线校正"""
-        baseline = np.zeros_like(spectra)
-        n_points = len(wavenumbers)
-        for i in range(spectra.shape[1]):
-            y = spectra[:, i].copy()
-            coeffs = np.polyfit(wavenumbers, y, deg=5)
-            fitted = np.polyval(coeffs, wavenumbers)
-            for _ in range(k):
-                mask = y < fitted
-                coeffs = np.polyfit(wavenumbers[mask], y[mask], deg=5)
-                fitted = np.polyval(coeffs, wavenumbers)
-            baseline[:, i] = fitted
-        return spectra - baseline
-    
     def pls(spectra, lam):
         """Penalized Least Squares (PLS) 基线校正"""
         n_points = spectra.shape[0]
@@ -127,25 +112,6 @@ def main():
             y = spectra[:, i]
             A = sparse.eye(n_points) + D
             baseline[:, i] = spsolve(A, y)
-        return spectra - baseline
-    
-    def asls(spectra, lam, p, max_iter=10):
-        """Asymmetric Least Squares (AsLS) 基线校正"""
-        n_points = spectra.shape[0]
-        baseline = np.zeros_like(spectra)
-        D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(n_points, n_points-2))
-        D = lam * D.dot(D.transpose())
-        for i in range(spectra.shape[1]):
-            y = spectra[:, i]
-            w = np.ones(n_points)
-            for _ in range(max_iter):
-                W = sparse.diags(w, 0)
-                Z = W + D
-                b = spsolve(Z, W * y)
-                mask = y > b
-                w[mask] = p
-                w[~mask] = 1 - p
-            baseline[:, i] = b
         return spectra - baseline
     
     def airpls(spectra, lam, max_iter=15, threshold=0.001):
@@ -181,7 +147,7 @@ def main():
         reference = np.mean(x, axis=1)  # 使用平均光谱作为参考
         for i in range(n_features):
             spectrum = x[:, i]
-            path, cost = dtw_path(reference, spectrum)
+            path, cost = DTW(reference, spectrum)
             squashed = np.zeros_like(spectrum)
             for ref_idx, spec_idx in path:
                 squashed[ref_idx] += spectrum[spec_idx]
@@ -218,9 +184,7 @@ def main():
     
     # 生成排列时不包含编号
     def generate_65_permutations(algorithms):
-        """
-        生成完整的65种算法排列组合，排列名称不包含编号
-        """
+        """生成完整的65种算法排列组合，排列名称不包含编号"""
         # 为四种算法分配编号1-4
         algorithm_list = [
             (1, "基线校准", algorithms['baseline']),
@@ -309,29 +273,6 @@ def main():
             predictions.append(most_common)
         return np.array(predictions)
     
-    # ===== 数据变换函数 =====
-    def sigmoid_func(x):
-        return 1 / (1 + np.exp(-x))
-    
-    def squashing_func(x):
-        return x / np.sqrt(1 + x**2)
-    
-    def i_sigmoid_func(x, maxn=10):
-        x_norm = x / maxn
-        return sigmoid_func(x_norm)
-    
-    def i_squashing_func(x):
-        x_min = np.min(x, axis=0)
-        x_max = np.max(x, axis=0)
-        x_norm = 2 * (x - x_min) / (x_max - x_min) - 1
-        return squashing_func(x_norm)
-    
-    # ===== LP范数归一化 =====
-    def LPnorm(x, p):
-        norm = np.linalg.norm(x, ord=p, axis=0)
-        norm[norm == 0] = 1  # 避免除零错误
-        return x / norm
-    
     # ===== 预处理类 =====
     class Preprocessor:
         def __init__(self):
@@ -340,9 +281,9 @@ def main():
                 "FD": self._fd_baseline,
                 "多项式拟合": polynomial_fit,
                 "ModPoly": modpoly,
-                "I-ModPoly": imodpoly,
+                "I-ModPoly": IModPoly,
                 "PLS": pls,
-                "AsLS": asls,
+                "AsLS": baseline_als,
                 "airPLS": airpls,
             }
             self.FILTERING_ALGORITHMS = {
@@ -421,9 +362,9 @@ def main():
                     if step_type == "baseline":
                         algorithm_func = self.BASELINE_ALGORITHMS[method]
                         if method in ["多项式拟合", "ModPoly", "I-ModPoly"]:
-                            y_processed = algorithm_func(wavenumbers, y_processed, **params)
+                            y_processed = algorithm_func(wavenumbers, y_processed,** params)
                         elif method in ["PLS", "AsLS", "airPLS"]:
-                            y_processed = algorithm_func(y_processed,** params)
+                            y_processed = algorithm_func(y_processed, **params)
                         else:  # SD、FD 无额外参数
                             y_processed = algorithm_func(y_processed)
                         method_name.append(f"{method}({', '.join([f'{k}={v}' for k, v in params.items()])})")
@@ -449,13 +390,13 @@ def main():
                             
                     elif step_type == "filtering":
                         algorithm_func = self.FILTERING_ALGORITHMS[method]
-                        y_processed = algorithm_func(y_processed, **params)
+                        y_processed = algorithm_func(y_processed,** params)
                         params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
                         method_name.append(f"{method}({params_str})")
                         
                     elif step_type == "scaling":
                         algorithm_func = self.SCALING_ALGORITHMS[method]
-                        y_processed = algorithm_func(y_processed,** params)
+                        y_processed = algorithm_func(y_processed, **params)
                         params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
                         method_name.append(f"{method}({params_str})")
                         
@@ -560,7 +501,7 @@ def main():
     file_handler = FileHandler()
     preprocessor = Preprocessor()
     
-    # 创建三列布局：调整列宽比例，更紧凑
+    # 创建三列主布局
     col_left, col_mid, col_right = st.columns([1.2, 2.8, 1.1])
     
     # ===== 左侧：数据管理 =====
@@ -653,13 +594,13 @@ def main():
             6. 中间查看结果并导出
             """)
      
-    # ===== 中间：光谱可视化与结果导出（核心优化：减少列嵌套） =====
+    # ===== 中间：光谱可视化与结果导出 =====
     with col_mid:
         st.subheader("📈 光谱可视化", divider="gray")
         
-        # 1. 原始光谱区域（初始占位，加载数据后显示双列光谱）
+        # 1. 原始光谱区域
         st.subheader("原始光谱", divider="gray")
-        # 初始占位框（仅一层列嵌套）
+        # 第一层列（允许）
         spec_cols = st.columns(2)
         with spec_cols[0]:
             if st.session_state.get('raw_data'):
@@ -680,9 +621,10 @@ def main():
             else:
                 st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>', unsafe_allow_html=True)
             
-            # 可选：显示更多原始光谱（下拉加载）
+            # 可选：显示更多原始光谱（不使用深层嵌套）
             if st.session_state.get('raw_data') and y.shape[1] > 2:
                 with st.expander("查看更多原始光谱", expanded=False):
+                    # 仅使用一层列
                     more_spec = st.columns(2)
                     for i in range(2, min(y.shape[1], 6), 2):
                         with more_spec[0]:
@@ -694,7 +636,7 @@ def main():
                                 data = pd.DataFrame({f"原始光谱{i+2}": y[:, i+1]}, index=wavenumbers)
                                 st.line_chart(data, height=150)
             
-        # 2. 处理结果展示（双列布局，仅一层列嵌套）
+        # 2. 处理结果展示
         if st.session_state.get('selected_arrangement'):
             st.subheader("🔍 预处理结果", divider="gray")
             selected_arr = st.session_state.selected_arrangement
@@ -705,7 +647,7 @@ def main():
             # 处理信息（紧凑显示）
             st.caption(f"处理方法: {arr_method} | 执行顺序: {arr_order if arr_order else '无预处理'}")
             
-            # 预处理后光谱（双列）
+            # 预处理后光谱（仅一层列）
             st.subheader("预处理后光谱", divider="gray")
             proc_cols = st.columns(2)
             with proc_cols[0]:
@@ -720,7 +662,7 @@ def main():
                 else:
                     st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>', unsafe_allow_html=True)
             
-            # k值曲线（双列，无预处理时不显示）
+            # k值曲线（仅一层列）
             if arr_order:
                 st.subheader("k值曲线", divider="gray")
                 k_cols = st.columns(2)
@@ -738,7 +680,7 @@ def main():
             else:
                 st.info("ℹ️ 无预处理（原始光谱），不显示k值曲线")
             
-            # 原始与处理后对比（双列）
+            # 原始与处理后对比（仅一层列）
             st.subheader("原始vs预处理对比", divider="gray")
             comp_cols = st.columns(2)
             with comp_cols[0]:
@@ -758,21 +700,21 @@ def main():
                 else:
                     st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条对比曲线</div>', unsafe_allow_html=True)
             
-            # 测试结果（紧凑显示）
+            # 测试结果
             if st.session_state.get('test_results') is not None:
                 st.subheader("📊 分类测试结果", divider="gray")
                 results = st.session_state.test_results
                 
-                # 指标（双列）
+                # 指标（仅一层列）
                 metrics_cols = st.columns(2)
                 with metrics_cols[0]:
                     st.metric("准确率", f"{results['accuracy']:.4f}", delta=None)
                 with metrics_cols[1]:
                     st.metric("卡帕系数", f"{results['kappa']:.4f}", delta=None)
                 
-                # 混淆矩阵（缩小尺寸）
+                # 混淆矩阵
                 st.subheader("混淆矩阵", divider="gray")
-                fig, ax = plt.subplots(figsize=(5, 4))  # 缩小矩阵尺寸
+                fig, ax = plt.subplots(figsize=(5, 4))
                 sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax, annot_kws={"size": 8})
                 ax.set_xlabel('预测标签', fontsize=8)
                 ax.set_ylabel('真实标签', fontsize=8)
@@ -784,9 +726,10 @@ def main():
             # 未选择排列时的提示
             st.info("ℹ️ 请在右侧选择预处理方法并应用排列方案")
             
-        # 结果导出（紧凑）
+        # 结果导出
         if st.session_state.arrangement_results or st.session_state.get('processed_data'):
             st.subheader("💾 结果导出", divider="gray")
+            # 仅一层列
             export_cols = st.columns([3, 1])
             with export_cols[0]:
                 export_name = st.text_input("导出文件名", "processed_spectra.txt", key="export_name")
@@ -807,10 +750,10 @@ def main():
             st.markdown('<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>', unsafe_allow_html=True)
 
     
-    # ===== 右侧：预处理设置 + 排列方案选择 + 测试功能（修正列嵌套） =====
+    # ===== 右侧：预处理设置 + 排列方案选择 + 测试功能 =====
     with col_right:
         with st.expander("⚙️ 预处理设置", expanded=True):
-            # 1. 基线校准（紧凑）
+            # 1. 基线校准
             st.subheader("基线校准", divider="gray")
             baseline_method = st.selectbox(
                 "方法",
@@ -819,7 +762,7 @@ def main():
                 label_visibility="collapsed"
             )
     
-            # 基线参数（紧凑显示）
+            # 基线参数
             baseline_params = {}
             if baseline_method != "无":
                 if baseline_method == "多项式拟合":
@@ -839,7 +782,7 @@ def main():
                     baseline_params["lam"] = lam
                     st.caption(f"λ: {lam}")
                 elif baseline_method == "AsLS":
-                    # 使用两列布局但避免深层嵌套
+                    # 仅一层列
                     asls_cols = st.columns(2)
                     with asls_cols[0]:
                         p = st.selectbox("p", [0.2, 0.1], key="p_asls", label_visibility="collapsed")
@@ -878,10 +821,11 @@ def main():
                 label_visibility="collapsed"
             )
     
-            # 滤波参数（紧凑，避免深层嵌套）
+            # 滤波参数
             filtering_params = {}
             if filtering_method != "无":
                 if filtering_method == "Savitzky-Golay":
+                    # 仅一层列
                     sg_cols = st.columns(2)
                     with sg_cols[0]:
                         k = st.selectbox("k", [3, 7], key="k_sg", label_visibility="collapsed")
@@ -891,6 +835,7 @@ def main():
                     filtering_params["w"] = w
                     st.caption(f"k: {k}, w: {w}")
                 elif filtering_method in ["中值滤波(MF)", "移动平均(MAF)"]:
+                    # 仅一层列
                     mf_cols = st.columns(2)
                     with mf_cols[0]:
                         k = st.selectbox("k", [1, 3], key="k_mf", label_visibility="collapsed")
@@ -912,7 +857,7 @@ def main():
                     filtering_params["threshold"] = threshold
                     st.caption(f"阈值: {threshold}")
 
-            # 4. 挤压处理（修正：将三层列改为两层）
+            # 4. 挤压处理（彻底避免三层嵌套）
             st.subheader("🧪 挤压", divider="gray")
             squashing_method = st.selectbox(
                 "方法",
@@ -921,7 +866,7 @@ def main():
                 label_visibility="collapsed"
             )
     
-            # 挤压参数（将三层列改为两层+单行文本）
+            # 挤压参数（使用分组而非多层列）
             squashing_params = {}
             if squashing_method != "无":
                 if squashing_method == "改进的逻辑函数":
@@ -929,14 +874,16 @@ def main():
                     squashing_params["m"] = m
                     st.caption(f"m: {m}")
                 elif squashing_method == "DTW挤压":
-                    # 改为两列布局，第三参数用单行显示
-                    dtw_cols = st.columns(2)
-                    with dtw_cols[0]:
+                    # 使用两行组件而非三层列
+                    dtw_row1 = st.columns(2)
+                    with dtw_row1[0]:
                         l = st.selectbox("l", [1, 5], key="l_dtw", label_visibility="collapsed")
-                    with dtw_cols[1]:
+                    with dtw_row1[1]:
                         k1 = st.selectbox("k1", ["T", "F"], key="k1_dtw", label_visibility="collapsed")
-                    # 第二行显示k2参数
+                    
+                    # 第二行单独放置
                     k2 = st.selectbox("k2", ["T", "F"], key="k2_dtw", label_visibility="collapsed")
+                    
                     squashing_params["l"] = l
                     squashing_params["k1"] = k1
                     squashing_params["k2"] = k2
@@ -958,7 +905,7 @@ def main():
             }
             st.session_state.current_algorithms = current_algorithms
             
-            # 应用处理与推荐应用按钮（横向紧凑）
+            # 应用处理与推荐应用按钮
             st.subheader("操作", divider="gray")
             btn_cols = st.columns(2)
             with btn_cols[0]:
@@ -1049,7 +996,7 @@ def main():
                 
                 st.rerun()
             
-            # 排列方案选择（紧凑）
+            # 排列方案选择
             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
                 st.subheader("🔄 排列方案", divider="gray")
                 
@@ -1080,7 +1027,7 @@ def main():
                         if p.get("first_step_type") == selected_first_step
                     ]
                 
-                # 排列下拉框（缩小高度）
+                # 排列下拉框
                 if st.session_state.filtered_perms:
                     st.session_state.selected_perm_idx = st.selectbox(
                         f"选择方案（共{len(st.session_state.filtered_perms)}种）",
@@ -1136,9 +1083,9 @@ def main():
                 else:
                     st.info("ℹ️ 无符合条件的方案")
                 
-                # 分类测试（紧凑，优化对齐）
+                # 分类测试
                 st.subheader("📝 分类测试", divider="gray")
-                # 优化k值输入和确定按钮的对齐（仅一层列嵌套）
+                # k值输入和确定按钮（仅一层列）
                 k_cols = st.columns([2, 1])
                 with k_cols[0]:
                     k_value = st.number_input(
