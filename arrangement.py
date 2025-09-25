@@ -653,51 +653,48 @@ def main():
             6. 中间查看结果并导出
             """)
      
-    # ===== 中间：光谱可视化与结果导出（核心优化：初始占位+双列显示） =====
+    # ===== 中间：光谱可视化与结果导出（核心优化：减少列嵌套） =====
     with col_mid:
         st.subheader("📈 光谱可视化", divider="gray")
         
         # 1. 原始光谱区域（初始占位，加载数据后显示双列光谱）
         st.subheader("原始光谱", divider="gray")
-        # 初始占位框
-        spec_placeholder_col1, spec_placeholder_col2 = st.columns(2)
-        with spec_placeholder_col1:
+        # 初始占位框（仅一层列嵌套）
+        spec_cols = st.columns(2)
+        with spec_cols[0]:
             if st.session_state.get('raw_data'):
                 wavenumbers, y = st.session_state.raw_data
-                # 显示前2条原始光谱（双列）
                 idx1 = 0 if y.shape[1] > 0 else 0
                 raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
-                st.line_chart(raw_data1, height=200)  # 移除key参数
+                st.line_chart(raw_data1, height=200)
             else:
-                # 初始占位显示
                 st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>', unsafe_allow_html=True)
-        with spec_placeholder_col2:
+        
+        with spec_cols[1]:
             if st.session_state.get('raw_data') and y.shape[1] > 1:
                 idx2 = 1
                 raw_data2 = pd.DataFrame({"原始光谱2": y[:, idx2]}, index=wavenumbers)
-                st.line_chart(raw_data2, height=200)  # 移除key参数
+                st.line_chart(raw_data2, height=200)
             elif st.session_state.get('raw_data'):
-                # 只有1条光谱时显示提示
                 st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条原始光谱</div>', unsafe_allow_html=True)
             else:
-                # 初始占位显示
                 st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>', unsafe_allow_html=True)
             
             # 可选：显示更多原始光谱（下拉加载）
             if st.session_state.get('raw_data') and y.shape[1] > 2:
                 with st.expander("查看更多原始光谱", expanded=False):
-                    more_spec_cols = st.columns(2)
-                    for i in range(2, min(y.shape[1], 6), 2):  # 最多显示6条，双列
-                        with more_spec_cols[0]:
+                    more_spec = st.columns(2)
+                    for i in range(2, min(y.shape[1], 6), 2):
+                        with more_spec[0]:
                             if i < y.shape[1]:
                                 data = pd.DataFrame({f"原始光谱{i+1}": y[:, i]}, index=wavenumbers)
-                                st.line_chart(data, height=150)  # 移除key参数
-                        with more_spec_cols[1]:
+                                st.line_chart(data, height=150)
+                        with more_spec[1]:
                             if i+1 < y.shape[1]:
                                 data = pd.DataFrame({f"原始光谱{i+2}": y[:, i+1]}, index=wavenumbers)
-                                st.line_chart(data, height=150)  # 移除key参数
+                                st.line_chart(data, height=150)
             
-        # 2. 处理结果展示（双列布局）
+        # 2. 处理结果展示（双列布局，仅一层列嵌套）
         if st.session_state.get('selected_arrangement'):
             st.subheader("🔍 预处理结果", divider="gray")
             selected_arr = st.session_state.selected_arrangement
@@ -710,32 +707,32 @@ def main():
             
             # 预处理后光谱（双列）
             st.subheader("预处理后光谱", divider="gray")
-            proc_col1, proc_col2 = st.columns(2)
-            with proc_col1:
+            proc_cols = st.columns(2)
+            with proc_cols[0]:
                 idx1 = 0 if arr_data.shape[1] > 0 else 0
                 proc_data1 = pd.DataFrame({"预处理后1": arr_data[:, idx1]}, index=wavenumbers)
-                st.line_chart(proc_data1, height=200)  # 移除key参数
-            with proc_col2:
+                st.line_chart(proc_data1, height=200)
+            with proc_cols[1]:
                 if arr_data.shape[1] > 1:
                     idx2 = 1
                     proc_data2 = pd.DataFrame({"预处理后2": arr_data[:, idx2]}, index=wavenumbers)
-                    st.line_chart(proc_data2, height=200)  # 移除key参数
+                    st.line_chart(proc_data2, height=200)
                 else:
                     st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>', unsafe_allow_html=True)
             
             # k值曲线（双列，无预处理时不显示）
             if arr_order:
                 st.subheader("k值曲线", divider="gray")
-                k_col1, k_col2 = st.columns(2)
-                with k_col1:
+                k_cols = st.columns(2)
+                with k_cols[0]:
                     k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
                     k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
-                    st.line_chart(k_data1, height=200)  # 移除key参数
-                with k_col2:
+                    st.line_chart(k_data1, height=200)
+                with k_cols[1]:
                     if y.shape[1] > 1:
                         k_vals2 = np.abs(arr_data[:, 1] / (y[:, 1] + 1e-8))
                         k_data2 = pd.DataFrame({"k值2": k_vals2}, index=wavenumbers)
-                        st.line_chart(k_data2, height=200)  # 移除key参数
+                        st.line_chart(k_data2, height=200)
                     else:
                         st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条k值曲线</div>', unsafe_allow_html=True)
             else:
@@ -743,21 +740,21 @@ def main():
             
             # 原始与处理后对比（双列）
             st.subheader("原始vs预处理对比", divider="gray")
-            comp_col1, comp_col2 = st.columns(2)
-            with comp_col1:
+            comp_cols = st.columns(2)
+            with comp_cols[0]:
                 if y.shape[1] > 0:
                     comp_data1 = pd.DataFrame({
                         "原始": y[:, 0],
                         "预处理后": arr_data[:, 0]
                     }, index=wavenumbers)
-                    st.line_chart(comp_data1, height=200)  # 移除key参数
-            with comp_col2:
+                    st.line_chart(comp_data1, height=200)
+            with comp_cols[1]:
                 if y.shape[1] > 1:
                     comp_data2 = pd.DataFrame({
                         "原始": y[:, 1],
                         "预处理后": arr_data[:, 1]
                     }, index=wavenumbers)
-                    st.line_chart(comp_data2, height=200)  # 移除key参数
+                    st.line_chart(comp_data2, height=200)
                 else:
                     st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条对比曲线</div>', unsafe_allow_html=True)
             
@@ -767,10 +764,10 @@ def main():
                 results = st.session_state.test_results
                 
                 # 指标（双列）
-                metrics_col1, metrics_col2 = st.columns(2)
-                with metrics_col1:
+                metrics_cols = st.columns(2)
+                with metrics_cols[0]:
                     st.metric("准确率", f"{results['accuracy']:.4f}", delta=None)
-                with metrics_col2:
+                with metrics_cols[1]:
                     st.metric("卡帕系数", f"{results['kappa']:.4f}", delta=None)
                 
                 # 混淆矩阵（缩小尺寸）
@@ -790,10 +787,10 @@ def main():
         # 结果导出（紧凑）
         if st.session_state.arrangement_results or st.session_state.get('processed_data'):
             st.subheader("💾 结果导出", divider="gray")
-            export_col1, export_col2 = st.columns([3, 1])
-            with export_col1:
+            export_cols = st.columns([3, 1])
+            with export_cols[0]:
                 export_name = st.text_input("导出文件名", "processed_spectra.txt", key="export_name")
-            with export_col2:
+            with export_cols[1]:
                 st.markdown("<br>", unsafe_allow_html=True)  # 垂直对齐
                 if st.button("导出", type="secondary", key="export_btn"):
                     try:
@@ -810,7 +807,7 @@ def main():
             st.markdown('<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>', unsafe_allow_html=True)
 
     
-    # ===== 右侧：预处理设置 + 排列方案选择 + 测试功能（紧凑布局） =====
+    # ===== 右侧：预处理设置 + 排列方案选择 + 测试功能（修正列嵌套） =====
     with col_right:
         with st.expander("⚙️ 预处理设置", expanded=True):
             # 1. 基线校准（紧凑）
@@ -842,10 +839,11 @@ def main():
                     baseline_params["lam"] = lam
                     st.caption(f"λ: {lam}")
                 elif baseline_method == "AsLS":
-                    param_col1, param_col2 = st.columns(2)
-                    with param_col1:
+                    # 使用两列布局但避免深层嵌套
+                    asls_cols = st.columns(2)
+                    with asls_cols[0]:
                         p = st.selectbox("p", [0.2, 0.1], key="p_asls", label_visibility="collapsed")
-                    with param_col2:
+                    with asls_cols[1]:
                         lam = st.selectbox("λ", [10**9, 10**6], key="lam_asls", label_visibility="collapsed")
                     baseline_params["p"] = p
                     baseline_params["lam"] = lam
@@ -880,23 +878,23 @@ def main():
                 label_visibility="collapsed"
             )
     
-            # 滤波参数（紧凑）
+            # 滤波参数（紧凑，避免深层嵌套）
             filtering_params = {}
             if filtering_method != "无":
                 if filtering_method == "Savitzky-Golay":
-                    param_col1, param_col2 = st.columns(2)
-                    with param_col1:
+                    sg_cols = st.columns(2)
+                    with sg_cols[0]:
                         k = st.selectbox("k", [3, 7], key="k_sg", label_visibility="collapsed")
-                    with param_col2:
+                    with sg_cols[1]:
                         w = st.selectbox("w", [11, 31, 51], key="w_sg", label_visibility="collapsed")
                     filtering_params["k"] = k
                     filtering_params["w"] = w
                     st.caption(f"k: {k}, w: {w}")
                 elif filtering_method in ["中值滤波(MF)", "移动平均(MAF)"]:
-                    param_col1, param_col2 = st.columns(2)
-                    with param_col1:
+                    mf_cols = st.columns(2)
+                    with mf_cols[0]:
                         k = st.selectbox("k", [1, 3], key="k_mf", label_visibility="collapsed")
-                    with param_col2:
+                    with mf_cols[1]:
                         w = st.selectbox("w", [7, 11], key="w_mf", label_visibility="collapsed")
                     filtering_params["k"] = k
                     filtering_params["w"] = w
@@ -914,7 +912,7 @@ def main():
                     filtering_params["threshold"] = threshold
                     st.caption(f"阈值: {threshold}")
 
-            # 4. 挤压处理
+            # 4. 挤压处理（修正：将三层列改为两层）
             st.subheader("🧪 挤压", divider="gray")
             squashing_method = st.selectbox(
                 "方法",
@@ -923,7 +921,7 @@ def main():
                 label_visibility="collapsed"
             )
     
-            # 挤压参数
+            # 挤压参数（将三层列改为两层+单行文本）
             squashing_params = {}
             if squashing_method != "无":
                 if squashing_method == "改进的逻辑函数":
@@ -931,13 +929,14 @@ def main():
                     squashing_params["m"] = m
                     st.caption(f"m: {m}")
                 elif squashing_method == "DTW挤压":
-                    param_col1, param_col2, param_col3 = st.columns(3)
-                    with param_col1:
+                    # 改为两列布局，第三参数用单行显示
+                    dtw_cols = st.columns(2)
+                    with dtw_cols[0]:
                         l = st.selectbox("l", [1, 5], key="l_dtw", label_visibility="collapsed")
-                    with param_col2:
+                    with dtw_cols[1]:
                         k1 = st.selectbox("k1", ["T", "F"], key="k1_dtw", label_visibility="collapsed")
-                    with param_col3:
-                        k2 = st.selectbox("k2", ["T", "F"], key="k2_dtw", label_visibility="collapsed")
+                    # 第二行显示k2参数
+                    k2 = st.selectbox("k2", ["T", "F"], key="k2_dtw", label_visibility="collapsed")
                     squashing_params["l"] = l
                     squashing_params["k1"] = k1
                     squashing_params["k2"] = k2
@@ -961,8 +960,8 @@ def main():
             
             # 应用处理与推荐应用按钮（横向紧凑）
             st.subheader("操作", divider="gray")
-            btn_col1, btn_col2 = st.columns(2)
-            with btn_col1:
+            btn_cols = st.columns(2)
+            with btn_cols[0]:
                 if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
                     if st.session_state.raw_data is None:
                         st.warning("⚠️ 请先上传数据")
@@ -995,7 +994,7 @@ def main():
                         except Exception as e:
                             st.error(f"❌ 处理失败: {str(e)}")
         
-            with btn_col2:
+            with btn_cols[1]:
                 if st.button("🌟 推荐应用", type="primary", use_container_width=True, key="recommend_btn"):
                     if st.session_state.raw_data is None:
                         st.warning("⚠️ 请先上传数据")
@@ -1139,9 +1138,9 @@ def main():
                 
                 # 分类测试（紧凑，优化对齐）
                 st.subheader("📝 分类测试", divider="gray")
-                # 优化k值输入和确定按钮的对齐
-                k_input_col, k_button_col = st.columns([2, 1])
-                with k_input_col:
+                # 优化k值输入和确定按钮的对齐（仅一层列嵌套）
+                k_cols = st.columns([2, 1])
+                with k_cols[0]:
                     k_value = st.number_input(
                         "k值", 
                         min_value=1, 
@@ -1150,8 +1149,7 @@ def main():
                         key="k_input",
                         label_visibility="collapsed"
                     )
-                with k_button_col:
-                    # 移除额外的垂直间距，使按钮与输入框垂直对齐
+                with k_cols[1]:
                     if st.button("确定", type="secondary", use_container_width=True, key="k_confirm_btn"):
                         st.session_state.k_value = k_value
                         st.success(f"k={k_value}")
