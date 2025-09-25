@@ -16,10 +16,10 @@ import copy
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
-import scipy.signal as signal  # 新增：导入scipy.signal用于MWM函数
+import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 
 
-# 新增：移动窗口中值滤波(MWM)函数
+# 移动窗口中值滤波(MWM)函数
 def MWM(arr, n=7, it=1):
     row = arr.shape[0]
     col = arr.shape[1]
@@ -37,6 +37,18 @@ def MWM(arr, n=7, it=1):
                 tmp = signal.medfilt(median[i], n)
                 median[i] = tmp
     return median
+
+
+# 新增：sigmoid函数
+def sigmoid(X):
+    row = X.shape[0]
+    col = X.shape[1]
+    s = np.zeros((row, col))
+    for i in range(row):
+        for j in range(col):
+            m = 1 + np.exp(-float(X[i, j]))
+            s[i, j] = (1.0 / m)
+    return s
 
 
 # 改进的i_sigmoid挤压函数
@@ -484,9 +496,7 @@ class DTW:
 
 
 # 挤压和 sigmoid 相关函数
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
-
+# 注意：已添加完整的sigmoid函数，此处保留引用即可
 def squashing(x):
     return 1 / (1 + np.exp(-x))
 
@@ -783,7 +793,7 @@ def main():
                 "中值滤波(MF)": self.median_filter,
                 "移动平均(MAF)": self.moving_average,
                 "MWA（移动窗口平均）": self.mwa_filter,  # 添加MWA算法
-                "MWM（移动窗口中值）": self.mwm_filter,  # 新增：MWM滤波算法
+                "MWM（移动窗口中值）": self.mwm_filter,  # MWM滤波算法
                 "卡尔曼滤波": self.kalman_filter,  # 添加卡尔曼滤波算法
                 "Lowess": self.lowess_filter,
                 "FFT": self.fft_filter,
@@ -802,7 +812,7 @@ def main():
             }
             
             self.SQUASHING_ALGORITHMS = {
-                "Sigmoid挤压": sigmoid,
+                "Sigmoid挤压": sigmoid,  # 使用新添加的完整sigmoid函数
                 "改进的Sigmoid挤压": i_sigmoid,  # 使用改进的i_sigmoid函数
                 "逻辑函数": squashing,
                 "改进的逻辑函数": i_squashing,  # 使用i_squashing函数
@@ -891,6 +901,10 @@ def main():
                             k2 = params.get("k2", "T")
                             y_processed = algorithm_func(y_processed, l=l, k1=k1, k2=k2)
                             method_name.append(f"DTW挤压(l={l}, k1={k1}, k2={k2})")
+                        elif method == "Sigmoid挤压":
+                            # 使用新添加的完整sigmoid函数
+                            y_processed = algorithm_func(y_processed)
+                            method_name.append(f"{method}")
                         else:
                             y_processed = algorithm_func(y_processed)
                             method_name.append(method)
@@ -943,7 +957,7 @@ def main():
         def mwa_filter(self, spectra, n=6, it=1, mode="full"):
             return MWA(spectra, n=n, it=it, mode=mode)
         
-        # 新增：MWM滤波方法的封装
+        # MWM滤波方法的封装
         def mwm_filter(self, spectra, n=7, it=1):
             """使用MWM函数进行移动窗口中值滤波"""
             # 确保输入数据形状与MWM要求一致
@@ -1446,7 +1460,7 @@ def main():
                     filtering_params["it"] = it
                     filtering_params["mode"] = "full"  # 默认模式
                     st.caption(f"窗口大小: {n}, 迭代次数: {it}")
-                # 新增：MWM（移动窗口中值）参数配置
+                # MWM（移动窗口中值）参数配置
                 elif filtering_method == "MWM（移动窗口中值）":
                     mwm_cols = st.columns(2)
                     with mwm_cols[0]:
@@ -1479,7 +1493,7 @@ def main():
                     filtering_params["threshold"] = threshold
                     st.caption(f"阈值: {threshold}")
 
-            # 4. 挤压处理（彻底避免三层嵌套）
+            # 4. 挤压处理
             st.subheader("🧪 挤压", divider="gray")
             squashing_method = st.selectbox(
                 "方法",
@@ -1488,7 +1502,7 @@ def main():
                 label_visibility="collapsed"
             )
     
-            # 挤压参数（使用分组而非多层列）
+            # 挤压参数
             squashing_params = {}
             if squashing_method != "无":
                 if squashing_method == "改进的逻辑函数":
@@ -1500,7 +1514,7 @@ def main():
                     squashing_params["maxn"] = maxn
                     st.caption(f"maxn: {maxn}")
                 elif squashing_method == "DTW挤压":
-                    # 使用两行组件而非三层列
+                    # 使用两行组件
                     dtw_row1 = st.columns(2)
                     with dtw_row1[0]:
                         l = st.selectbox("l", [1, 5], key="l_dtw", label_visibility="collapsed")
@@ -1514,7 +1528,10 @@ def main():
                     squashing_params["k1"] = k1
                     squashing_params["k2"] = k2
                     st.caption(f"l: {l}, k1: {k1}, k2: {k2}")
-                elif squashing_method == "Sigmoid挤压" or squashing_method == "逻辑函数":
+                elif squashing_method == "Sigmoid挤压":
+                    # 说明使用的是完整实现的sigmoid函数
+                    st.caption("使用标准Sigmoid函数，无额外参数")
+                elif squashing_method == "逻辑函数":
                     st.caption("无额外参数")
     
             
@@ -1577,11 +1594,11 @@ def main():
                             recommended_params = {
                                 'baseline_method': "二阶差分(D2)",  # 推荐使用二阶差分作为基线校正方法
                                 'baseline_params': {},
-                                'scaling_method': "标准化(均值0，方差1)",  # 推荐使用新添加的标准化方法
+                                'scaling_method': "标准化(均值0，方差1)",  # 推荐使用标准化方法
                                 'scaling_params': {},
-                                'filtering_method': "MWM（移动窗口中值）",  # 新增：推荐使用MWM滤波
+                                'filtering_method': "MWM（移动窗口中值）",  # 推荐使用MWM滤波
                                 'filtering_params': {'n': 7, 'it': 1},  # MWM参数
-                                'squashing_method': "改进的逻辑函数",  # 使用i_squashing
+                                'squashing_method': "Sigmoid挤压",  # 推荐使用新添加的sigmoid函数
                                 'squashing_params': {}
                             }
                             
