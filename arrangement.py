@@ -373,6 +373,27 @@ def i_sigmoid(x, maxn=10):
     return 1 / (1 + np.exp(-x / maxn))
 
 
+# sgolayfilt滤波器实现
+def SGfilter(Intensity, point, degree):  # 输入均为行
+    """
+    Savitzky-Golay滤波器实现
+    
+    参数:
+        Intensity: 输入光谱数据 (n_samples, n_features)
+        point: 窗口大小
+        degree: 多项式阶数
+        
+    返回:
+        滤波后的光谱数据，形状与输入相同
+    """
+    Row = Intensity.shape[0]
+    col = Intensity.shape[1]
+    sgsmooth = np.zeros((Row, col))
+    for i in range(Row):
+        sgsmooth[i] = savgol_filter(Intensity[i], point, degree)
+    return sgsmooth
+
+
 def main():
     # 最优先初始化session state
     if 'show_arrangements' not in st.session_state:
@@ -640,6 +661,7 @@ def main():
             }
             self.FILTERING_ALGORITHMS = {
                 "Savitzky-Golay": self.savitzky_golay,
+                "sgolayfilt滤波器": self.sgolay_filter_custom,  # 添加自定义SG滤波器
                 "中值滤波(MF)": self.median_filter,
                 "移动平均(MAF)": self.moving_average,
                 "MWA（移动窗口平均）": self.mwa_filter,  # 添加MWA算法
@@ -776,6 +798,16 @@ def main():
         # ===== 滤波算法实现 =====
         def savitzky_golay(self, spectra, k, w):
             return savgol_filter(spectra, w, k, axis=0)
+        
+        # 自定义sgolayfilt滤波器的封装
+        def sgolay_filter_custom(self, spectra, point, degree):
+            """使用自定义的SGfilter函数进行滤波"""
+            # 确保输入数据形状与SGfilter要求一致
+            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+                filtered = SGfilter(spectra.T, point, degree)
+                return filtered.T  # 转回原始形状
+            else:
+                return SGfilter(spectra, point, degree)
         
         def median_filter(self, spectra, k, w):
             return medfilt(spectra, kernel_size=(w, 1))
@@ -1218,8 +1250,8 @@ def main():
             st.subheader("📶 滤波", divider="gray")
             filtering_method = st.selectbox(
                 "方法",
-                ["无", "Savitzky-Golay", "中值滤波(MF)", "移动平均(MAF)", "MWA（移动窗口平均）", 
-                 "卡尔曼滤波", "Lowess", "FFT", "小波变换(DWT)"],
+                ["无", "Savitzky-Golay", "sgolayfilt滤波器", "中值滤波(MF)", "移动平均(MAF)", 
+                 "MWA（移动窗口平均）", "卡尔曼滤波", "Lowess", "FFT", "小波变换(DWT)"],
                 key="filtering_method",
                 label_visibility="collapsed"
             )
@@ -1227,16 +1259,16 @@ def main():
             # 滤波参数
             filtering_params = {}
             if filtering_method != "无":
-                if filtering_method == "Savitzky-Golay":
+                if filtering_method in ["Savitzky-Golay", "sgolayfilt滤波器"]:
                     # 仅一层列
                     sg_cols = st.columns(2)
                     with sg_cols[0]:
-                        k = st.selectbox("k", [3, 7], key="k_sg", label_visibility="collapsed")
+                        k = st.selectbox("多项式阶数", [3, 7], key="k_sg", label_visibility="collapsed")
                     with sg_cols[1]:
-                        w = st.selectbox("w", [11, 31, 51], key="w_sg", label_visibility="collapsed")
-                    filtering_params["k"] = k
-                    filtering_params["w"] = w
-                    st.caption(f"k: {k}, w: {w}")
+                        w = st.selectbox("窗口大小", [11, 31, 51], key="w_sg", label_visibility="collapsed")
+                    filtering_params["point"] = w  # 对于sgolayfilt滤波器使用point参数名
+                    filtering_params["degree"] = k  # 对于sgolayfilt滤波器使用degree参数名
+                    st.caption(f"阶数: {k}, 窗口: {w}")
                 elif filtering_method in ["中值滤波(MF)", "移动平均(MAF)"]:
                     # 仅一层列
                     mf_cols = st.columns(2)
@@ -1372,8 +1404,8 @@ def main():
                                 'baseline_params': {},
                                 'scaling_method': "SNV",
                                 'scaling_params': {},
-                                'filtering_method': "Savitzky-Golay",
-                                'filtering_params': {'k': 3, 'w': 11},
+                                'filtering_method': "sgolayfilt滤波器",  # 推荐使用新添加的sgolayfilt滤波器
+                                'filtering_params': {'point': 11, 'degree': 3},
                                 'squashing_method': "改进的Sigmoid挤压",
                                 'squashing_params': {}
                             }
