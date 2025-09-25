@@ -573,7 +573,7 @@ def main():
             st.caption("光谱数据文件(.txt)")
             
             # 紧凑标签输入
-            st.subheader("样本标签", divider="thin")
+            st.subheader("样本标签", divider="gray")
             num_classes = st.number_input("类别数量", min_value=1, value=2, step=1, key="num_cls")
             labels_input = st.text_input(
                 "标签（逗号分隔，与光谱顺序一致）", 
@@ -655,10 +655,10 @@ def main():
      
     # ===== 中间：光谱可视化与结果导出（核心优化：初始占位+双列显示） =====
     with col_mid:
-        st.subheader("📈 光谱可视化", divider="thin")
+        st.subheader("📈 光谱可视化", divider="gray")
         
         # 1. 原始光谱区域（初始占位，加载数据后显示双列光谱）
-        st.subheader("原始光谱", divider="thin")
+        st.subheader("原始光谱", divider="gray")
         # 初始占位框
         spec_placeholder_col1, spec_placeholder_col2 = st.columns(2)
         with spec_placeholder_col1:
@@ -699,7 +699,7 @@ def main():
             
         # 2. 处理结果展示（双列布局）
         if st.session_state.get('selected_arrangement'):
-            st.subheader("🔍 预处理结果", divider="thin")
+            st.subheader("🔍 预处理结果", divider="gray")
             selected_arr = st.session_state.selected_arrangement
             arr_data = st.session_state.arrangement_details[selected_arr]['data']
             arr_method = st.session_state.arrangement_details[selected_arr]['method']
@@ -709,7 +709,7 @@ def main():
             st.caption(f"处理方法: {arr_method} | 执行顺序: {arr_order if arr_order else '无预处理'}")
             
             # 预处理后光谱（双列）
-            st.subheader("预处理后光谱", divider="thin")
+            st.subheader("预处理后光谱", divider="gray")
             proc_col1, proc_col2 = st.columns(2)
             with proc_col1:
                 idx1 = 0 if arr_data.shape[1] > 0 else 0
@@ -725,7 +725,7 @@ def main():
             
             # k值曲线（双列，无预处理时不显示）
             if arr_order:
-                st.subheader("k值曲线", divider="thin")
+                st.subheader("k值曲线", divider="gray")
                 k_col1, k_col2 = st.columns(2)
                 with k_col1:
                     k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
@@ -742,7 +742,7 @@ def main():
                 st.info("ℹ️ 无预处理（原始光谱），不显示k值曲线")
             
             # 原始与处理后对比（双列）
-            st.subheader("原始vs预处理对比", divider="thin")
+            st.subheader("原始vs预处理对比", divider="gray")
             comp_col1, comp_col2 = st.columns(2)
             with comp_col1:
                 if y.shape[1] > 0:
@@ -763,7 +763,7 @@ def main():
             
             # 测试结果（紧凑显示）
             if st.session_state.get('test_results') is not None:
-                st.subheader("📊 分类测试结果", divider="thin")
+                st.subheader("📊 分类测试结果", divider="gray")
                 results = st.session_state.test_results
                 
                 # 指标（双列）
@@ -774,7 +774,7 @@ def main():
                     st.metric("卡帕系数", f"{results['kappa']:.4f}", delta=None)
                 
                 # 混淆矩阵（缩小尺寸）
-                st.subheader("混淆矩阵", divider="thin")
+                st.subheader("混淆矩阵", divider="gray")
                 fig, ax = plt.subplots(figsize=(5, 4))  # 缩小矩阵尺寸
                 sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax, annot_kws={"size": 8})
                 ax.set_xlabel('预测标签', fontsize=8)
@@ -789,7 +789,7 @@ def main():
             
         # 结果导出（紧凑）
         if st.session_state.arrangement_results or st.session_state.get('processed_data'):
-            st.subheader("💾 结果导出", divider="thin")
+            st.subheader("💾 结果导出", divider="gray")
             export_col1, export_col2 = st.columns([3, 1])
             with export_col1:
                 export_name = st.text_input("导出文件名", "processed_spectra.txt", key="export_name")
@@ -814,7 +814,7 @@ def main():
     with col_right:
         with st.expander("⚙️ 预处理设置", expanded=True):
             # 1. 基线校准（紧凑）
-            st.subheader("基线校准", divider="thin")
+            st.subheader("基线校准", divider="gray")
             baseline_method = st.selectbox(
                 "方法",
                 ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS"],
@@ -856,7 +856,7 @@ def main():
                     st.caption(f"λ: {lam}")
     
             # 2. 缩放处理
-            st.subheader("📏 缩放", divider="thin")
+            st.subheader("📏 缩放", divider="gray")
             scaling_method = st.selectbox(
                 "方法",
                 ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数"],
@@ -872,7 +872,7 @@ def main():
                 st.caption(f"p: {p}")
     
             # 3. 滤波处理
-            st.subheader("📶 滤波", divider="thin")
+            st.subheader("📶 滤波", divider="gray")
             filtering_method = st.selectbox(
                 "方法",
                 ["无", "Savitzky-Golay", "中值滤波(MF)", "移动平均(MAF)", "Lowess", "FFT", "小波变换(DWT)"],
@@ -915,7 +915,7 @@ def main():
                     st.caption(f"阈值: {threshold}")
 
             # 4. 挤压处理
-            st.subheader("🧪 挤压", divider="thin")
+            st.subheader("🧪 挤压", divider="gray")
             squashing_method = st.selectbox(
                 "方法",
                 ["无", "Sigmoid挤压", "改进的Sigmoid挤压", "逻辑函数", "改进的逻辑函数", "DTW挤压"],
@@ -960,7 +960,7 @@ def main():
             st.session_state.current_algorithms = current_algorithms
             
             # 应用处理与推荐应用按钮（横向紧凑）
-            st.subheader("操作", divider="thin")
+            st.subheader("操作", divider="gray")
             btn_col1, btn_col2 = st.columns(2)
             with btn_col1:
                 if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
@@ -1052,7 +1052,7 @@ def main():
             
             # 排列方案选择（紧凑）
             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
-                st.subheader("🔄 排列方案", divider="thin")
+                st.subheader("🔄 排列方案", divider="gray")
                 
                 # 第一步类型筛选
                 try:
@@ -1138,7 +1138,7 @@ def main():
                     st.info("ℹ️ 无符合条件的方案")
                 
                 # 分类测试（紧凑）
-                st.subheader("📝 分类测试", divider="thin")
+                st.subheader("📝 分类测试", divider="gray")
                 k_col, btn_col = st.columns([2, 1])
                 with k_col:
                     k_value = st.number_input(
