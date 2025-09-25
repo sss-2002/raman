@@ -6,21 +6,26 @@ import itertools
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, cohen_kappa_score, confusion_matrix
 import seaborn as sns
-# 假设这些是您的自定义模块
-# from SD import D2
-# from FD import D1
-# from sigmoids import sigmoid
-# from squashing import squashing  
-# from i_squashing import i_squashing 
-# from i_sigmoid import i_sigmoid
-# from IModPoly import IModPoly
-# from LPnorm import LPnorm
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
 from scipy.signal import savgol_filter, medfilt
 from scipy.fft import fft, ifft
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
+
+
+# ===== 一阶差分(D1)算法实现 =====
+def D1(sdata):
+    "一阶差分"
+    row = sdata.shape[0]
+    col = sdata.shape[1]
+    D1 = np.zeros((row, col))
+    for i in range(row):
+        tem = np.diff(sdata[i], 1)
+        temp = tem.tolist()
+        temp.append(temp[-1])  # 保持与原始数据相同长度
+        D1[i] = temp
+    return D1
 
 
 # ===== DTW算法实现 =====
@@ -660,18 +665,19 @@ def main():
             self.BASELINE_ALGORITHMS = {
                 "SD": self._sd_baseline,
                 "FD": self._fd_baseline,
+                "D1（一阶差分）": self._d1_baseline,  # 新增一阶差分作为基线校正方法
                 "多项式拟合": polynomial_fit,
                 "ModPoly": modpoly,
-                "I-ModPoly": self._imodpoly,  # 假设实现
+                "I-ModPoly": self._imodpoly,
                 "PLS": pls,
-                "AsLS": baseline_als,  # 使用改进的AsLS算法
+                "AsLS": baseline_als,
                 "airPLS": airpls,
             }
             self.FILTERING_ALGORITHMS = {
                 "Savitzky-Golay": self.savitzky_golay,
                 "中值滤波(MF)": self.median_filter,
                 "移动平均(MAF)": self.moving_average,
-                "MWA（移动窗口平均）": self.mwa_filter,  # 添加MWA算法
+                "MWA（移动窗口平均）": self.mwa_filter,
                 "Lowess": self.lowess_filter,
                 "FFT": self.fft_filter,
                 "小波变换(DWT)": self.wavelet_filter
@@ -686,10 +692,10 @@ def main():
             }
             
             self.SQUASHING_ALGORITHMS = {
-                "Sigmoid挤压": self._sigmoid,  # 假设实现
-                "改进的Sigmoid挤压": self._i_sigmoid,  # 假设实现
-                "逻辑函数": self._squashing,  # 假设实现
-                "改进的逻辑函数": self._i_squashing,  # 假设实现
+                "Sigmoid挤压": self._sigmoid,
+                "改进的Sigmoid挤压": self._i_sigmoid,
+                "逻辑函数": self._squashing,
+                "改进的逻辑函数": self._i_squashing,
                 "DTW挤压": dtw_squashing
             }
     
@@ -752,7 +758,7 @@ def main():
                             y_processed = algorithm_func(y_processed,** params)
                         elif method == "airPLS":
                             y_processed = algorithm_func(y_processed, **params)
-                        else:  # SD、FD 无额外参数
+                        else:  # SD、FD、D1 无额外参数
                             y_processed = algorithm_func(y_processed)
                         method_name.append(f"{method}({', '.join([f'{k}={v}' for k, v in params.items()])})")
                             
@@ -798,6 +804,10 @@ def main():
         
         def _fd_baseline(self, spectra):
             return spectra - np.percentile(spectra, 5, axis=0)
+        
+        def _d1_baseline(self, spectra):
+            """使用一阶差分作为基线校正方法"""
+            return D1(spectra)  # 调用外部定义的D1函数
             
         def _imodpoly(self, wavenumbers, spectra, k):
             """模拟I-ModPoly算法实现"""
@@ -1169,7 +1179,7 @@ def main():
             st.subheader("基线校准", divider="gray")
             baseline_method = st.selectbox(
                 "方法",
-                ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS"],
+                ["无", "SD", "FD", "D1（一阶差分）", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS"],
                 key="baseline_method",
                 label_visibility="collapsed"
             )
@@ -1213,6 +1223,8 @@ def main():
                         lam = st.selectbox("λ", [10**7, 10**4, 10**2], key="lam_air", label_visibility="collapsed")
                     baseline_params["lam"] = lam
                     st.caption(f"λ: {lam}")
+                elif baseline_method == "D1（一阶差分）":
+                    st.caption("一阶差分无需额外参数")
     
             # 2. 缩放处理
             st.subheader("📏 缩放", divider="gray")
