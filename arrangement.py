@@ -14,336 +14,59 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 
 
-# ===== 一阶差分(D1)算法实现 =====
-def D1(sdata):
-    "一阶差分"
-    row = sdata.shape[0]
-    col = sdata.shape[1]
-    D1 = np.zeros((row, col))
-    for i in range(row):
-        tem = np.diff(sdata[i], 1)
-        temp = tem.tolist()
-        temp.append(temp[-1])  # 保持与原始数据相同长度
-        D1[i] = temp
-    return D1
+# IModPoly: improved modified multi-polynomial fit method
+def IModPoly(wavenumbers, originalRaman, polyorder, max_iter=100, tolerance=0.005):
+    """
+    改进的多项式拟合基线校正
 
+    参数:
+        wavenumbers: 拉曼位移(cm^-1)的一维数组
+        originalRaman: 原始拉曼光谱，形状为(n_samples, n_points)
+        polyorder: 多项式阶数
+        max_iter: 最大迭代次数 (默认100)
+        tolerance: 收敛容差 (默认0.005)
 
-# ===== DTW算法实现 =====
-def showmat(s):
-    for i in s:
-        print(i)
-    print()
+    返回:
+        校正后的光谱，形状与originalRaman相同
+    """
+    row, col = originalRaman.shape
+    corrected = np.zeros((row, col))
 
+    for j in range(row):
+        prev_spectrum = originalRaman[j]
+        curr_spectrum = prev_spectrum.copy()
+        prev_std = 0
+        converged = False
+        iteration = 1
 
-# 两点之间的距离，为了简便起见，除非是一维数据，否则得出欧氏距离的平方
-def distance(a, b):
-    if isinstance(a, list) and isinstance(b, list):
-        su = 0
-        for i, j in zip(a, b):
-            su += pow(i - j, 2)
-        return su
-    return abs(a - b)
+        while not converged and iteration <= max_iter:
+            # 多项式拟合
+            coeffs = np.polyfit(wavenumbers, curr_spectrum, polyorder)
+            fitted = np.polyval(coeffs, wavenumbers)
+            residual = curr_spectrum - fitted
+            curr_std = np.std(residual)
 
-
-# 求斜率，由于求距离时点与点之间的关联较弱，此处取与前后两点连线的斜率的均值
-def diff(a, wavenumbers):
-    b = []
-    b.append((a[1] - a[0]) / (wavenumbers[1] - wavenumbers[0]))
-    for c, d, e, f, g, h in zip(a[:-2], a[1:-1], a[2:], wavenumbers[:-2], wavenumbers[1:-1], wavenumbers[2:]):
-        b.append((((d - c) / (g - f)) + ((e - d) / (h - g))) / 2)
-    b.append((a[-1] - a[-2]) / (wavenumbers[-1] - wavenumbers[-2]))
-    return b
-
-
-# 计算距离矩阵
-def dismat(a, b):
-    c = []
-    for i in a:
-        tmp = []
-        for j in b:
-            tmp.append(distance(i, j))
-        c.append(tmp.copy())
-    return c
-
-
-def w_dismat(a, b, width):
-    c = []
-    d = []
-    p = len(a)
-    q = len(b)
-    if p > q:
-        m = q - p
-        n = None
-        p = -m + width
-        r = q - width + 1
-        q = width
-    else:
-        m = None
-        n = p - q
-        q = -n + width
-        r = p - width + 1
-        p = width
-        if n == 0:
-            n = None
-    for k, i, j in zip(range(r), a[:r], b[:r]):
-        tm = distance(i, j)
-        tmpi = [tm]
-        tmpj = [tm]
-        for x in b[k + 1:k + q]:
-            tmpi.append(distance(i, x))
-        c.append(tmpi.copy())
-        for y in a[k + 1:k + p]:
-            tmpj.append(distance(y, j))
-        d.append(tmpj.copy())
-    for k, i, j in zip(range(width - 1), a[-p + 1:m], b[-q + 1:n]):
-        tm = distance(i, j)
-        tmpi = [tm]
-        tmpj = [tm]
-        if q - k != 2:
-            for x in b[-q + k + 2:]:
-                tmpi.append(distance(i, x))
-        c.append(tmpi.copy())
-        if p - k != 2:
-            for y in a[-p + k + 2:]:
-                tmpj.append(distance(y, j))
-        d.append(tmpj.copy())
-    return c, d
-
-
-# 计算代价矩阵
-def cosmat(a):
-    b = []
-    c = []
-    tmp = []
-    tm = []
-    tmp.append(a[0][0])
-    tm.append(0)
-    for i, j in zip(a[0][1:], tmp):
-        tmp.append(i + j)
-        tm.append(1)
-    b.append(tmp.copy())
-    c.append(tm.copy())
-    for i, j in zip(a[1:], b):
-        tmp = []
-        tm = []
-        tmp.append(i[0] + j[0])
-        tm.append(2)
-        for p, q, r, s in zip(j[:-1], tmp, j[1:], i[1:]):
-            if p <= q and p <= r:
-                tmp.append(p + s)
-                tm.append(0)
+            # 光谱修正
+            if iteration == 1:
+                # 首次迭代：去除明显峰
+                mask = prev_spectrum > (fitted + curr_std)
+                curr_spectrum[mask] = fitted[mask] + curr_std
             else:
-                if q <= r:
-                    tmp.append(q + s)
-                    tm.append(1)
-                else:
-                    tmp.append(r + s)
-                    tm.append(2)
-        b.append(tmp.copy())
-        c.append(tm.copy())
-    return b, c
+                # 后续迭代：重建模型
+                mask = prev_spectrum < (fitted + curr_std)
+                curr_spectrum = np.where(mask, prev_spectrum, fitted + curr_std)
 
+            # 检查收敛条件
+            relative_change = abs((curr_std - prev_std) / curr_std) if curr_std != 0 else 0
+            converged = relative_change < tolerance
 
-def w_cosmat(a, b):
-    c = []
-    d = []
-    e = []
-    f = []
-    tmpi = [a[0][0]]
-    tmpj = [b[0][0]]
-    tmi = [0]
-    tmj = [0]
-    for i, j in zip(a[0][1:], tmpi):
-        tmpi.append(i + j)
-        tmi.append(1)
-    for i, j in zip(b[0][1:], tmpj):
-        tmpj.append(i + j)
-        tmj.append(2)
-    c.append(tmpi.copy())
-    e.append(tmi.copy())
-    d.append(tmpj.copy())
-    f.append(tmj.copy())
-    for i, j, m, n in zip(a[1:], b[1:], c, d):
-        if len(m) > 1:
-            if len(n) > 1:
-                if m[0] <= n[1] and m[0] <= m[1]:
-                    tmp = m[0] + i[0]
-                    tm = 0
-                else:
-                    if n[1] <= m[1]:
-                        tmp = n[1] + i[0]
-                        tm = 1
-                    else:
-                        tmp = m[1] + i[0]
-                        tm = 2
-            else:
-                if m[0] <= m[1]:
-                    tmp = m[0] + i[0]
-                    tm = 0
-                else:
-                    tmp = m[1] + i[0]
-                    tm = 2
-        else:
-            if len(n) > 1:
-                if m[0] <= n[1]:
-                    tmp = m[0] + i[0]
-                    tm = 0
-                else:
-                    tmp = n[1] + i[0]
-                    tm = 1
-            else:
-                tmp = m[0] + i[0]
-                tm = 0
-        tmpi = [tmp]
-        tmpj = [tmp]
-        tmi = [tm]
-        tmj = [tm]
-        for p, q, r, s in zip(m[1:], tmpi, m[2:], i[1:]):
-            if p <= q and p <= r:
-                tmpi.append(p + s)
-                tmi.append(0)
-            else:
-                if q <= r:
-                    tmpi.append(q + s)
-                    tmi.append(1)
-                else:
-                    tmpi.append(r + s)
-                    tmi.append(2)
-        if len(tmpi) < len(i):
-            if m[-1] <= tmpi[-1]:
-                tmpi.append(m[-1] + i[-1])
-                tmi.append(0)
-            else:
-                tmpi.append(tmpi[-1] + i[-1])
-                tmi.append(1)
-        c.append(tmpi.copy())
-        e.append(tmi.copy())
-        for p, q, r, s in zip(n[1:], n[2:], tmpj, j[1:]):
-            if p <= q and p <= r:
-                tmpj.append(p + s)
-                tmj.append(0)
-            else:
-                if q <= r:
-                    tmpj.append(q + s)
-                    tmj.append(1)
-                else:
-                    tmpj.append(r + s)
-                    tmj.append(2)
-        if len(tmpj) < len(j):
-            if n[-1] <= tmpj[-1]:
-                tmpj.append(n[-1] + j[-1])
-                tmj.append(0)
-            else:
-                tmpj.append(tmpj[-1] + j[-1])
-                tmj.append(2)
-        d.append(tmpj.copy())
-        f.append(tmj.copy())
-    return c, d, e, f
+            prev_spectrum = curr_spectrum
+            prev_std = curr_std
+            iteration += 1
 
+        corrected[j] = originalRaman[j] - fitted
 
-# 展开限宽路径矩阵
-def pathtran(a, b, x, y):
-    ret = np.zeros([y, x], np.int)
-    for k, i, j in zip(range(len(a)), a, b):
-        for m, n in enumerate(i):
-            ret[k][k + m] = n
-        for m, n in enumerate(j[1:]):
-            ret[k + m + 1][k] = n
-    return ret
-
-
-# 多点映射为1点时寻找中值
-def mid(a, wavenumbers):
-    if len(a) == 1:
-        return a[0]
-    m = (wavenumbers[0] + wavenumbers[-1]) / 2
-    i = 0
-    for j in wavenumbers:
-        if j > m:
-            break
-        i += 1
-    return a[i - 1] + ((a[i] - a[i - 1]) * (m - wavenumbers[i - 1]) / (wavenumbers[i] - wavenumbers[i - 1]))
-
-
-# 映射
-def mapping(a, b, wavenumbers):
-    x = len(b[0]) - 1
-    y = len(b) - 1
-    dat = []
-    wav = []
-    num = 1
-    rst = []
-    while x != -1 and y != -1:
-        if b[y][x] == 2:
-            dat.append(a[y])
-            wav.append(wavenumbers[y])
-            y -= 1
-        else:
-            if b[y][x] == 1:
-                num += 1
-                x -= 1
-            else:
-                dat.append(a[y])
-                wav.append(wavenumbers[y])
-                da = mid(dat, wav)
-                for i in range(num):
-                    rst.append(da)
-                dat = []
-                wav = []
-                num = 1
-                x -= 1
-                y -= 1
-    rst.reverse()
-    return rst
-
-
-def DTW(data, wavenumbers, wavenumbers_m=None, dis=True, dif=True, mean=None, width=0):
-    d = np.array(data)
-    if mean is None:
-        mean = d.mean(0)
-        wavenumbers_m = wavenumbers
-    else:
-        mean = np.array(mean)
-    
-    if dis:
-        if dif:
-            datatu = []
-            for i in d:
-                j = diff(i, wavenumbers)
-                tmp = []
-                for p, q in zip(i, j):
-                    tmp.append([p, q])
-                datatu.append(tmp.copy())
-            meantu = []
-            j = diff(mean, wavenumbers_m)
-            for p, q in zip(mean, j):
-                meantu.append([p, q])
-        else:
-            datatu = d.tolist()
-            meantu = mean.tolist()
-    else:
-        if dif:
-            datatu = []
-            for i in d:
-                j = diff(i, wavenumbers)
-                datatu.append(j.copy())
-            meantu = diff(mean, wavenumbers_m)
-        else:
-            return data, mean
-    
-    ret = []
-    for i, j in zip(datatu, d):
-        if width == 0:
-            distmat = dismat(i, meantu)
-            costmat, path = cosmat(distmat)
-        else:
-            distmata, distmatb = w_dismat(i, meantu, width)
-            costmata, costmatb, patha, pathb = w_cosmat(distmata, distmatb)
-            path = pathtran(patha, pathb, len(meantu), len(i))
-        
-        ret.append(mapping(j, path, wavenumbers))
-    
-    return np.array(ret), mean
+    return corrected
 
 
 # 新增MWA（移动窗口平均）滤波算法
@@ -413,6 +136,79 @@ def baseline_als(y, lam, p, niter=10, tol=1e-6):
         result[j] = y[j] - z
 
     return result
+
+
+# 动态时间规整(DTW)算法
+class DTW:
+    def __init__(self, dist_method='euclidean'):
+        self.dist_method = dist_method
+        
+    def distance(self, x, y):
+        if self.dist_method == 'euclidean':
+            return np.linalg.norm(x - y)
+        elif self.dist_method == 'manhattan':
+            return np.sum(np.abs(x - y))
+        else:
+            return np.linalg.norm(x - y)
+            
+    def __call__(self, reference, query):
+        n = len(reference)
+        m = len(query)
+        dtw_matrix = np.zeros((n + 1, m + 1))
+        dtw_matrix[:, :] = np.inf
+        dtw_matrix[0, 0] = 0
+        
+        for i in range(1, n + 1):
+            for j in range(1, m + 1):
+                cost = self.distance(reference[i-1], query[j-1])
+                dtw_matrix[i, j] = cost + min(
+                    dtw_matrix[i-1, j],    # 插入
+                    dtw_matrix[i, j-1],    # 删除
+                    dtw_matrix[i-1, j-1]   # 匹配
+                )
+        
+        # 回溯路径
+        i, j = n, m
+        path = []
+        while i > 0 or j > 0:
+            path.append((i-1, j-1))
+            if i == 0:
+                j -= 1
+            elif j == 0:
+                i -= 1
+            else:
+                min_val = min(dtw_matrix[i-1, j], dtw_matrix[i, j-1], dtw_matrix[i-1, j-1])
+                if min_val == dtw_matrix[i-1, j-1]:
+                    i -= 1
+                    j -= 1
+                elif min_val == dtw_matrix[i-1, j]:
+                    i -= 1
+                else:
+                    j -= 1
+        
+        return path[::-1], dtw_matrix[n, m]
+
+
+# 挤压和 sigmoid 相关函数
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def squashing(x):
+    return 1 / (1 + np.exp(-x))
+
+def i_squashing(x):
+    return 1 / (1 + np.exp(-0.5 * x))
+
+def i_sigmoid(x, maxn=10):
+    return 1 / (1 + np.exp(-x / maxn))
+
+def LPnorm(x, p=2):
+    if p == 'inf':
+        return x / np.max(np.abs(x), axis=0)
+    else:
+        norm = np.linalg.norm(x, ord=p, axis=0)
+        norm[norm == 0] = 1  # 避免除零错误
+        return x / norm
 
 
 def main():
@@ -524,48 +320,55 @@ def main():
                 w[neg_mask] = np.exp(j * np.abs(d[neg_mask]) / np.std(d[neg_mask]))
                 w[~neg_mask] = 0
                 if j > 0:
-                    diff = np.sum(np.abs(b - baseline_i)) / np.sum(np.abs(baseline_i))
+                    diff = np.sum(np.abs(b - baseline_i)) / np.sum(np.abs(baseline_i)) if np.sum(np.abs(baseline_i)) > 0 else 0
                     if diff < threshold:
                         break
                 baseline_i = b
             baseline[:, i] = baseline_i
         return spectra - baseline
     
-    def dtw_squashing(x, l, k1, k2, wavenumbers):
-        """动态时间规整(DTW)挤压算法，使用集成的DTW函数"""
+    def dtw_squashing(x, l, k1, k2):
+        """动态时间规整(DTW)挤压算法"""
         n_samples, n_features = x.shape
         result = np.zeros_like(x)
-        # 使用平均光谱作为参考
-        reference = np.mean(x, axis=1)
-        reference_wavenumbers = wavenumbers.copy()
+        reference = np.mean(x, axis=1)  # 使用平均光谱作为参考
+        dtw = DTW()
         
         for i in range(n_features):
             spectrum = x[:, i]
-            # 调用DTW函数
-            dtw_result, _ = DTW(
-                np.array([spectrum]), 
-                wavenumbers, 
-                reference_wavenumbers,
-                mean=reference,
-                width=l if l > 0 else 0
-            )
-            result[:, i] = dtw_result[0]
-        
-        # 应用额外的约束条件
-        if k1 == "T":
-            max_slope = l
-            for j in range(1, n_samples):
-                slope = abs(result[j, :] - result[j-1, :])
-                mask = slope > max_slope
-                result[j, mask] = (result[j, mask] + result[j-1, mask]) / 2
-        
-        if k2 == "T":
-            window = min(l, n_samples)
-            for j in range(n_samples):
-                start = max(0, j - window//2)
-                end = min(n_samples, j + window//2 + 1)
-                result[j, :] = np.mean(result[start:end, :], axis=0)
-        
+            path, cost = dtw(reference, spectrum)
+            squashed = np.zeros_like(spectrum)
+            for ref_idx, spec_idx in path:
+                squashed[ref_idx] += spectrum[spec_idx]
+            unique_ref_indices = np.unique([p[0] for p in path])
+            for idx in unique_ref_indices:
+                count = sum(1 for p in path if p[0] == idx)
+                squashed[idx] /= count
+            if k1 == "T":
+                max_slope = l
+                for j in range(1, len(path)):
+                    ref_diff = path[j][0] - path[j-1][0]
+                    spec_diff = path[j][1] - path[j-1][1]
+                    if ref_diff != 0:
+                        slope = abs(spec_diff / ref_diff)
+                        if slope > max_slope:
+                            squashed[path[j][0]] = (squashed[path[j][0]] + squashed[path[j-1][0]]) / 2
+            if k2 == "T":
+                ref_map_count = {}
+                for ref_idx, _ in path:
+                    ref_map_count[ref_idx] = ref_map_count.get(ref_idx, 0) + 1
+                for ref_idx, count in ref_map_count.items():
+                    if count > l:
+                        window = min(l, len(spectrum))
+                        start = max(0, ref_idx - window//2)
+                        end = min(n_samples, ref_idx + window//2 + 1)
+                        squashed[ref_idx] = np.mean(spectrum[start:end])
+            if l > 1:
+                for j in range(n_samples):
+                    start = max(0, j - l)
+                    end = min(n_samples, j + l + 1)
+                    squashed[j] = np.mean(squashed[start:end])
+            result[:, i] = squashed
         return result
     
     # 生成排列时不包含编号
@@ -665,19 +468,18 @@ def main():
             self.BASELINE_ALGORITHMS = {
                 "SD": self._sd_baseline,
                 "FD": self._fd_baseline,
-                "D1（一阶差分）": self._d1_baseline,  # 新增一阶差分作为基线校正方法
                 "多项式拟合": polynomial_fit,
                 "ModPoly": modpoly,
-                "I-ModPoly": self._imodpoly,
+                "I-ModPoly": IModPoly,  # 集成IModPoly算法
                 "PLS": pls,
-                "AsLS": baseline_als,
+                "AsLS": baseline_als,  # 使用改进的AsLS算法
                 "airPLS": airpls,
             }
             self.FILTERING_ALGORITHMS = {
                 "Savitzky-Golay": self.savitzky_golay,
                 "中值滤波(MF)": self.median_filter,
                 "移动平均(MAF)": self.moving_average,
-                "MWA（移动窗口平均）": self.mwa_filter,
+                "MWA（移动窗口平均）": self.mwa_filter,  # 添加MWA算法
                 "Lowess": self.lowess_filter,
                 "FFT": self.fft_filter,
                 "小波变换(DWT)": self.wavelet_filter
@@ -692,10 +494,10 @@ def main():
             }
             
             self.SQUASHING_ALGORITHMS = {
-                "Sigmoid挤压": self._sigmoid,
-                "改进的Sigmoid挤压": self._i_sigmoid,
-                "逻辑函数": self._squashing,
-                "改进的逻辑函数": self._i_squashing,
+                "Sigmoid挤压": sigmoid,
+                "改进的Sigmoid挤压": i_sigmoid,
+                "逻辑函数": squashing,
+                "改进的逻辑函数": i_squashing,
                 "DTW挤压": dtw_squashing
             }
     
@@ -758,7 +560,7 @@ def main():
                             y_processed = algorithm_func(y_processed,** params)
                         elif method == "airPLS":
                             y_processed = algorithm_func(y_processed, **params)
-                        else:  # SD、FD、D1 无额外参数
+                        else:  # SD、FD 无额外参数
                             y_processed = algorithm_func(y_processed)
                         method_name.append(f"{method}({', '.join([f'{k}={v}' for k, v in params.items()])})")
                             
@@ -775,8 +577,7 @@ def main():
                             l = params.get("l", 1)
                             k1 = params.get("k1", "T")
                             k2 = params.get("k2", "T")
-                            # 调用DTW挤压算法，传入波数参数
-                            y_processed = algorithm_func(y_processed, l=l, k1=k1, k2=k2, wavenumbers=wavenumbers)
+                            y_processed = algorithm_func(y_processed, l=l, k1=k1, k2=k2)
                             method_name.append(f"DTW挤压(l={l}, k1={k1}, k2={k2})")
                         else:
                             y_processed = algorithm_func(y_processed)
@@ -804,30 +605,6 @@ def main():
         
         def _fd_baseline(self, spectra):
             return spectra - np.percentile(spectra, 5, axis=0)
-        
-        def _d1_baseline(self, spectra):
-            """使用一阶差分作为基线校正方法"""
-            return D1(spectra)  # 调用外部定义的D1函数
-            
-        def _imodpoly(self, wavenumbers, spectra, k):
-            """模拟I-ModPoly算法实现"""
-            return modpoly(wavenumbers, spectra, k)
-            
-        def _sigmoid(self, spectra):
-            """模拟Sigmoid挤压实现"""
-            return 1 / (1 + np.exp(-spectra))
-            
-        def _i_sigmoid(self, spectra, maxn=10):
-            """模拟改进的Sigmoid挤压实现"""
-            return 1 / (1 + np.exp(-spectra/maxn))
-            
-        def _squashing(self, spectra):
-            """模拟逻辑函数挤压实现"""
-            return np.tanh(spectra)
-            
-        def _i_squashing(self, spectra):
-            """模拟改进的逻辑函数挤压实现"""
-            return np.tanh(spectra/10)
     
         # ===== 滤波算法实现 =====
         def savitzky_golay(self, spectra, k, w):
@@ -1179,7 +956,7 @@ def main():
             st.subheader("基线校准", divider="gray")
             baseline_method = st.selectbox(
                 "方法",
-                ["无", "SD", "FD", "D1（一阶差分）", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS"],
+                ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS"],
                 key="baseline_method",
                 label_visibility="collapsed"
             )
@@ -1195,10 +972,14 @@ def main():
                     k = st.slider("参数k", 4, 10, 10, key="k_mod", label_visibility="collapsed")
                     baseline_params["k"] = k
                     st.caption(f"k: {k}")
-                elif baseline_method == "I-ModPoly":
-                    k = st.slider("参数k", 5, 9, 6, key="k_imod", label_visibility="collapsed")
-                    baseline_params["k"] = k
-                    st.caption(f"k: {k}")
+                elif baseline_method == "I-ModPoly":  # IModPoly参数设置
+                    polyorder = st.slider("多项式阶数", 3, 7, 5, key="imod_polyorder", label_visibility="collapsed")
+                    max_iter = st.slider("最大迭代次数", 50, 200, 100, key="imod_maxiter", label_visibility="collapsed")
+                    tolerance = st.slider("收敛容差", 0.001, 0.01, 0.005, key="imod_tol", label_visibility="collapsed")
+                    baseline_params["polyorder"] = polyorder
+                    baseline_params["max_iter"] = max_iter
+                    baseline_params["tolerance"] = tolerance
+                    st.caption(f"阶数: {polyorder}, 迭代: {max_iter}, 容差: {tolerance}")
                 elif baseline_method == "PLS":
                     lam = st.selectbox("λ", [10**10, 10**8, 10**7], key="lam_pls", label_visibility="collapsed")
                     baseline_params["lam"] = lam
@@ -1223,8 +1004,6 @@ def main():
                         lam = st.selectbox("λ", [10**7, 10**4, 10**2], key="lam_air", label_visibility="collapsed")
                     baseline_params["lam"] = lam
                     st.caption(f"λ: {lam}")
-                elif baseline_method == "D1（一阶差分）":
-                    st.caption("一阶差分无需额外参数")
     
             # 2. 缩放处理
             st.subheader("📏 缩放", divider="gray")
@@ -1318,17 +1097,17 @@ def main():
                     # 使用两行组件而非三层列
                     dtw_row1 = st.columns(2)
                     with dtw_row1[0]:
-                        l = st.selectbox("l（窗口宽度）", [1, 5, 10], key="l_dtw", label_visibility="collapsed")
+                        l = st.selectbox("l", [1, 5], key="l_dtw", label_visibility="collapsed")
                     with dtw_row1[1]:
-                        k1 = st.selectbox("k1（斜率约束）", ["T", "F"], key="k1_dtw", label_visibility="collapsed")
+                        k1 = st.selectbox("k1", ["T", "F"], key="k1_dtw", label_visibility="collapsed")
                     
                     # 第二行单独放置
-                    k2 = st.selectbox("k2（均值约束）", ["T", "F"], key="k2_dtw", label_visibility="collapsed")
+                    k2 = st.selectbox("k2", ["T", "F"], key="k2_dtw", label_visibility="collapsed")
                     
                     squashing_params["l"] = l
                     squashing_params["k1"] = k1
                     squashing_params["k2"] = k2
-                    st.caption(f"窗口宽度: {l}, 斜率约束: {k1}, 均值约束: {k2}")
+                    st.caption(f"l: {l}, k1: {k1}, k2: {k2}")
                 elif squashing_method == "改进的Sigmoid挤压":
                     st.caption("默认: maxn=10")
     
