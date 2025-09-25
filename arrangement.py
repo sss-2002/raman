@@ -17,6 +17,22 @@ import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 
 
+# 改进的i_sigmoid挤压函数
+def i_sigmoid(X, maxn=10):
+    row = X.shape[0]
+    col = X.shape[1]
+    s = np.zeros((row, col))
+    for i in range(row):
+        mi = np.min(X[i])
+        diff = (np.max(X[i]) - mi) / maxn
+        for j in range(col):
+            t = (X[i, j] - mi) / diff - maxn / 2
+            m = 1 + np.exp(-float(t))
+            t = 1.0 / m
+            s[i, j] = t * diff * maxn + mi
+    return s
+
+
 # 二阶差分(D2)函数
 def D2(sdata):
     """
@@ -437,9 +453,6 @@ def squashing(x):
 def i_squashing(x):
     return 1 / (1 + np.exp(-0.5 * x))
 
-def i_sigmoid(x, maxn=10):
-    return 1 / (1 + np.exp(-x / maxn))
-
 
 # sgolayfilt滤波器实现
 def SGfilter(Intensity, point, degree):  # 输入均为行
@@ -752,7 +765,7 @@ def main():
             
             self.SQUASHING_ALGORITHMS = {
                 "Sigmoid挤压": sigmoid,
-                "改进的Sigmoid挤压": i_sigmoid,
+                "改进的Sigmoid挤压": i_sigmoid,  # 使用改进的i_sigmoid函数
                 "逻辑函数": squashing,
                 "改进的逻辑函数": i_squashing,
                 "DTW挤压": dtw_squashing
@@ -826,8 +839,10 @@ def main():
                     elif step_type == "squashing":
                         algorithm_func = self.SQUASHING_ALGORITHMS[method]
                         if method == "改进的Sigmoid挤压":
-                            y_processed = algorithm_func(y_processed, maxn=10)
-                            method_name.append(f"{method}(maxn=10)")
+                            # 使用改进的i_sigmoid函数，支持maxn参数
+                            maxn = params.get("maxn", 10)
+                            y_processed = algorithm_func(y_processed, maxn=maxn)
+                            method_name.append(f"{method}(maxn={maxn})")
                         elif method == "改进的逻辑函数":
                             m = params.get("m", 10)
                             y_processed = algorithm_func(y_processed)
@@ -1421,6 +1436,11 @@ def main():
                     m = st.selectbox("m", [10, 20], key="m_squash", label_visibility="collapsed")
                     squashing_params["m"] = m
                     st.caption(f"m: {m}")
+                elif squashing_method == "改进的Sigmoid挤压":
+                    # 为改进的i_sigmoid添加maxn参数设置
+                    maxn = st.selectbox("maxn", [5, 10, 15], key="maxn_isigmoid", label_visibility="collapsed")
+                    squashing_params["maxn"] = maxn
+                    st.caption(f"maxn: {maxn}")
                 elif squashing_method == "DTW挤压":
                     # 使用两行组件而非三层列
                     dtw_row1 = st.columns(2)
@@ -1436,8 +1456,8 @@ def main():
                     squashing_params["k1"] = k1
                     squashing_params["k2"] = k2
                     st.caption(f"l: {l}, k1: {k1}, k2: {k2}")
-                elif squashing_method == "改进的Sigmoid挤压":
-                    st.caption("默认: maxn=10")
+                elif squashing_method == "Sigmoid挤压" or squashing_method == "逻辑函数":
+                    st.caption("无额外参数")
     
             
             # 保存当前选择的算法
@@ -1503,8 +1523,8 @@ def main():
                                 'scaling_params': {},
                                 'filtering_method': "Smfft傅里叶滤波",  # 推荐使用新添加的Smfft傅里叶滤波
                                 'filtering_params': {'row_e': 51},
-                                'squashing_method': "改进的Sigmoid挤压",
-                                'squashing_params': {}
+                                'squashing_method': "改进的Sigmoid挤压",  # 推荐使用改进的i_sigmoid
+                                'squashing_params': {'maxn': 10}
                             }
                             
                             processed_data, method_name = preprocessor.process(
@@ -1698,3 +1718,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
