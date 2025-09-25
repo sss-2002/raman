@@ -86,6 +86,44 @@ def MaMinorm(Oarr):
     return MMarr
 
 
+# 标准化函数（均值为0，方差为1）
+def standardization(Datamat):
+    """
+    将数据标准化，均值为0，方差为1
+    
+    参数:
+        Datamat: 输入数据
+        
+    返回:
+        标准化后的数据
+    """
+    mu = np.average(Datamat)
+    sigma = np.std(Datamat)
+    if sigma != 0:
+        normDatamat = (Datamat - mu) / sigma
+    else:
+        normDatamat = Datamat - mu
+    return normDatamat
+
+
+def plotst(Data):
+    """
+    对数据的每一行进行标准化处理
+    
+    参数:
+        Data: 输入数据，形状为(row, col)
+        
+    返回:
+        标准化后的数据，形状与输入相同
+    """
+    row = Data.shape[0]
+    col = Data.shape[1]
+    st_Data = np.zeros((row, col))
+    for i in range(row):
+        st_Data[i] = standardization(Data[i])
+    return st_Data
+
+
 # MSC（多元散射校正）函数
 def MSC(sdata):
     """
@@ -677,7 +715,8 @@ def main():
                 "MSC": self.msc,  # 使用新的MSC实现
                 "M-M-Norm": self.mm_norm,
                 "L-范数": self.l_norm,  # 使用LPnorm函数实现
-                "Ma-Minorm": self.ma_minorm  # 添加Ma-Minorm归一化
+                "Ma-Minorm": self.ma_minorm,  # 添加Ma-Minorm归一化
+                "标准化(均值0，方差1)": self.standardize  # 添加标准化算法
             }
             
             self.SQUASHING_ALGORITHMS = {
@@ -878,6 +917,16 @@ def main():
         def ma_minorm(self, spectra):
             """使用MaMinorm函数实现归一化"""
             return MaMinorm(spectra)
+        
+        # 标准化算法实现（均值为0，方差为1）
+        def standardize(self, spectra):
+            """使用plotst函数实现标准化处理"""
+            # 处理数据形状适配
+            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+                standardized = plotst(spectra.T)  # 转置后处理
+                return standardized.T  # 转回原始形状
+            else:
+                return plotst(spectra)
         
         # 二阶差分方法的封装（归类到基线校准）
         def d2(self, spectra):
@@ -1233,7 +1282,7 @@ def main():
             st.subheader("📏 缩放", divider="gray")
             scaling_method = st.selectbox(
                 "方法",
-                ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数", "Ma-Minorm"],
+                ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数", "Ma-Minorm", "标准化(均值0，方差1)"],
                 key="scaling_method",
                 label_visibility="collapsed"
             )
@@ -1244,7 +1293,9 @@ def main():
                 p = st.selectbox("p", ["无穷大", "4", "10"], key="p_scale", label_visibility="collapsed")
                 scaling_params["p"] = p
                 st.caption(f"p: {p}")
-            # Ma-Minorm不需要额外参数，因此不需要添加参数处理
+            # 标准化算法不需要额外参数，但添加说明
+            elif scaling_method == "标准化(均值0，方差1)":
+                st.caption("将数据标准化到均值为0，方差为1")
     
             # 3. 滤波处理
             st.subheader("📶 滤波", divider="gray")
@@ -1402,9 +1453,9 @@ def main():
                             recommended_params = {
                                 'baseline_method': "二阶差分(D2)",  # 推荐使用二阶差分作为基线校正方法
                                 'baseline_params': {},
-                                'scaling_method': "SNV",
+                                'scaling_method': "标准化(均值0，方差1)",  # 推荐使用新添加的标准化方法
                                 'scaling_params': {},
-                                'filtering_method': "sgolayfilt滤波器",  # 推荐使用新添加的sgolayfilt滤波器
+                                'filtering_method': "sgolayfilt滤波器",  # 推荐使用sgolayfilt滤波器
                                 'filtering_params': {'point': 11, 'degree': 3},
                                 'squashing_method': "改进的Sigmoid挤压",
                                 'squashing_params': {}
