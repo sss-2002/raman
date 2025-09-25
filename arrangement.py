@@ -1137,10 +1137,11 @@ def main():
                 else:
                     st.info("ℹ️ 无符合条件的方案")
                 
-                # 分类测试（紧凑）
+                # 分类测试（紧凑，优化对齐）
                 st.subheader("📝 分类测试", divider="gray")
-                k_col, btn_col = st.columns([2, 1])
-                with k_col:
+                # 优化k值输入和确定按钮的对齐
+                k_input_col, k_button_col = st.columns([2, 1])
+                with k_input_col:
                     k_value = st.number_input(
                         "k值", 
                         min_value=1, 
@@ -1149,9 +1150,8 @@ def main():
                         key="k_input",
                         label_visibility="collapsed"
                     )
-                    st.session_state.k_value = k_value
-                with btn_col:
-                    st.markdown("<br>", unsafe_allow_html=True)
+                with k_button_col:
+                    # 移除额外的垂直间距，使按钮与输入框垂直对齐
                     if st.button("确定", type="secondary", use_container_width=True, key="k_confirm_btn"):
                         st.session_state.k_value = k_value
                         st.success(f"k={k_value}")
