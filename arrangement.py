@@ -10,6 +10,8 @@ from scipy import sparse
 from scipy.sparse.linalg import spsolve
 from scipy.signal import savgol_filter, medfilt
 from scipy.fft import fft, ifft
+from scipy.fftpack import fft as fftpack_fft, ifft as fftpack_ifft  # 保留scipy.fftpack的引用
+import copy
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
@@ -122,6 +124,34 @@ def plotst(Data):
     for i in range(row):
         st_Data[i] = standardization(Data[i])
     return st_Data
+
+
+# Smfft傅里叶滤波函数
+def Smfft(arr, row_e=51):
+    """
+    信号进行傅里叶变换，使高频信号的系数为零，再进行傅里叶逆变换
+    转换回时域上的信号便是滤波后的效果。
+    
+    参数:
+        arr: 输入数组，形状为(row, col)
+        row_e: 保留的低频分量数量，默认51
+        
+    返回:
+        滤波后的数组，形状与输入相同
+    """
+    row = arr.shape[0]
+    col = arr.shape[1]
+    fftresult = np.zeros((row, col))
+    for i in range(row):
+        sfft = fftpack_fft(arr[i])  # 使用scipy.fftpack的fft
+        row_s = len(arr[i])  # 自适应输入信号长度
+        sfftn = copy.deepcopy(sfft)
+        # 将高频分量设为零
+        sfftn[row_e:row_s-row_e] = 0
+        result = fftpack_ifft(sfftn)  # 使用scipy.fftpack的ifft
+        real_r = np.real(result)  # 取实部
+        fftresult[i] = real_r
+    return fftresult
 
 
 # MSC（多元散射校正）函数
@@ -706,6 +736,7 @@ def main():
                 "卡尔曼滤波": self.kalman_filter,  # 添加卡尔曼滤波算法
                 "Lowess": self.lowess_filter,
                 "FFT": self.fft_filter,
+                "Smfft傅里叶滤波": self.smfft_filter,  # 添加Smfft傅里叶滤波
                 "小波变换(DWT)": self.wavelet_filter
             }
             
@@ -876,6 +907,16 @@ def main():
             filter_mask = np.abs(frequencies) < cutoff
             fft_result[~filter_mask, :] = 0
             return np.real(ifft(fft_result, axis=0))
+        
+        # 添加Smfft傅里叶滤波方法的封装
+        def smfft_filter(self, spectra, row_e=51):
+            """使用Smfft函数进行傅里叶滤波"""
+            # 确保输入数据形状与Smfft要求一致
+            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+                filtered = Smfft(spectra.T, row_e=row_e)
+                return filtered.T  # 转回原始形状
+            else:
+                return Smfft(spectra, row_e=row_e)
         
         def wavelet_filter(self, spectra, threshold):
             coeffs = pywt.wavedec(spectra, 'db4', axis=0)
@@ -1302,7 +1343,7 @@ def main():
             filtering_method = st.selectbox(
                 "方法",
                 ["无", "Savitzky-Golay", "sgolayfilt滤波器", "中值滤波(MF)", "移动平均(MAF)", 
-                 "MWA（移动窗口平均）", "卡尔曼滤波", "Lowess", "FFT", "小波变换(DWT)"],
+                 "MWA（移动窗口平均）", "卡尔曼滤波", "Lowess", "FFT", "Smfft傅里叶滤波", "小波变换(DWT)"],
                 key="filtering_method",
                 label_visibility="collapsed"
             )
@@ -1354,6 +1395,11 @@ def main():
                     cutoff = st.selectbox("频率", [30, 50, 90], key="cutoff_fft", label_visibility="collapsed")
                     filtering_params["cutoff"] = cutoff
                     st.caption(f"频率: {cutoff}")
+                # Smfft傅里叶滤波参数配置
+                elif filtering_method == "Smfft傅里叶滤波":
+                    row_e = st.selectbox("保留低频分量数", [31, 51, 71], key="row_e_smfft", label_visibility="collapsed")
+                    filtering_params["row_e"] = row_e
+                    st.caption(f"保留低频分量数: {row_e}")
                 elif filtering_method == "小波变换(DWT)":
                     threshold = st.selectbox("阈值", [0.1, 0.3, 0.5], key="thresh_dwt", label_visibility="collapsed")
                     filtering_params["threshold"] = threshold
@@ -1455,8 +1501,8 @@ def main():
                                 'baseline_params': {},
                                 'scaling_method': "标准化(均值0，方差1)",  # 推荐使用新添加的标准化方法
                                 'scaling_params': {},
-                                'filtering_method': "sgolayfilt滤波器",  # 推荐使用sgolayfilt滤波器
-                                'filtering_params': {'point': 11, 'degree': 3},
+                                'filtering_method': "Smfft傅里叶滤波",  # 推荐使用新添加的Smfft傅里叶滤波
+                                'filtering_params': {'row_e': 51},
                                 'squashing_method': "改进的Sigmoid挤压",
                                 'squashing_params': {}
                             }
