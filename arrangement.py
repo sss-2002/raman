@@ -14,6 +14,30 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 
 
+# LP范数归一化函数
+def LPnorm(arr, ord):
+    """
+    对数组进行Lp范数归一化
+    
+    参数:
+        arr: 输入数组，形状为(row, col)
+        ord: 范数阶数
+        
+    返回:
+        归一化后的数组，形状与输入相同
+    """
+    row = arr.shape[0]
+    col = arr.shape[1]
+    Lpdata = np.zeros((row, col))
+    for i in range(row):
+        Lp = np.linalg.norm(arr[i,:], ord)
+        if Lp != 0:
+            Lpdata[i,:] = arr[i,:] / Lp
+        else:
+            Lpdata[i,:] = arr[i,:]
+    return Lpdata
+
+
 # 卡尔曼滤波算法实现
 def Kalman(z, R):
     """
@@ -260,14 +284,6 @@ def i_squashing(x):
 
 def i_sigmoid(x, maxn=10):
     return 1 / (1 + np.exp(-x / maxn))
-
-def LPnorm(x, p=2):
-    if p == 'inf':
-        return x / np.max(np.abs(x), axis=0)
-    else:
-        norm = np.linalg.norm(x, ord=p, axis=0)
-        norm[norm == 0] = 1  # 避免除零错误
-        return x / norm
 
 
 def main():
@@ -550,7 +566,7 @@ def main():
                 "SNV": self.snv,
                 "MSC": self.msc,
                 "M-M-Norm": self.mm_norm,
-                "L-范数": self.l_norm
+                "L-范数": self.l_norm  # 使用LPnorm函数实现
             }
             
             self.SQUASHING_ALGORITHMS = {
@@ -723,13 +739,12 @@ def main():
             return (spectra - min_vals) / (max_vals - min_vals)
         
         def l_norm(self, spectra, p):
+            """使用LPnorm函数实现L-范数归一化"""
             if p == "无穷大":
-                return spectra / np.max(np.abs(spectra), axis=0)
+                return LPnorm(spectra, np.inf)
             else:
                 p_val = float(p)
-                norm = np.linalg.norm(spectra, ord=p_val, axis=0)
-                norm[norm == 0] = 1  # 避免除零错误
-                return spectra / norm
+                return LPnorm(spectra, p_val)
     
     # ===== 文件处理类 =====
     class FileHandler:
