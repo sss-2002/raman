@@ -14,6 +14,65 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 
 
+# 卡尔曼滤波算法实现
+def Kalman(z, R):
+    """
+    单变量卡尔曼滤波
+    
+    参数:
+        z: 输入信号
+        R: 测量噪声方差
+    
+    返回:
+        滤波后的信号
+    """
+    n_iter = len(z)
+    sz = (n_iter,)  # 数组大小
+
+    Q = 1e-5  # 过程方差
+
+    # 分配数组空间
+    xhat = np.zeros(sz)      # 后验估计
+    P = np.zeros(sz)         # 后验误差估计
+    xhatminus = np.zeros(sz) # 先验估计
+    Pminus = np.zeros(sz)    # 先验误差估计
+    K = np.zeros(sz)         # 卡尔曼增益
+
+    # 初始猜测
+    xhat[0] = 0.0
+    P[0] = 1.0
+
+    for k in range(1, n_iter):
+        # 时间更新
+        xhatminus[k] = xhat[k-1]  # X(k|k-1) = AX(k-1|k-1) + BU(k) + W(k), A=1, BU(k)=0
+        Pminus[k] = P[k-1] + Q    # P(k|k-1) = AP(k-1|k-1)A' + Q(k), A=1
+
+        # 测量更新
+        K[k] = Pminus[k] / (Pminus[k] + R)  # Kg(k) = P(k|k-1)H'/[HP(k|k-1)H' + R], H=1
+        xhat[k] = xhatminus[k] + K[k] * (z[k] - xhatminus[k])  # X(k|k)更新
+        P[k] = (1 - K[k]) * Pminus[k]  # P(k|k)更新
+
+    return xhat
+
+def KalmanF(xd, R):
+    """
+    对多维数据应用卡尔曼滤波
+    
+    参数:
+        xd: 输入数据，形状为(n_samples, n_points)
+        R: 测量噪声方差
+    
+    返回:
+        滤波后的数据，形状与输入相同
+    """
+    row = xd.shape[0]
+    col = xd.shape[1]
+    Fxd = np.zeros((row, col))
+    for i in range(row):
+        Fxd[i] = Kalman(xd[i], R)
+    return Fxd
+
+
 # IModPoly: improved modified multi-polynomial fit method
 def IModPoly(wavenumbers, originalRaman, polyorder, max_iter=100, tolerance=0.005):
     """
@@ -69,7 +128,7 @@ def IModPoly(wavenumbers, originalRaman, polyorder, max_iter=100, tolerance=0.00
     return corrected
 
 
-# 新增MWA（移动窗口平均）滤波算法
+# 移动窗口平均（MWA）滤波算法
 def MWA(arr, n=6, it=1, mode="full"):
     row = arr.shape[0]
     col = arr.shape[1]
@@ -480,6 +539,7 @@ def main():
                 "中值滤波(MF)": self.median_filter,
                 "移动平均(MAF)": self.moving_average,
                 "MWA（移动窗口平均）": self.mwa_filter,  # 添加MWA算法
+                "卡尔曼滤波": self.kalman_filter,  # 添加卡尔曼滤波算法
                 "Lowess": self.lowess_filter,
                 "FFT": self.fft_filter,
                 "小波变换(DWT)": self.wavelet_filter
@@ -620,6 +680,10 @@ def main():
         # 添加MWA滤波方法的封装
         def mwa_filter(self, spectra, n=6, it=1, mode="full"):
             return MWA(spectra, n=n, it=it, mode=mode)
+        
+        # 添加卡尔曼滤波方法的封装
+        def kalman_filter(self, spectra, R=0.1):
+            return KalmanF(spectra, R)
         
         def lowess_filter(self, spectra, frac):
             result = np.zeros_like(spectra)
@@ -1025,7 +1089,8 @@ def main():
             st.subheader("📶 滤波", divider="gray")
             filtering_method = st.selectbox(
                 "方法",
-                ["无", "Savitzky-Golay", "中值滤波(MF)", "移动平均(MAF)", "MWA（移动窗口平均）", "Lowess", "FFT", "小波变换(DWT)"],
+                ["无", "Savitzky-Golay", "中值滤波(MF)", "移动平均(MAF)", "MWA（移动窗口平均）", 
+                 "卡尔曼滤波", "Lowess", "FFT", "小波变换(DWT)"],
                 key="filtering_method",
                 label_visibility="collapsed"
             )
@@ -1064,6 +1129,11 @@ def main():
                     filtering_params["it"] = it
                     filtering_params["mode"] = "full"  # 默认模式
                     st.caption(f"窗口大小: {n}, 迭代次数: {it}")
+                # 卡尔曼滤波参数配置
+                elif filtering_method == "卡尔曼滤波":
+                    R = st.selectbox("测量噪声方差R", [0.01, 0.1, 0.5], key="r_kalman", label_visibility="collapsed")
+                    filtering_params["R"] = R
+                    st.caption(f"测量噪声方差: {R}")
                 elif filtering_method == "Lowess":
                     frac = st.selectbox("系数", [0.01, 0.03], key="frac_low", label_visibility="collapsed")
                     filtering_params["frac"] = frac
