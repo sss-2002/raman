@@ -4,13 +4,14 @@ import pandas as pd
 import re
 import itertools
 import matplotlib.pyplot as plt
+import math  # 新增：导入math模块用于i_squashing函数
 from sklearn.metrics import accuracy_score, cohen_kappa_score, confusion_matrix
 import seaborn as sns
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
 from scipy.signal import savgol_filter, medfilt
 from scipy.fft import fft, ifft
-from scipy.fftpack import fft as fftpack_fft, ifft as fftpack_ifft  # 保留scipy.fftpack的引用
+from scipy.fftpack import fft as fftpack_fft, ifft as fftpack_ifft
 import copy
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
@@ -31,6 +32,24 @@ def i_sigmoid(X, maxn=10):
             t = 1.0 / m
             s[i, j] = t * diff * maxn + mi
     return s
+
+
+# 新增：i_squashing挤压函数（基于余弦的挤压变换）
+def i_squashing(Data):
+    row = Data.shape[0]
+    col = Data.shape[1]
+    sqData = np.zeros((row, col))
+    for i in range(row):
+        mi = np.min(Data[i])  # 每行的最小值
+        diff = np.max(Data[i]) - mi  # 每行的最大值与最小值之差
+        for j in range(col):
+            # 将数据归一化到[0, 1]范围
+            t = (Data[i, j] - mi) / diff if diff != 0 else 0
+            # 应用基于余弦的挤压变换：(1 - cos(t * π)) / 2
+            m = (1 - math.cos(t * math.pi)) / 2
+            # 将结果映射回原始数据范围
+            sqData[i][j] = m * diff + mi
+    return sqData
 
 
 # 二阶差分(D2)函数
@@ -450,9 +469,6 @@ def sigmoid(x):
 def squashing(x):
     return 1 / (1 + np.exp(-x))
 
-def i_squashing(x):
-    return 1 / (1 + np.exp(-0.5 * x))
-
 
 # sgolayfilt滤波器实现
 def SGfilter(Intensity, point, degree):  # 输入均为行
@@ -767,7 +783,7 @@ def main():
                 "Sigmoid挤压": sigmoid,
                 "改进的Sigmoid挤压": i_sigmoid,  # 使用改进的i_sigmoid函数
                 "逻辑函数": squashing,
-                "改进的逻辑函数": i_squashing,
+                "改进的逻辑函数": i_squashing,  # 新增：使用i_squashing函数
                 "DTW挤压": dtw_squashing
             }
     
@@ -844,9 +860,9 @@ def main():
                             y_processed = algorithm_func(y_processed, maxn=maxn)
                             method_name.append(f"{method}(maxn={maxn})")
                         elif method == "改进的逻辑函数":
-                            m = params.get("m", 10)
+                            # 新增：i_squashing函数不需要额外参数，但仍保持一致的命名方式
                             y_processed = algorithm_func(y_processed)
-                            method_name.append(f"{method}(m={m})")
+                            method_name.append(f"{method}")
                         elif method == "DTW挤压":
                             l = params.get("l", 1)
                             k1 = params.get("k1", "T")
@@ -1433,9 +1449,8 @@ def main():
             squashing_params = {}
             if squashing_method != "无":
                 if squashing_method == "改进的逻辑函数":
-                    m = st.selectbox("m", [10, 20], key="m_squash", label_visibility="collapsed")
-                    squashing_params["m"] = m
-                    st.caption(f"m: {m}")
+                    # 新增：i_squashing函数不需要参数，但保留UI位置以保持一致性
+                    st.caption("基于余弦的挤压变换，无额外参数")
                 elif squashing_method == "改进的Sigmoid挤压":
                     # 为改进的i_sigmoid添加maxn参数设置
                     maxn = st.selectbox("maxn", [5, 10, 15], key="maxn_isigmoid", label_visibility="collapsed")
@@ -1523,8 +1538,8 @@ def main():
                                 'scaling_params': {},
                                 'filtering_method': "Smfft傅里叶滤波",  # 推荐使用新添加的Smfft傅里叶滤波
                                 'filtering_params': {'row_e': 51},
-                                'squashing_method': "改进的Sigmoid挤压",  # 推荐使用改进的i_sigmoid
-                                'squashing_params': {'maxn': 10}
+                                'squashing_method': "改进的逻辑函数",  # 新增：推荐使用i_squashing
+                                'squashing_params': {}
                             }
                             
                             processed_data, method_name = preprocessor.process(
