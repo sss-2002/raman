@@ -396,7 +396,7 @@ def main():
         'arrangement_results': [],
         'selected_arrangement': None,
         'arrangement_details': {},
-        'algorithm_permutations': [],  # 存储65种算法排列组合
+        'algorithm_permutations': [],  # 存储算法排列组合
         'current_algorithms': {},       # 存储当前选择的算法
         'filtered_perms': [],           # 存储筛选后的排列方案
         'selected_perm_idx': 0          # 存储当前选中的排列索引
@@ -534,15 +534,14 @@ def main():
         return result
     
     # 生成排列时不包含编号
-    def generate_65_permutations(algorithms):
-        """生成完整的65种算法排列组合，排列名称不包含编号"""
-        # 为五种算法分配编号1-5（新增二阶差分作为第5种）
+    def generate_permutations(algorithms):
+        """生成完整的算法排列组合，排列名称不包含编号"""
+        # 为四种算法分配编号1-4（二阶差分归类到基线校准中）
         algorithm_list = [
             (1, "基线校准", algorithms['baseline']),
             (2, "缩放", algorithms['scaling']),
             (3, "滤波", algorithms['filtering']),
-            (4, "挤压", algorithms['squashing']),
-            (5, "二阶差分", algorithms['d2'])  # 新增二阶差分算法
+            (4, "挤压", algorithms['squashing'])
         ]
         
         all_permutations = []
@@ -550,36 +549,28 @@ def main():
         # 0. 添加"无预处理（原始光谱）"选项（1种）
         all_permutations.append([])  # 空列表表示不使用任何算法
         
-        # 1. 生成使用1种算法的排列 (5种)
+        # 1. 生成使用1种算法的排列
         for algo in algorithm_list:
             if algo[2] != "无":  # 只包含已选择的算法
                 all_permutations.append([algo])
         
-        # 2. 生成使用2种算法的排列 (P(5,2)=20种)
+        # 2. 生成使用2种算法的排列
         for perm in itertools.permutations(algorithm_list, 2):
             # 确保两种算法都已选择
             if perm[0][2] != "无" and perm[1][2] != "无":
                 all_permutations.append(list(perm))
         
-        # 3. 生成使用3种算法的排列 (P(5,3)=60种)
+        # 3. 生成使用3种算法的排列
         for perm in itertools.permutations(algorithm_list, 3):
             # 确保三种算法都已选择
             if perm[0][2] != "无" and perm[1][2] != "无" and perm[2][2] != "无":
                 all_permutations.append(list(perm))
         
-        # 4. 生成使用4种算法的排列 (P(5,4)=120种)
+        # 4. 生成使用4种算法的排列
         for perm in itertools.permutations(algorithm_list, 4):
             # 确保四种算法都已选择
             if (perm[0][2] != "无" and perm[1][2] != "无" and 
                 perm[2][2] != "无" and perm[3][2] != "无"):
-                all_permutations.append(list(perm))
-        
-        # 5. 生成使用5种算法的排列 (P(5,5)=120种)
-        for perm in itertools.permutations(algorithm_list, 5):
-            # 确保五种算法都已选择
-            if (perm[0][2] != "无" and perm[1][2] != "无" and 
-                perm[2][2] != "无" and perm[3][2] != "无" and 
-                perm[4][2] != "无"):
                 all_permutations.append(list(perm))
         
         # 格式化排列结果，确保每种排列都有first_step_type，且名称不包含编号
@@ -645,6 +636,7 @@ def main():
                 "PLS": pls,
                 "AsLS": baseline_als,  # 使用改进的AsLS算法
                 "airPLS": airpls,
+                "二阶差分(D2)": self.d2  # 将二阶差分归类到基线校准中
             }
             self.FILTERING_ALGORITHMS = {
                 "Savitzky-Golay": self.savitzky_golay,
@@ -673,25 +665,18 @@ def main():
                 "改进的逻辑函数": i_squashing,
                 "DTW挤压": dtw_squashing
             }
-            
-            # 新增二阶差分算法类别
-            self.D2_ALGORITHMS = {
-                "二阶差分(D2)": self.d2  # 使用导入的D2函数
-            }
     
         def process(self, wavenumbers, data, 
                     baseline_method="无", baseline_params=None,
                     squashing_method="无", squashing_params=None,
                     filtering_method="无", filtering_params=None,
                     scaling_method="无", scaling_params=None,
-                    d2_method="无", d2_params=None,  # 新增二阶差分参数
                     algorithm_order=None):
             """执行预处理流程，支持指定算法顺序，空顺序表示返回原始数据"""
             if baseline_params is None: baseline_params = {}
             if squashing_params is None: squashing_params = {}
             if filtering_params is None: filtering_params = {}
             if scaling_params is None: scaling_params = {}
-            if d2_params is None: d2_params = {}  # 初始化二阶差分参数
                 
             # 如果算法顺序为空（无预处理），直接返回原始数据
             if algorithm_order is not None and len(algorithm_order) == 0:
@@ -702,23 +687,20 @@ def main():
             
             # 如果指定了算法顺序，则按顺序执行
             if algorithm_order is not None and len(algorithm_order) > 0:
-                # 根据算法编号映射到对应的处理步骤（新增二阶差分的映射）
+                # 根据算法编号映射到对应的处理步骤
                 step_mapping = {
                     1: ("baseline", baseline_method, baseline_params),
                     2: ("scaling", scaling_method, scaling_params),
                     3: ("filtering", filtering_method, filtering_params),
-                    4: ("squashing", squashing_method, squashing_params),
-                    5: ("d2", d2_method, d2_params)  # 新增二阶差分映射
+                    4: ("squashing", squashing_method, squashing_params)
                 }
                 # 按指定顺序创建步骤列表
                 steps = [step_mapping[order] for order in algorithm_order]
             else:
-                # 默认顺序：基线 → 二阶差分 → 挤压 → 滤波 → 缩放（只执行已选择的方法）
+                # 默认顺序：基线 → 挤压 → 滤波 → 缩放（只执行已选择的方法）
                 steps = []
                 if baseline_method != "无":
                     steps.append(("baseline", baseline_method, baseline_params))
-                if d2_method != "无":  # 新增二阶差分步骤
-                    steps.append(("d2", d2_method, d2_params))
                 if squashing_method != "无":
                     steps.append(("squashing", squashing_method, squashing_params))
                 if filtering_method != "无":
@@ -743,6 +725,8 @@ def main():
                             y_processed = algorithm_func(y_processed,** params)
                         elif method == "airPLS":
                             y_processed = algorithm_func(y_processed, **params)
+                        elif method == "二阶差分(D2)":  # 处理二阶差分
+                            y_processed = algorithm_func(y_processed)
                         else:  # SD、FD 无额外参数
                             y_processed = algorithm_func(y_processed)
                         method_name.append(f"{method}({', '.join([f'{k}={v}' for k, v in params.items()])})")
@@ -775,13 +759,6 @@ def main():
                     elif step_type == "scaling":
                         algorithm_func = self.SCALING_ALGORITHMS[method]
                         y_processed = algorithm_func(y_processed, **params)
-                        params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
-                        method_name.append(f"{method}({params_str})")
-                        
-                    # 新增二阶差分处理步骤
-                    elif step_type == "d2":
-                        algorithm_func = self.D2_ALGORITHMS[method]
-                        y_processed = algorithm_func(y_processed,** params)
                         params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
                         method_name.append(f"{method}({params_str})")
                         
@@ -870,7 +847,7 @@ def main():
             """使用MaMinorm函数实现归一化"""
             return MaMinorm(spectra)
         
-        # 新增二阶差分方法的封装
+        # 二阶差分方法的封装（归类到基线校准）
         def d2(self, spectra):
             """使用D2函数实现二阶差分计算"""
             # 处理数据形状适配
@@ -1165,11 +1142,11 @@ def main():
     # ===== 右侧：预处理设置 + 排列方案选择 + 测试功能 =====
     with col_right:
         with st.expander("⚙️ 预处理设置", expanded=True):
-            # 1. 基线校准
+            # 1. 基线校准（包含二阶差分）
             st.subheader("基线校准", divider="gray")
             baseline_method = st.selectbox(
                 "方法",
-                ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS"],
+                ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS", "二阶差分(D2)"],
                 key="baseline_method",
                 label_visibility="collapsed"
             )
@@ -1217,18 +1194,8 @@ def main():
                         lam = st.selectbox("λ", [10**7, 10**4, 10**2], key="lam_air", label_visibility="collapsed")
                     baseline_params["lam"] = lam
                     st.caption(f"λ: {lam}")
-            
-            # 新增：二阶差分设置
-            st.subheader("二阶差分", divider="gray")
-            d2_method = st.selectbox(
-                "方法",
-                ["无", "二阶差分(D2)"],  # 二阶差分选项
-                key="d2_method",
-                label_visibility="collapsed"
-            )
-            d2_params = {}  # 二阶差分不需要额外参数
-            if d2_method != "无":
-                st.caption("二阶差分可增强光谱特征，抑制基线漂移")
+                elif baseline_method == "二阶差分(D2)":  # 二阶差分参数说明
+                    st.caption("二阶差分可增强光谱特征，抑制基线漂移")
     
             # 2. 缩放处理
             st.subheader("📏 缩放", divider="gray")
@@ -1353,9 +1320,7 @@ def main():
                 'filtering': filtering_method,
                 'filtering_params': filtering_params,
                 'squashing': squashing_method,
-                'squashing_params': squashing_params,
-                'd2': d2_method,  # 新增二阶差分
-                'd2_params': d2_params
+                'squashing_params': squashing_params
             }
             st.session_state.current_algorithms = current_algorithms
             
@@ -1378,9 +1343,7 @@ def main():
                                 filtering_method=filtering_method,
                                 filtering_params=filtering_params,
                                 scaling_method=scaling_method,
-                                scaling_params=scaling_params,
-                                d2_method=d2_method,  # 新增二阶差分参数
-                                d2_params=d2_params
+                                scaling_params=scaling_params
                             )
                             
                             arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
@@ -1405,16 +1368,14 @@ def main():
                         try:
                             wavenumbers, y = st.session_state.raw_data
                             recommended_params = {
-                                'baseline_method': "airPLS",
-                                'baseline_params': {'lam': 10**4},
+                                'baseline_method': "二阶差分(D2)",  # 推荐使用二阶差分作为基线校正方法
+                                'baseline_params': {},
                                 'scaling_method': "SNV",
                                 'scaling_params': {},
                                 'filtering_method': "Savitzky-Golay",
                                 'filtering_params': {'k': 3, 'w': 11},
                                 'squashing_method': "改进的Sigmoid挤压",
-                                'squashing_params': {},
-                                'd2_method': "二阶差分(D2)",  # 推荐使用二阶差分
-                                'd2_params': {}
+                                'squashing_params': {}
                             }
                             
                             processed_data, method_name = preprocessor.process(
@@ -1444,10 +1405,9 @@ def main():
                         'baseline': baseline_method,
                         'scaling': scaling_method,
                         'filtering': filtering_method,
-                        'squashing': squashing_method,
-                        'd2': d2_method  # 新增二阶差分算法
+                        'squashing': squashing_method
                     }
-                    st.session_state.algorithm_permutations = generate_65_permutations(selected_algorithms)
+                    st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
                 else:
@@ -1468,7 +1428,7 @@ def main():
                     all_first_step_types.sort()
                 except Exception as e:
                     st.error(f"❌ 筛选错误: {str(e)}")
-                    all_first_step_types = ["全部", "无预处理", "基线校准", "缩放", "滤波", "挤压", "二阶差分"]
+                    all_first_step_types = ["全部", "无预处理", "基线校准", "缩放", "滤波", "挤压"]
                 
                 selected_first_step = st.selectbox(
                     "第一步类型",
@@ -1520,8 +1480,6 @@ def main():
                                         filtering_params=algos['filtering_params'],
                                         scaling_method=algos['scaling'],
                                         scaling_params=algos['scaling_params'],
-                                        d2_method=algos['d2'],  # 新增二阶差分参数
-                                        d2_params=algos['d2_params'],
                                         algorithm_order=selected_perm.get('order', [])
                                     )
                                     
