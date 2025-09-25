@@ -13,7 +13,6 @@ from squashing import squashing
 from i_squashing import i_squashing 
 from i_sigmoid import i_sigmoid
 from IModPoly import IModPoly
-from AsLS import baseline_als
 from LPnorm import LPnorm
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
@@ -47,6 +46,50 @@ def MWA(arr, n=6, it=1, mode="full"):
                 k = n - j - 1
                 average[i] = tmp[j:-k]
     return average
+
+
+# 改进的非对称加权惩罚最小二乘基线校准算法
+def baseline_als(y, lam, p, niter=10, tol=1e-6):
+    """
+    改进的AsLS算法
+
+    参数:
+        y: 输入光谱 (n_samples, n_points)
+        lam: 平滑系数 (典型值1e5-1e12)
+        p: 非对称系数 (0-1, 典型值0.001-0.1)
+        niter: 最大迭代次数
+        tol: 收敛阈值
+
+    返回:
+        基线校正后的光谱
+    """
+    if np.any(np.isnan(y)):
+        raise ValueError("输入数据包含NaN值")
+
+    y = np.asarray(y, dtype=np.float64)
+    L = y.shape[1]
+    D = sparse.csc_matrix(np.diff(np.eye(L), 2))
+    result = np.zeros_like(y)
+
+    for j in range(y.shape[0]):
+        w = np.ones(L)
+        y_curr = y[j].copy()
+
+        for _ in range(niter):
+            W = sparse.spdiags(w, 0, L, L)
+            Z = W + lam * D.dot(D.transpose())
+            z = spsolve(Z, w * y_curr)
+
+            # 检查收敛
+            if np.max(np.abs(z - y_curr)) < tol:
+                break
+
+            w = p * (y[j] > z) + (1 - p) * (y[j] < z)
+            y_curr = z
+
+        result[j] = y[j] - z
+
+    return result
 
 
 def main():
@@ -308,7 +351,7 @@ def main():
                 "ModPoly": modpoly,
                 "I-ModPoly": IModPoly,
                 "PLS": pls,
-                "AsLS": baseline_als,
+                "AsLS": baseline_als,  # 使用改进的AsLS算法
                 "airPLS": airpls,
             }
             self.FILTERING_ALGORITHMS = {
@@ -389,7 +432,12 @@ def main():
                         algorithm_func = self.BASELINE_ALGORITHMS[method]
                         if method in ["多项式拟合", "ModPoly", "I-ModPoly"]:
                             y_processed = algorithm_func(wavenumbers, y_processed,** params)
-                        elif method in ["PLS", "AsLS", "airPLS"]:
+                        elif method in ["PLS"]:
+                            y_processed = algorithm_func(y_processed, **params)
+                        elif method == "AsLS":
+                            # 适配改进的AsLS算法参数
+                            y_processed = algorithm_func(y_processed,** params)
+                        elif method == "airPLS":
                             y_processed = algorithm_func(y_processed, **params)
                         else:  # SD、FD 无额外参数
                             y_processed = algorithm_func(y_processed)
@@ -812,17 +860,23 @@ def main():
                     baseline_params["lam"] = lam
                     st.caption(f"λ: {lam}")
                 elif baseline_method == "AsLS":
-                    # 仅一层列
+                    # 为改进的AsLS算法配置参数
                     asls_cols = st.columns(2)
                     with asls_cols[0]:
-                        p = st.selectbox("p", [0.2, 0.1], key="p_asls", label_visibility="collapsed")
+                        p = st.selectbox("非对称系数p", [0.001, 0.01, 0.1], key="p_asls", label_visibility="collapsed")
                     with asls_cols[1]:
-                        lam = st.selectbox("λ", [10**9, 10**6], key="lam_asls", label_visibility="collapsed")
-                    baseline_params["p"] = p
+                        lam = st.selectbox("平滑系数λ", [10**5, 10**7, 10**9], key="lam_asls", label_visibility="collapsed")
+                    # 添加迭代次数和收敛阈值参数
+                    niter = st.selectbox("迭代次数", [5, 10, 15], key="niter_asls", label_visibility="collapsed")
                     baseline_params["lam"] = lam
-                    st.caption(f"p: {p}, λ: {lam}")
+                    baseline_params["p"] = p
+                    baseline_params["niter"] = niter
+                    st.caption(f"p: {p}, λ: {lam}, 迭代次数: {niter}")
                 elif baseline_method == "airPLS":
-                    lam = st.selectbox("λ", [10**7, 10**4, 10**2], key="lam_air", label_visibility="collapsed")
+                    # 仅一层列
+                    airpls_cols = st.columns(2)
+                    with airpls_cols[0]:
+                        lam = st.selectbox("λ", [10**7, 10**4, 10**2], key="lam_air", label_visibility="collapsed")
                     baseline_params["lam"] = lam
                     st.caption(f"λ: {lam}")
     
