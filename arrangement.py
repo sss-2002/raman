@@ -19,6 +19,32 @@ from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 
 
+# 新增：squashing函数（基于余弦的挤压变换）
+def squashing(Data):
+    row = Data.shape[0]
+    col = Data.shape[1]
+    sqData = np.zeros((row, col))
+    for i in range(row):
+        for j in range(col):
+            sqData[i][j] = (1 - math.cos(Data[i][j] * math.pi)) / 2
+    return sqData
+
+
+# 新增：小波线性阈值去噪函数
+def waveletlinear(arr, threshold=0.3):
+    row = arr.shape[0]
+    col = arr.shape[1]
+    datarec = np.zeros((row, col))
+    w = pywt.Wavelet('db8')
+    for i in range(row):
+        maxlev = pywt.dwt_max_level(col, w.dec_len)
+        coeffs = pywt.wavedec(arr[i], 'db8', level=maxlev)
+        for j in range(0, len(coeffs)):
+            coeffs[j] = pywt.threshold(coeffs[j], threshold * max(coeffs[j]))
+        datarec[i] = pywt.waverec(coeffs, 'db8')
+    return datarec
+
+
 # 移动窗口中值滤波(MWM)函数
 def MWM(arr, n=7, it=1):
     row = arr.shape[0]
@@ -39,7 +65,7 @@ def MWM(arr, n=7, it=1):
     return median
 
 
-# 新增：sigmoid函数
+# sigmoid函数
 def sigmoid(X):
     row = X.shape[0]
     col = X.shape[1]
@@ -67,7 +93,7 @@ def i_sigmoid(X, maxn=10):
     return s
 
 
-# i_squashing挤压函数（基于余弦的挤压变换）
+# i_squashing挤压函数（基于余弦的挤压变换，保留原实现以便对比）
 def i_squashing(Data):
     row = Data.shape[0]
     col = Data.shape[1]
@@ -495,9 +521,8 @@ class DTW:
         return path[::-1], dtw_matrix[n, m]
 
 
-# 挤压和 sigmoid 相关函数
-# 注意：已添加完整的sigmoid函数，此处保留引用即可
-def squashing(x):
+# 挤压相关函数（已包含新的squashing函数）
+def squashing_legacy(x):
     return 1 / (1 + np.exp(-x))
 
 
@@ -798,7 +823,8 @@ def main():
                 "Lowess": self.lowess_filter,
                 "FFT": self.fft_filter,
                 "Smfft傅里叶滤波": self.smfft_filter,  # 添加Smfft傅里叶滤波
-                "小波变换(DWT)": self.wavelet_filter
+                "小波变换(DWT)": self.wavelet_filter,
+                "小波线性阈值去噪": self.wavelet_linear  # 新增：小波线性阈值去噪
             }
             
             self.SCALING_ALGORITHMS = {
@@ -812,9 +838,10 @@ def main():
             }
             
             self.SQUASHING_ALGORITHMS = {
-                "Sigmoid挤压": sigmoid,  # 使用新添加的完整sigmoid函数
+                "Sigmoid挤压": sigmoid,  # 使用sigmoid函数
                 "改进的Sigmoid挤压": i_sigmoid,  # 使用改进的i_sigmoid函数
-                "逻辑函数": squashing,
+                "逻辑函数": squashing_legacy,  # 保留原逻辑函数以便对比
+                "余弦挤压(squashing)": squashing,  # 新增：基于余弦的挤压变换
                 "改进的逻辑函数": i_squashing,  # 使用i_squashing函数
                 "DTW挤压": dtw_squashing
             }
@@ -902,7 +929,11 @@ def main():
                             y_processed = algorithm_func(y_processed, l=l, k1=k1, k2=k2)
                             method_name.append(f"DTW挤压(l={l}, k1={k1}, k2={k2})")
                         elif method == "Sigmoid挤压":
-                            # 使用新添加的完整sigmoid函数
+                            # 使用sigmoid函数
+                            y_processed = algorithm_func(y_processed)
+                            method_name.append(f"{method}")
+                        elif method == "余弦挤压(squashing)":
+                            # 使用新添加的squashing函数
                             y_processed = algorithm_func(y_processed)
                             method_name.append(f"{method}")
                         else:
@@ -915,6 +946,11 @@ def main():
                         params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
                         method_name.append(f"{method}({params_str})")
                         
+                        # 特殊处理小波线性阈值去噪的参数
+                        if method == "小波线性阈值去噪":
+                            threshold = params.get("threshold", 0.3)
+                            method_name[-1] = f"{method}(threshold={threshold})"
+                            
                     elif step_type == "scaling":
                         algorithm_func = self.SCALING_ALGORITHMS[method]
                         y_processed = algorithm_func(y_processed, **params)
@@ -999,6 +1035,16 @@ def main():
             coeffs = pywt.wavedec(spectra, 'db4', axis=0)
             coeffs[1:] = [pywt.threshold(c, threshold, mode='soft') for c in coeffs[1:]]
             return pywt.waverec(coeffs, 'db4', axis=0)
+        
+        # 新增：小波线性阈值去噪方法的封装
+        def wavelet_linear(self, spectra, threshold=0.3):
+            """使用新添加的waveletlinear函数进行小波线性阈值去噪"""
+            # 确保输入数据形状与waveletlinear要求一致
+            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+                filtered = waveletlinear(spectra.T, threshold=threshold)
+                return filtered.T  # 转回原始形状
+            else:
+                return waveletlinear(spectra, threshold=threshold)
         
         # ===== 缩放算法实现 =====
         def peak_norm(self, spectra):
@@ -1421,7 +1467,7 @@ def main():
                 "方法",
                 ["无", "Savitzky-Golay", "sgolayfilt滤波器", "中值滤波(MF)", "移动平均(MAF)", 
                  "MWA（移动窗口平均）", "MWM（移动窗口中值）", "卡尔曼滤波", "Lowess", "FFT", 
-                 "Smfft傅里叶滤波", "小波变换(DWT)"],
+                 "Smfft傅里叶滤波", "小波变换(DWT)", "小波线性阈值去噪"],  # 新增：小波线性阈值去噪
                 key="filtering_method",
                 label_visibility="collapsed"
             )
@@ -1492,12 +1538,17 @@ def main():
                     threshold = st.selectbox("阈值", [0.1, 0.3, 0.5], key="thresh_dwt", label_visibility="collapsed")
                     filtering_params["threshold"] = threshold
                     st.caption(f"阈值: {threshold}")
+                # 新增：小波线性阈值去噪参数配置
+                elif filtering_method == "小波线性阈值去噪":
+                    threshold = st.selectbox("阈值", [0.1, 0.3, 0.5], key="thresh_wavelet_linear", label_visibility="collapsed")
+                    filtering_params["threshold"] = threshold
+                    st.caption(f"阈值: {threshold}")
 
             # 4. 挤压处理
             st.subheader("🧪 挤压", divider="gray")
             squashing_method = st.selectbox(
                 "方法",
-                ["无", "Sigmoid挤压", "改进的Sigmoid挤压", "逻辑函数", "改进的逻辑函数", "DTW挤压"],
+                ["无", "Sigmoid挤压", "改进的Sigmoid挤压", "逻辑函数", "余弦挤压(squashing)", "改进的逻辑函数", "DTW挤压"],  # 新增：余弦挤压(squashing)
                 key="squashing_method",
                 label_visibility="collapsed"
             )
@@ -1531,6 +1582,9 @@ def main():
                 elif squashing_method == "Sigmoid挤压":
                     # 说明使用的是完整实现的sigmoid函数
                     st.caption("使用标准Sigmoid函数，无额外参数")
+                elif squashing_method == "余弦挤压(squashing)":
+                    # 说明使用的是新添加的squashing函数
+                    st.caption("使用基于余弦的挤压变换，无额外参数")
                 elif squashing_method == "逻辑函数":
                     st.caption("无额外参数")
     
@@ -1596,9 +1650,9 @@ def main():
                                 'baseline_params': {},
                                 'scaling_method': "标准化(均值0，方差1)",  # 推荐使用标准化方法
                                 'scaling_params': {},
-                                'filtering_method': "MWM（移动窗口中值）",  # 推荐使用MWM滤波
-                                'filtering_params': {'n': 7, 'it': 1},  # MWM参数
-                                'squashing_method': "Sigmoid挤压",  # 推荐使用新添加的sigmoid函数
+                                'filtering_method': "小波线性阈值去噪",  # 推荐使用新添加的小波线性阈值去噪
+                                'filtering_params': {'threshold': 0.3},  # 小波线性阈值去噪参数
+                                'squashing_method': "余弦挤压(squashing)",  # 推荐使用新添加的squashing函数
                                 'squashing_params': {}
                             }
                             
