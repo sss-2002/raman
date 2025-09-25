@@ -24,6 +24,31 @@ import pywt
 from DTW import DTW
 
 
+# 新增MWA（移动窗口平均）滤波算法
+def MWA(arr, n=6, it=1, mode="full"):
+    row = arr.shape[0]
+    col = arr.shape[1]
+    average = np.zeros((row, col))
+    ns = []
+    for _ in range(it):
+        ns.append(n)
+        n -= 2
+    for i in range(row):
+        average[i] = arr[i].copy()
+        nn = ns.copy()
+        for _ in range(it):
+            n = nn.pop()
+            if n > 1:
+                tmp = np.convolve(average[i], np.ones((n,)) / n, mode=mode)
+                for j in range(1, n):
+                    tmp[j - 1] = tmp[j - 1] * n / j
+                    tmp[-j] = tmp[-j] * n / j
+                j = int(n / 2)
+                k = n - j - 1
+                average[i] = tmp[j:-k]
+    return average
+
+
 def main():
     # 最优先初始化session state
     if 'show_arrangements' not in st.session_state:
@@ -290,6 +315,7 @@ def main():
                 "Savitzky-Golay": self.savitzky_golay,
                 "中值滤波(MF)": self.median_filter,
                 "移动平均(MAF)": self.moving_average,
+                "MWA（移动窗口平均）": self.mwa_filter,  # 添加MWA算法
                 "Lowess": self.lowess_filter,
                 "FFT": self.fft_filter,
                 "小波变换(DWT)": self.wavelet_filter
@@ -421,6 +447,10 @@ def main():
         def moving_average(self, spectra, k, w):
             kernel = np.ones(w) / w
             return np.apply_along_axis(lambda x: np.convolve(x, kernel, mode='same'), 0, spectra)
+        
+        # 添加MWA滤波方法的封装
+        def mwa_filter(self, spectra, n=6, it=1, mode="full"):
+            return MWA(spectra, n=n, it=it, mode=mode)
         
         def lowess_filter(self, spectra, frac):
             result = np.zeros_like(spectra)
@@ -816,7 +846,7 @@ def main():
             st.subheader("📶 滤波", divider="gray")
             filtering_method = st.selectbox(
                 "方法",
-                ["无", "Savitzky-Golay", "中值滤波(MF)", "移动平均(MAF)", "Lowess", "FFT", "小波变换(DWT)"],
+                ["无", "Savitzky-Golay", "中值滤波(MF)", "移动平均(MAF)", "MWA（移动窗口平均）", "Lowess", "FFT", "小波变换(DWT)"],
                 key="filtering_method",
                 label_visibility="collapsed"
             )
@@ -844,6 +874,17 @@ def main():
                     filtering_params["k"] = k
                     filtering_params["w"] = w
                     st.caption(f"k: {k}, w: {w}")
+                # MWA（移动窗口平均）参数配置
+                elif filtering_method == "MWA（移动窗口平均）":
+                    mwa_cols = st.columns(2)
+                    with mwa_cols[0]:
+                        n = st.selectbox("窗口大小n", [4, 6, 8], key="n_mwa", label_visibility="collapsed")
+                    with mwa_cols[1]:
+                        it = st.selectbox("迭代次数it", [1, 2, 3], key="it_mwa", label_visibility="collapsed")
+                    filtering_params["n"] = n
+                    filtering_params["it"] = it
+                    filtering_params["mode"] = "full"  # 默认模式
+                    st.caption(f"窗口大小: {n}, 迭代次数: {it}")
                 elif filtering_method == "Lowess":
                     frac = st.selectbox("系数", [0.01, 0.03], key="frac_low", label_visibility="collapsed")
                     filtering_params["frac"] = frac
