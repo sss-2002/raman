@@ -38,6 +38,31 @@ def LPnorm(arr, ord):
     return Lpdata
 
 
+# MaMinorm归一化函数
+def MaMinorm(Oarr):
+    """
+    对数组进行Ma-Minorm归一化处理
+    将数据标准化到[-5, 5]范围
+    
+    参数:
+        Oarr: 输入数组，形状为(row, col)
+        
+    返回:
+        归一化后的数组，形状与输入相同
+    """
+    row = Oarr.shape[0]
+    col = Oarr.shape[1]
+    MMarr = np.zeros((row, col))
+    permax = np.ones((1, col))
+    for i in range(row):
+        diff = np.max(Oarr[i]) - np.min(Oarr[i])
+        if diff != 0:
+            MMarr[i] = ((Oarr[i] - permax*np.min(Oarr[i]))/ diff)*10 - 5
+        else:
+            MMarr[i] = Oarr[i] - permax * np.min(Oarr[i])
+    return MMarr
+
+
 # 卡尔曼滤波算法实现
 def Kalman(z, R):
     """
@@ -566,7 +591,8 @@ def main():
                 "SNV": self.snv,
                 "MSC": self.msc,
                 "M-M-Norm": self.mm_norm,
-                "L-范数": self.l_norm  # 使用LPnorm函数实现
+                "L-范数": self.l_norm,  # 使用LPnorm函数实现
+                "Ma-Minorm": self.ma_minorm  # 添加Ma-Minorm归一化
             }
             
             self.SQUASHING_ALGORITHMS = {
@@ -745,6 +771,10 @@ def main():
             else:
                 p_val = float(p)
                 return LPnorm(spectra, p_val)
+        
+        def ma_minorm(self, spectra):
+            """使用MaMinorm函数实现归一化"""
+            return MaMinorm(spectra)
     
     # ===== 文件处理类 =====
     class FileHandler:
@@ -1088,7 +1118,7 @@ def main():
             st.subheader("📏 缩放", divider="gray")
             scaling_method = st.selectbox(
                 "方法",
-                ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数"],
+                ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数", "Ma-Minorm"],
                 key="scaling_method",
                 label_visibility="collapsed"
             )
@@ -1099,6 +1129,7 @@ def main():
                 p = st.selectbox("p", ["无穷大", "4", "10"], key="p_scale", label_visibility="collapsed")
                 scaling_params["p"] = p
                 st.caption(f"p: {p}")
+            # Ma-Minorm不需要额外参数，因此不需要添加参数处理
     
             # 3. 滤波处理
             st.subheader("📶 滤波", divider="gray")
