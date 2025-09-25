@@ -4,7 +4,7 @@ import pandas as pd
 import re
 import itertools
 import matplotlib.pyplot as plt
-import math  # 新增：导入math模块用于i_squashing函数
+import math
 from sklearn.metrics import accuracy_score, cohen_kappa_score, confusion_matrix
 import seaborn as sns
 from scipy import sparse
@@ -16,6 +16,27 @@ import copy
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
+import scipy.signal as signal  # 新增：导入scipy.signal用于MWM函数
+
+
+# 新增：移动窗口中值滤波(MWM)函数
+def MWM(arr, n=7, it=1):
+    row = arr.shape[0]
+    col = arr.shape[1]
+    median = np.zeros((row, col))
+    ns = []
+    for _ in range(it):
+        ns.append(n)
+        n -= 2
+    for i in range(row):
+        median[i] = arr[i].copy()
+        nn = ns.copy()
+        for _ in range(it):
+            n = nn.pop()
+            if n > 1:
+                tmp = signal.medfilt(median[i], n)
+                median[i] = tmp
+    return median
 
 
 # 改进的i_sigmoid挤压函数
@@ -34,7 +55,7 @@ def i_sigmoid(X, maxn=10):
     return s
 
 
-# 新增：i_squashing挤压函数（基于余弦的挤压变换）
+# i_squashing挤压函数（基于余弦的挤压变换）
 def i_squashing(Data):
     row = Data.shape[0]
     col = Data.shape[1]
@@ -762,6 +783,7 @@ def main():
                 "中值滤波(MF)": self.median_filter,
                 "移动平均(MAF)": self.moving_average,
                 "MWA（移动窗口平均）": self.mwa_filter,  # 添加MWA算法
+                "MWM（移动窗口中值）": self.mwm_filter,  # 新增：MWM滤波算法
                 "卡尔曼滤波": self.kalman_filter,  # 添加卡尔曼滤波算法
                 "Lowess": self.lowess_filter,
                 "FFT": self.fft_filter,
@@ -783,7 +805,7 @@ def main():
                 "Sigmoid挤压": sigmoid,
                 "改进的Sigmoid挤压": i_sigmoid,  # 使用改进的i_sigmoid函数
                 "逻辑函数": squashing,
-                "改进的逻辑函数": i_squashing,  # 新增：使用i_squashing函数
+                "改进的逻辑函数": i_squashing,  # 使用i_squashing函数
                 "DTW挤压": dtw_squashing
             }
     
@@ -860,7 +882,7 @@ def main():
                             y_processed = algorithm_func(y_processed, maxn=maxn)
                             method_name.append(f"{method}(maxn={maxn})")
                         elif method == "改进的逻辑函数":
-                            # 新增：i_squashing函数不需要额外参数，但仍保持一致的命名方式
+                            # i_squashing函数不需要额外参数
                             y_processed = algorithm_func(y_processed)
                             method_name.append(f"{method}")
                         elif method == "DTW挤压":
@@ -920,6 +942,16 @@ def main():
         # 添加MWA滤波方法的封装
         def mwa_filter(self, spectra, n=6, it=1, mode="full"):
             return MWA(spectra, n=n, it=it, mode=mode)
+        
+        # 新增：MWM滤波方法的封装
+        def mwm_filter(self, spectra, n=7, it=1):
+            """使用MWM函数进行移动窗口中值滤波"""
+            # 确保输入数据形状与MWM要求一致
+            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+                filtered = MWM(spectra.T, n=n, it=it)
+                return filtered.T  # 转回原始形状
+            else:
+                return MWM(spectra, n=n, it=it)
         
         # 添加卡尔曼滤波方法的封装
         def kalman_filter(self, spectra, R=0.1):
@@ -1374,7 +1406,8 @@ def main():
             filtering_method = st.selectbox(
                 "方法",
                 ["无", "Savitzky-Golay", "sgolayfilt滤波器", "中值滤波(MF)", "移动平均(MAF)", 
-                 "MWA（移动窗口平均）", "卡尔曼滤波", "Lowess", "FFT", "Smfft傅里叶滤波", "小波变换(DWT)"],
+                 "MWA（移动窗口平均）", "MWM（移动窗口中值）", "卡尔曼滤波", "Lowess", "FFT", 
+                 "Smfft傅里叶滤波", "小波变换(DWT)"],
                 key="filtering_method",
                 label_visibility="collapsed"
             )
@@ -1413,6 +1446,16 @@ def main():
                     filtering_params["it"] = it
                     filtering_params["mode"] = "full"  # 默认模式
                     st.caption(f"窗口大小: {n}, 迭代次数: {it}")
+                # 新增：MWM（移动窗口中值）参数配置
+                elif filtering_method == "MWM（移动窗口中值）":
+                    mwm_cols = st.columns(2)
+                    with mwm_cols[0]:
+                        n = st.selectbox("窗口大小n", [5, 7, 9], key="n_mwm", label_visibility="collapsed")
+                    with mwm_cols[1]:
+                        it = st.selectbox("迭代次数it", [1, 2, 3], key="it_mwm", label_visibility="collapsed")
+                    filtering_params["n"] = n
+                    filtering_params["it"] = it
+                    st.caption(f"窗口大小: {n}, 迭代次数: {it}")
                 # 卡尔曼滤波参数配置
                 elif filtering_method == "卡尔曼滤波":
                     R = st.selectbox("测量噪声方差R", [0.01, 0.1, 0.5], key="r_kalman", label_visibility="collapsed")
@@ -1449,7 +1492,7 @@ def main():
             squashing_params = {}
             if squashing_method != "无":
                 if squashing_method == "改进的逻辑函数":
-                    # 新增：i_squashing函数不需要参数，但保留UI位置以保持一致性
+                    # i_squashing函数不需要参数
                     st.caption("基于余弦的挤压变换，无额外参数")
                 elif squashing_method == "改进的Sigmoid挤压":
                     # 为改进的i_sigmoid添加maxn参数设置
@@ -1536,9 +1579,9 @@ def main():
                                 'baseline_params': {},
                                 'scaling_method': "标准化(均值0，方差1)",  # 推荐使用新添加的标准化方法
                                 'scaling_params': {},
-                                'filtering_method': "Smfft傅里叶滤波",  # 推荐使用新添加的Smfft傅里叶滤波
-                                'filtering_params': {'row_e': 51},
-                                'squashing_method': "改进的逻辑函数",  # 新增：推荐使用i_squashing
+                                'filtering_method': "MWM（移动窗口中值）",  # 新增：推荐使用MWM滤波
+                                'filtering_params': {'n': 7, 'it': 1},  # MWM参数
+                                'squashing_method': "改进的逻辑函数",  # 使用i_squashing
                                 'squashing_params': {}
                             }
                             
