@@ -667,7 +667,7 @@ def main():
                 # 显示前2条原始光谱（双列）
                 idx1 = 0 if y.shape[1] > 0 else 0
                 raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
-                st.line_chart(raw_data1, height=200, key="raw_spec1")
+                st.line_chart(raw_data1, height=200)  # 移除key参数
             else:
                 # 初始占位显示
                 st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>', unsafe_allow_html=True)
@@ -675,7 +675,7 @@ def main():
             if st.session_state.get('raw_data') and y.shape[1] > 1:
                 idx2 = 1
                 raw_data2 = pd.DataFrame({"原始光谱2": y[:, idx2]}, index=wavenumbers)
-                st.line_chart(raw_data2, height=200, key="raw_spec2")
+                st.line_chart(raw_data2, height=200)  # 移除key参数
             elif st.session_state.get('raw_data'):
                 # 只有1条光谱时显示提示
                 st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条原始光谱</div>', unsafe_allow_html=True)
@@ -691,11 +691,11 @@ def main():
                         with more_spec_cols[0]:
                             if i < y.shape[1]:
                                 data = pd.DataFrame({f"原始光谱{i+1}": y[:, i]}, index=wavenumbers)
-                                st.line_chart(data, height=150, key=f"raw_more_{i}")
+                                st.line_chart(data, height=150)  # 移除key参数
                         with more_spec_cols[1]:
                             if i+1 < y.shape[1]:
                                 data = pd.DataFrame({f"原始光谱{i+2}": y[:, i+1]}, index=wavenumbers)
-                                st.line_chart(data, height=150, key=f"raw_more_{i+1}")
+                                st.line_chart(data, height=150)  # 移除key参数
             
         # 2. 处理结果展示（双列布局）
         if st.session_state.get('selected_arrangement'):
@@ -714,12 +714,12 @@ def main():
             with proc_col1:
                 idx1 = 0 if arr_data.shape[1] > 0 else 0
                 proc_data1 = pd.DataFrame({"预处理后1": arr_data[:, idx1]}, index=wavenumbers)
-                st.line_chart(proc_data1, height=200, key="proc_spec1")
+                st.line_chart(proc_data1, height=200)  # 移除key参数
             with proc_col2:
                 if arr_data.shape[1] > 1:
                     idx2 = 1
                     proc_data2 = pd.DataFrame({"预处理后2": arr_data[:, idx2]}, index=wavenumbers)
-                    st.line_chart(proc_data2, height=200, key="proc_spec2")
+                    st.line_chart(proc_data2, height=200)  # 移除key参数
                 else:
                     st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>', unsafe_allow_html=True)
             
@@ -730,12 +730,12 @@ def main():
                 with k_col1:
                     k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
                     k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
-                    st.line_chart(k_data1, height=200, key="k_curve1")
+                    st.line_chart(k_data1, height=200)  # 移除key参数
                 with k_col2:
                     if y.shape[1] > 1:
                         k_vals2 = np.abs(arr_data[:, 1] / (y[:, 1] + 1e-8))
                         k_data2 = pd.DataFrame({"k值2": k_vals2}, index=wavenumbers)
-                        st.line_chart(k_data2, height=200, key="k_curve2")
+                        st.line_chart(k_data2, height=200)  # 移除key参数
                     else:
                         st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条k值曲线</div>', unsafe_allow_html=True)
             else:
@@ -750,14 +750,14 @@ def main():
                         "原始": y[:, 0],
                         "预处理后": arr_data[:, 0]
                     }, index=wavenumbers)
-                    st.line_chart(comp_data1, height=200, key="comp1")
+                    st.line_chart(comp_data1, height=200)  # 移除key参数
             with comp_col2:
                 if y.shape[1] > 1:
                     comp_data2 = pd.DataFrame({
                         "原始": y[:, 1],
                         "预处理后": arr_data[:, 1]
                     }, index=wavenumbers)
-                    st.line_chart(comp_data2, height=200, key="comp2")
+                    st.line_chart(comp_data2, height=200)  # 移除key参数
                 else:
                     st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条对比曲线</div>', unsafe_allow_html=True)
             
