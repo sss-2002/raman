@@ -12,6 +12,7 @@ from scipy.signal import savgol_filter, medfilt
 from scipy.fft import fft, ifft
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
+from sklearn.linear_model import LinearRegression  # 新增导入用于MSC
 
 
 # LP范数归一化函数
@@ -61,6 +62,45 @@ def MaMinorm(Oarr):
         else:
             MMarr[i] = Oarr[i] - permax * np.min(Oarr[i])
     return MMarr
+
+
+# 新增的MSC（多元散射校正）函数
+def MSC(sdata):
+    """
+    多元散射校正(MSC)算法实现
+    
+    参数:
+        sdata: 输入光谱数据，形状为(n_samples, n_features)
+        
+    返回:
+        校正后的光谱数据，形状与输入相同
+    """
+    n = sdata.shape[0]  # 样本数量
+    k = np.zeros(sdata.shape[0])  # 斜率
+    b = np.zeros(sdata.shape[0])  # 截距
+ 
+    # 计算平均光谱作为参考
+    M = np.mean(sdata, axis=0)
+ 
+    # 对每个样本进行线性回归，计算斜率和截距
+    for i in range(n):
+        y = sdata[i, :].reshape(-1, 1)  # 当前样本光谱
+        M_reshaped = M.reshape(-1, 1)   # 平均光谱，重塑为二维数组
+        model = LinearRegression()
+        model.fit(M_reshaped, y)
+        k[i] = model.coef_  # 斜率
+        b[i] = model.intercept_  # 截距
+    
+    # 应用MSC校正
+    spec_msc = np.zeros_like(sdata)
+    for i in range(n):
+        # 将斜率和截距扩展到与光谱长度匹配
+        bb = np.repeat(b[i], sdata.shape[1])
+        kk = np.repeat(k[i], sdata.shape[1])
+        # 应用校正公式：(原始光谱 - 截距) / 斜率
+        spec_msc[i, :] = (sdata[i, :] - bb) / kk
+    
+    return spec_msc
 
 
 # 卡尔曼滤波算法实现
@@ -589,7 +629,7 @@ def main():
             self.SCALING_ALGORITHMS = {
                 "Peak-Norm": self.peak_norm,
                 "SNV": self.snv,
-                "MSC": self.msc,
+                "MSC": self.msc,  # 使用新的MSC实现
                 "M-M-Norm": self.mm_norm,
                 "L-范数": self.l_norm,  # 使用LPnorm函数实现
                 "Ma-Minorm": self.ma_minorm  # 添加Ma-Minorm归一化
@@ -756,8 +796,14 @@ def main():
             return (spectra - mean) / std
         
         def msc(self, spectra):
-            mean_spectrum = np.mean(spectra, axis=1)
-            return np.apply_along_axis(lambda x: np.polyval(np.polyfit(mean_spectrum, x, 1), mean_spectrum), 0, spectra)
+            """使用新的MSC函数实现多元散射校正"""
+            # 注意：输入数据形状需要与MSC函数要求一致 (n_samples, n_features)
+            # 如果当前数据形状为(n_features, n_samples)，需要先转置
+            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，说明需要转置
+                corrected = MSC(spectra.T)  # 转置后处理
+                return corrected.T  # 转回原始形状
+            else:
+                return MSC(spectra)
         
         def mm_norm(self, spectra):
             min_vals = np.min(spectra, axis=0)
