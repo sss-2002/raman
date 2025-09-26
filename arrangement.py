@@ -583,7 +583,7 @@ def knn_classify(train_data, train_labels, test_data, k=5):
 
     predictions = []
     for test_sample in test_data:
-        distances = np.sqrt(np.sum((train_data - test_sample) ** 2, axis=1))
+        distances = np.sqrt(np.sum((train_data - test_sample) **2, axis=1))
         k_indices = np.argsort(distances)[:k]
         k_nearest_labels = [train_labels[i] for i in k_indices]
         most_common = np.bincount(k_nearest_labels).argmax()
@@ -687,13 +687,13 @@ class Preprocessor:
                 if step_type == "baseline":
                     algorithm_func = self.BASELINE_ALGORITHMS[method]
                     if method in ["多项式拟合", "ModPoly", "I-ModPoly"]:
-                        y_processed = algorithm_func(wavenumbers, y_processed, **params)
+                        y_processed = algorithm_func(wavenumbers, y_processed,** params)
                     elif method in ["PLS"]:
-                        y_processed = algorithm_func(y_processed,** params)
-                    elif method == "AsLS":
                         y_processed = algorithm_func(y_processed, **params)
-                    elif method == "airPLS":
+                    elif method == "AsLS":
                         y_processed = algorithm_func(y_processed,** params)
+                    elif method == "airPLS":
+                        y_processed = algorithm_func(y_processed, **params)
                     elif method == "二阶差分(D2)":
                         y_processed = algorithm_func(y_processed)
                     else:
@@ -727,7 +727,7 @@ class Preprocessor:
 
                 elif step_type == "filtering":
                     algorithm_func = self.FILTERING_ALGORITHMS[method]
-                    y_processed = algorithm_func(y_processed, **params)
+                    y_processed = algorithm_func(y_processed,** params)
                     params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
                     method_name.append(f"{method}({params_str})")
 
@@ -737,7 +737,7 @@ class Preprocessor:
 
                 elif step_type == "scaling":
                     algorithm_func = self.SCALING_ALGORITHMS[method]
-                    y_processed = algorithm_func(y_processed,** params)
+                    y_processed = algorithm_func(y_processed, **params)
                     params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
                     method_name.append(f"{method}({params_str})")
 
@@ -863,47 +863,35 @@ class Preprocessor:
             return D2(spectra)
 
 
-# 文件处理类（支持文件夹操作）
+# 文件处理类（支持单个文件上传）
 class FileHandler:
-    def load_data_from_files(self, wavenumber_file_obj, data_file_obj, lines, much):
-        wavenumbers = np.loadtxt(wavenumber_file_obj).ravel()
-        spectra = self._getfromone(data_file_obj, lines, much).T
-        return wavenumbers, spectra
-
-    def _getfromone(self, file_obj, lines, much):
-        numb = re.compile(r"-?\d+(?:\.\d+)?")
-        ret = np.zeros((lines, much), dtype=float)
+    def load_data_from_individual_files(self, wavenumber_file_obj, data_file_obj, lines, much):
+        """从单个波数文件和单个光谱数据文件加载数据"""
         try:
-            content = file_obj.getvalue().decode("utf-8")
-        except UnicodeDecodeError:
-            content = file_obj.getvalue().decode("gbk", errors="ignore")
-
-        lines_list = content.splitlines()
-        con = 0
-
-        for line in lines_list:
-            if con >= much:
-                break
-
-            li = numb.findall(line)
-            for i in range(min(lines, len(li))):
-                ret[i][con] = float(li[i])
-            con += 1
-
-        return ret
-
-    def list_txt_files_in_folder(self, folder_obj):
-        txt_files = []
-        for file in folder_obj:
-            if file.name.lower().endswith('.txt'):
-                txt_files.append({
-                    'name': file.name,
-                    'obj': file,
-                    'size': file.size
-                })
-        return sorted(txt_files, key=lambda x: x['name'])
+            # 读取波数文件
+            wavenumber_content = wavenumber_file_obj.getvalue().decode("utf-8", errors="ignore")
+            wavenumbers = np.array([float(num) for num in re.findall(r"-?\d+(?:\.\d+)?", wavenumber_content)]).ravel()
+            
+            # 读取光谱数据文件
+            data_content = data_file_obj.getvalue().decode("utf-8", errors="ignore")
+            data_lines = data_content.splitlines()
+            
+            # 解析光谱数据
+            data = np.zeros((lines, much), dtype=float)
+            numb = re.compile(r"-?\d+(?:\.\d+)?")
+            
+            for i, line in enumerate(data_lines[:lines]):
+                numbers = list(map(float, numb.findall(line)))
+                for j in range(min(much, len(numbers))):
+                    data[i, j] = numbers[j]
+            
+            # 转置为 (数据点, 光谱数) 格式
+            return wavenumbers[:much], data.T
+        except Exception as e:
+            raise ValueError(f"文件解析错误: {str(e)}")
 
     def export_data(self, filename, data):
+        """导出预处理后的数据"""
         with open(filename, "w", encoding="utf-8") as f:
             for line in data.T:
                 f.write("\t".join(map(str, line)) + "\n")
@@ -921,8 +909,8 @@ def main():
         'labels': None,
         'train_indices': None,
         'test_indices': None,
-        'uploaded_folder': None,
-        'folder_files': None
+        'uploaded_wavenumber_file': None,
+        'uploaded_spectrum_file': None
     }
 
     other_states = {
@@ -936,9 +924,7 @@ def main():
         'algorithm_permutations': [],
         'current_algorithms': {},
         'filtered_perms': [],
-        'selected_perm_idx': 0,
-        'selected_wavenumber_file': None,
-        'selected_spectrum_file': None
+        'selected_perm_idx': 0
     }
 
     all_states = {** test_states, **other_states}
@@ -970,68 +956,35 @@ def main():
     # 三列布局
     col_left, col_mid, col_right = st.columns([1.2, 2.8, 1.1])
 
-    # 左侧：数据管理（文件夹上传）
+    # 左侧：数据管理（单个文件上传）
     with col_left:
         with st.expander("📁 数据管理", expanded=True):
-            # 文件夹上传组件
-            uploaded_folder = st.file_uploader(
-                "上传光谱数据文件夹（包含波数TXT和光谱数据TXT）",
-                type=None,
-                accept_multiple_files=False,
-                label_visibility="collapsed",
-                key="spec_folder",
-                help="请上传包含至少2个TXT文件的文件夹（1个波数文件+1个光谱数据文件）"
+            # 单个文件上传组件（波数文件）
+            st.subheader("波数文件", divider="gray")
+            wavenumber_file = st.file_uploader(
+                "上传波数文件（TXT格式）",
+                type="txt",
+                key="wavenumber_file",
+                help="包含波数数据的TXT文件，通常为一行或一列数值"
             )
-            st.caption("支持格式：文件夹（内含TXT文件）")
+            
+            # 单个文件上传组件（光谱数据文件）
+            st.subheader("光谱数据文件", divider="gray")
+            spectrum_file = st.file_uploader(
+                "上传光谱数据文件（TXT格式）",
+                type="txt",
+                key="spectrum_file",
+                help="包含光谱数据的TXT文件，每行代表一条光谱"
+            )
 
-            # 文件夹处理逻辑
-            if uploaded_folder is not None:
-                st.session_state.uploaded_folder = uploaded_folder
-                try:
-                    txt_files = file_handler.list_txt_files_in_folder(uploaded_folder)
-                    st.session_state.folder_files = txt_files
-
-                    if len(txt_files) < 2:
-                        st.warning(f"⚠️ 文件夹中仅包含{len(txt_files)}个TXT文件，请确保包含至少2个TXT文件（1个波数+1个光谱数据）")
-                    else:
-                        st.success(f"✅ 成功读取文件夹：共{len(txt_files)}个TXT文件")
-
-                        # 文件选择区域
-                        st.subheader("文件选择", divider="gray")
-
-                        # 波数文件选择
-                        wavenumber_options = [f['name'] for f in txt_files]
-                        selected_wn_name = st.selectbox(
-                            "选择波数文件",
-                            wavenumber_options,
-                            key="select_wn_file",
-                            label_visibility="collapsed",
-                            help="通常波数文件较小（仅1行或1列数据）"
-                        )
-                        selected_wn_obj = next(f['obj'] for f in txt_files if f['name'] == selected_wn_name)
-                        st.session_state.selected_wavenumber_file = (selected_wn_name, selected_wn_obj)
-
-                        # 光谱数据文件选择
-                        spectrum_options = [f['name'] for f in txt_files if f['name'] != selected_wn_name]
-                        selected_spec_name = st.selectbox(
-                            "选择光谱数据文件",
-                            spectrum_options,
-                            key="select_spec_file",
-                            label_visibility="collapsed",
-                            help="通常光谱数据文件较大（包含多条光谱）"
-                        )
-                        selected_spec_obj = next(f['obj'] for f in txt_files if f['name'] == selected_spec_name)
-                        st.session_state.selected_spectrum_file = (selected_spec_name, selected_spec_obj)
-
-                        st.info(f"🔧 已选择：波数文件={selected_wn_name} | 光谱数据文件={selected_spec_name}")
-
-                except Exception as e:
-                    st.error(f"❌ 文件夹解析失败: {str(e)}")
-                    st.session_state.folder_files = None
-            else:
-                st.session_state.folder_files = None
-                st.session_state.selected_wavenumber_file = None
-                st.session_state.selected_spectrum_file = None
+            # 保存上传的文件引用
+            if wavenumber_file is not None:
+                st.session_state.uploaded_wavenumber_file = wavenumber_file
+                st.success(f"✅ 已上传波数文件: {wavenumber_file.name}")
+            
+            if spectrum_file is not None:
+                st.session_state.uploaded_spectrum_file = spectrum_file
+                st.success(f"✅ 已上传光谱数据文件: {spectrum_file.name}")
 
             # 样本标签输入
             st.subheader("样本标签", divider="gray")
@@ -1045,9 +998,9 @@ def main():
             # 数据参数
             param_col1, param_col2 = st.columns(2)
             with param_col1:
-                lines = st.number_input("光谱条数", min_value=1, value=1, key="spec_lines")
+                lines = st.number_input("光谱条数", min_value=1, value=1, step=1, key="spec_lines")
             with param_col2:
-                much = st.number_input("数据点数", min_value=1, value=2000, key="data_pts")
+                much = st.number_input("数据点数", min_value=1, value=2000, step=1, key="data_pts")
 
             # 训练测试比例
             train_test_ratio = st.slider(
@@ -1061,22 +1014,28 @@ def main():
             )
             st.session_state.train_test_split_ratio = train_test_ratio
 
-            # 数据加载逻辑
-            if (st.session_state.selected_wavenumber_file and
-                    st.session_state.selected_spectrum_file):
-                _, wn_file_obj = st.session_state.selected_wavenumber_file
-                _, spec_file_obj = st.session_state.selected_spectrum_file
+            # 加载数据按钮
+            if st.button("📥 加载数据", type="primary", key="load_data_btn"):
+                if (st.session_state.uploaded_wavenumber_file is None or 
+                    st.session_state.uploaded_spectrum_file is None):
+                    st.warning("⚠️ 请先上传波数文件和光谱数据文件")
+                    return
 
                 try:
-                    st.session_state.raw_data = file_handler.load_data_from_files(
-                        wn_file_obj, spec_file_obj, lines, much
+                    # 加载数据
+                    wavenumbers, y = file_handler.load_data_from_individual_files(
+                        st.session_state.uploaded_wavenumber_file,
+                        st.session_state.uploaded_spectrum_file,
+                        lines, much
                     )
+                    
+                    st.session_state.raw_data = (wavenumbers, y)
 
                     # 标签处理
                     if labels_input:
                         try:
                             labels = np.array([int(l.strip()) for l in labels_input.split(',')])
-                            n_spectra = st.session_state.raw_data[1].shape[1]
+                            n_spectra = y.shape[1]
                             if len(labels) == n_spectra:
                                 st.session_state.labels = labels
                                 n_samples = len(labels)
@@ -1092,7 +1051,7 @@ def main():
                             st.warning(f"⚠️ 标签格式错误: {str(e)}")
                             st.session_state.labels = None
                     else:
-                        n_spectra = st.session_state.raw_data[1].shape[1]
+                        n_spectra = y.shape[1]
                         st.success(f"✅ 数据加载成功：{n_spectra}条光谱，{much}个数据点")
                         st.warning("⚠️ 请输入样本标签以进行分类测试")
                 except Exception as e:
@@ -1114,9 +1073,9 @@ def main():
         # 使用指南
         with st.expander("ℹ️ 使用指南", expanded=False):
             st.markdown("""
-            1. 上传包含TXT文件的文件夹（至少1个波数文件+1个光谱数据文件）  
-            2. 在文件选择区指定波数文件和光谱数据文件  
-            3. 设置标签和数据参数  
+            1. 分别上传波数文件和光谱数据文件（均为TXT格式）  
+            2. 点击"加载数据"按钮解析文件  
+            3. 设置样本标签和数据参数  
             4. 右侧选择预处理方法并应用排列方案  
             5. 选择k值后点击"测试"  
             6. 中间查看结果并导出
