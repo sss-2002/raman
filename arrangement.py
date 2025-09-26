@@ -5,6 +5,8 @@ import re
 import itertools
 import matplotlib.pyplot as plt
 import math
+import zipfile
+import os
 from sklearn.metrics import accuracy_score, cohen_kappa_score, confusion_matrix
 import seaborn as sns
 from scipy import sparse
@@ -1104,14 +1106,40 @@ def main():
     
     # ===== 文件处理类 =====
     class FileHandler:
-        def load_data(self, wavenumber_file, data_file, lines, much):
-            wavenumbers = np.loadtxt(wavenumber_file).ravel()
-            return wavenumbers, self._getfromone(data_file, lines, much).T 
+        def load_data_from_zip(self, zip_file, lines, much):
+            """从压缩包中加载波数和光谱数据"""
+            with zipfile.ZipFile(zip_file, 'r') as zf:
+                # 列出压缩包中的所有文件
+                file_list = zf.namelist()
+                
+                # 尝试识别波数文件和光谱数据文件
+                wavenumber_files = [f for f in file_list if 'wave' in f.lower() or 'wn' in f.lower() or '波数' in f]
+                data_files = [f for f in file_list if 'spec' in f.lower() or 'data' in f.lower() or '光谱' in f]
+                
+                if not wavenumber_files:
+                    raise ValueError("压缩包中未找到波数文件（通常包含'wave'、'wn'或'波数'）")
+                if not data_files:
+                    raise ValueError("压缩包中未找到光谱数据文件（通常包含'spec'、'data'或'光谱'）")
+                
+                # 取第一个符合条件的文件
+                wn_file = wavenumber_files[0]
+                data_file = data_files[0]
+                
+                # 读取波数文件
+                with zf.open(wn_file) as f:
+                    wavenumbers = np.loadtxt(f).ravel()
+                
+                # 读取光谱数据文件
+                with zf.open(data_file) as f:
+                    content = f.read().decode("utf-8")
+                    data = self._parse_data(content, lines, much)
+                
+                return wavenumbers, data.T
         
-        def _getfromone(self, file, lines, much):
+        def _parse_data(self, content, lines, much):
+            """解析光谱数据内容"""
             numb = re.compile(r"-?\d+(?:\.\d+)?")
             ret = np.zeros((lines, much), dtype=float)
-            content = file.getvalue().decode("utf-8")
             lines_list = content.splitlines()
             con = 0
             
@@ -1141,11 +1169,9 @@ def main():
     # ===== 左侧：数据管理 =====
     with col_left:
         with st.expander("📁 数据管理", expanded=True):
-            # 紧凑排列上传组件
-            wavenumber_file = st.file_uploader("上传波数文件", type=['txt'], label_visibility="collapsed", key="wn_file")
-            st.caption("波数文件(.txt)")
-            uploaded_file = st.file_uploader("上传光谱数据文件", type=['txt'], label_visibility="collapsed", key="spec_file")
-            st.caption("光谱数据文件(.txt)")
+            # 改为上传文件夹压缩包
+            zip_file = st.file_uploader("上传包含波数和光谱数据的压缩包", type=['zip'], label_visibility="collapsed", key="zip_file")
+            st.caption("压缩包(.zip)需包含波数和光谱数据文件")
             
             # 紧凑标签输入
             st.subheader("样本标签", divider="gray")
@@ -1175,11 +1201,11 @@ def main():
             )
             st.session_state.train_test_split_ratio = train_test_ratio
     
-            # 数据加载逻辑
-            if uploaded_file and wavenumber_file:
+            # 数据加载逻辑（修改为从压缩包加载）
+            if zip_file:
                 try:
-                    st.session_state.raw_data = file_handler.load_data(
-                        wavenumber_file, uploaded_file, lines, much
+                    st.session_state.raw_data = file_handler.load_data_from_zip(
+                        zip_file, lines, much
                     )
                     
                     # 处理标签
@@ -1220,7 +1246,7 @@ def main():
         # 使用说明（精简）
         with st.expander("ℹ️ 使用指南", expanded=False):
             st.markdown("""
-            1. 上传波数+光谱文件  
+            1. 上传包含波数和光谱数据的压缩包  
             2. 设置标签和数据参数  
             3. 右侧选择预处理方法  
             4. 点击"显示排列"生成方案  
@@ -1847,3 +1873,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
