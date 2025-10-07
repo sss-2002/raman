@@ -609,7 +609,7 @@ def main():
     # 页面整体布局：左侧数据管理，右侧主要内容区
     col_left, col_right = st.columns([1.2, 3.9])
     
-    # ===== 左侧：数据管理模块（保持最初形式不变）=====
+    # ===== 左侧：数据管理模块（移除光谱条数和数据点数）=====
     with col_left:
         with st.expander("📁 数据管理", expanded=True):
             # 上传文件夹压缩包
@@ -625,11 +625,6 @@ def main():
                 key="labels_in"
             )
             
-            # 数据参数
-            st.subheader("数据参数")
-            lines = st.number_input("光谱条数", min_value=1, value=1, key="spec_lines")
-            much = st.number_input("数据点数", min_value=1, value=2000, key="data_pts")
-
             # 训练测试比例
             st.subheader("训练测试划分")
             train_test_ratio = st.slider(
@@ -647,7 +642,7 @@ def main():
             if zip_file:
                 try:
                     st.session_state.raw_data = file_handler.load_data_from_zip(
-                        zip_file, lines, much
+                        zip_file
                     )
                     
                     # 处理标签
@@ -661,7 +656,7 @@ def main():
                                 indices = np.random.permutation(n_samples)
                                 st.session_state.train_indices = indices[:train_size]
                                 st.session_state.test_indices = indices[train_size:]
-                                st.success(f"✅ 数据加载成功：{lines}条光谱，{len(np.unique(labels))}类")
+                                st.success(f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{len(np.unique(labels))}类")
                             else:
                                 st.warning(f"⚠️ 标签数({len(labels)})≠光谱数({st.session_state.raw_data[1].shape[1]})")
                                 st.session_state.labels = None
@@ -669,7 +664,7 @@ def main():
                             st.warning(f"⚠️ 标签格式错误: {str(e)}")
                             st.session_state.labels = None
                     else:
-                        st.success(f"✅ 数据加载成功：{lines}条光谱，{much}个点")
+                        st.success(f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{st.session_state.raw_data[1].shape[0]}个点")
                         st.warning("⚠️ 请输入样本标签以进行分类测试")
                 except Exception as e:
                     st.error(f"❌ 文件加载失败: {str(e)}")
@@ -689,7 +684,7 @@ def main():
         with st.expander("ℹ️ 使用指南", expanded=False):
             st.markdown("""
             1. 上传包含波数和光谱数据的压缩包  
-            2. 设置标签和数据参数  
+            2. 设置标签和训练测试比例  
             3. 右侧上方选择预处理方法  
             4. 点击"显示排列"生成方案  
             5. 选择k值后点击"测试"  
@@ -1790,8 +1785,8 @@ def main():
     
     # ===== 文件处理类 =====
     class FileHandler:
-        def load_data_from_zip(self, zip_file, lines, much):
-            """从压缩包中加载波数和光谱数据"""
+        def load_data_from_zip(self, zip_file):
+            """从压缩包中加载波数和光谱数据，自动识别数据维度"""
             with zipfile.ZipFile(zip_file, 'r') as zf:
                 # 列出压缩包中的所有文件
                 file_list = zf.namelist()
@@ -1816,27 +1811,37 @@ def main():
                 # 读取光谱数据文件
                 with zf.open(data_file) as f:
                     content = f.read().decode("utf-8")
-                    data = self._parse_data(content, lines, much)
+                    data = self._parse_data(content)
                 
                 return wavenumbers, data.T
         
-        def _parse_data(self, content, lines, much):
-            """解析光谱数据内容"""
+        def _parse_data(self, content):
+            """解析光谱数据内容，自动识别数据维度"""
             numb = re.compile(r"-?\d+(?:\.\d+)?")
-            ret = np.zeros((lines, much), dtype=float)
             lines_list = content.splitlines()
-            con = 0
             
+            # 提取所有数字
+            all_numbers = []
             for line in lines_list:
-                if con >= much:
-                    break
-                    
-                li = numb.findall(line)
-                for i in range(min(lines, len(li))):
-                    ret[i][con] = float(li[i])
-                con += 1
-                
-            return ret
+                all_numbers.extend(numb.findall(line))
+            
+            # 尝试确定数据形状
+            # 假设波数长度为数据点数
+            # 光谱条数 = 总数据点 / 数据点数
+            # 这里先简单处理为二维数组
+            data = np.array([float(num) for num in all_numbers])
+            
+            # 尝试合理的形状（假设每行数据点大致相等）
+            # 先按行数划分
+            n_rows = len(lines_list)
+            n_cols = len(data) // n_rows if n_rows > 0 else 0
+            
+            if n_cols * n_rows != len(data):
+                # 如果无法完美划分，调整最后一行
+                n_cols = len(data) // n_rows + 1
+                data = data[:n_rows * n_cols]  # 截断多余数据
+            
+            return data.reshape(n_rows, n_cols)
         
         def export_data(self, filename, data):
             with open(filename, "w") as f:
