@@ -549,6 +549,78 @@ def SGfilter(Intensity, point, degree):  # 输入均为行
     return sgsmooth
 
 
+# 生成排列时不包含编号 - 提前定义此函数以避免引用错误
+def generate_permutations(algorithms):
+    """生成完整的算法排列组合，排列名称不包含编号"""
+    # 为四种算法分配编号1-4（二阶差分归类到基线校准中）
+    algorithm_list = [
+        (1, "基线校准", algorithms['baseline']),
+        (2, "缩放", algorithms['scaling']),
+        (3, "滤波", algorithms['filtering']),
+        (4, "挤压", algorithms['squashing'])
+    ]
+    
+    all_permutations = []
+    
+    # 0. 添加"无预处理（原始光谱）"选项（1种）
+    all_permutations.append([])  # 空列表表示不使用任何算法
+    
+    # 1. 生成使用1种算法的排列
+    for algo in algorithm_list:
+        if algo[2] != "无":  # 只包含已选择的算法
+            all_permutations.append([algo])
+    
+    # 2. 生成使用2种算法的排列
+    for perm in itertools.permutations(algorithm_list, 2):
+        # 确保两种算法都已选择
+        if perm[0][2] != "无" and perm[1][2] != "无":
+            all_permutations.append(list(perm))
+    
+    # 3. 生成使用3种算法的排列
+    for perm in itertools.permutations(algorithm_list, 3):
+        # 确保三种算法都已选择
+        if perm[0][2] != "无" and perm[1][2] != "无" and perm[2][2] != "无":
+            all_permutations.append(list(perm))
+    
+    # 4. 生成使用4种算法的排列
+    for perm in itertools.permutations(algorithm_list, 4):
+        # 确保四种算法都已选择
+        if (perm[0][2] != "无" and perm[1][2] != "无" and 
+            perm[2][2] != "无" and perm[3][2] != "无"):
+            all_permutations.append(list(perm))
+    
+    # 格式化排列结果，确保每种排列都有first_step_type，且名称不包含编号
+    formatted_perms = []
+    for i, perm in enumerate(all_permutations):
+        # 初始化默认值，确保属性存在
+        perm_dict = {
+            "name": "",
+            "order": [],
+            "details": perm,
+            "count": len(perm),
+            "first_step_type": "未知"  # 默认值，确保属性存在
+        }
+        
+        if not perm:  # 无预处理情况
+            perm_dict["name"] = "无预处理（原始光谱）"
+            perm_dict["first_step_type"] = "无预处理"
+        else:
+            # 获取第一步算法的类型名称
+            first_step_type = perm[0][1] if perm and len(perm) > 0 else "未知"
+            perm_dict["first_step_type"] = first_step_type
+            
+            # 生成排列名称，不包含编号
+            perm_details = []
+            for step in perm:
+                perm_details.append(f"{step[0]}.{step[1]}({step[2]})")
+            perm_dict["name"] = " → ".join(perm_details)
+            perm_dict["order"] = [step[0] for step in perm]
+        
+        formatted_perms.append(perm_dict)
+    
+    return formatted_perms
+
+
 def main():
     # 最优先初始化session state
     if 'show_arrangements' not in st.session_state:
@@ -1387,77 +1459,6 @@ def main():
                     squashed[j] = np.mean(squashed[start:end])
             result[:, i] = squashed
         return result
-    
-    # 生成排列时不包含编号
-    def generate_permutations(algorithms):
-        """生成完整的算法排列组合，排列名称不包含编号"""
-        # 为四种算法分配编号1-4（二阶差分归类到基线校准中）
-        algorithm_list = [
-            (1, "基线校准", algorithms['baseline']),
-            (2, "缩放", algorithms['scaling']),
-            (3, "滤波", algorithms['filtering']),
-            (4, "挤压", algorithms['squashing'])
-        ]
-        
-        all_permutations = []
-        
-        # 0. 添加"无预处理（原始光谱）"选项（1种）
-        all_permutations.append([])  # 空列表表示不使用任何算法
-        
-        # 1. 生成使用1种算法的排列
-        for algo in algorithm_list:
-            if algo[2] != "无":  # 只包含已选择的算法
-                all_permutations.append([algo])
-        
-        # 2. 生成使用2种算法的排列
-        for perm in itertools.permutations(algorithm_list, 2):
-            # 确保两种算法都已选择
-            if perm[0][2] != "无" and perm[1][2] != "无":
-                all_permutations.append(list(perm))
-        
-        # 3. 生成使用3种算法的排列
-        for perm in itertools.permutations(algorithm_list, 3):
-            # 确保三种算法都已选择
-            if perm[0][2] != "无" and perm[1][2] != "无" and perm[2][2] != "无":
-                all_permutations.append(list(perm))
-        
-        # 4. 生成使用4种算法的排列
-        for perm in itertools.permutations(algorithm_list, 4):
-            # 确保四种算法都已选择
-            if (perm[0][2] != "无" and perm[1][2] != "无" and 
-                perm[2][2] != "无" and perm[3][2] != "无"):
-                all_permutations.append(list(perm))
-        
-        # 格式化排列结果，确保每种排列都有first_step_type，且名称不包含编号
-        formatted_perms = []
-        for i, perm in enumerate(all_permutations):
-            # 初始化默认值，确保属性存在
-            perm_dict = {
-                "name": "",
-                "order": [],
-                "details": perm,
-                "count": len(perm),
-                "first_step_type": "未知"  # 默认值，确保属性存在
-            }
-            
-            if not perm:  # 无预处理情况
-                perm_dict["name"] = "无预处理（原始光谱）"
-                perm_dict["first_step_type"] = "无预处理"
-            else:
-                # 获取第一步算法的类型名称
-                first_step_type = perm[0][1] if perm and len(perm) > 0 else "未知"
-                perm_dict["first_step_type"] = first_step_type
-                
-                # 生成排列名称，不包含编号
-                perm_details = []
-                for step in perm:
-                    perm_details.append(f"{step[0]}.{step[1]}({step[2]})")
-                perm_dict["name"] = " → ".join(perm_details)
-                perm_dict["order"] = [step[0] for step in perm]
-            
-            formatted_perms.append(perm_dict)
-        
-        return formatted_perms
     
     # ===== 分类算法实现 =====
     def knn_classify(train_data, train_labels, test_data, k=5):
