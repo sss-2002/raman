@@ -579,7 +579,7 @@ def main():
     }
     
     # 合并所有状态变量并初始化
-    all_states = {**test_states,** other_states}
+    all_states = {** test_states, **other_states}
     for key, value in all_states.items():
         if key not in st.session_state:
             st.session_state[key] = value
@@ -713,7 +713,7 @@ def main():
                 label_visibility="collapsed"
             )
 
-            # 基线参数
+            # 基线参数（使用简单的条件显示，避免列嵌套）
             baseline_params = {}
             if baseline_method != "无":
                 if baseline_method == "多项式拟合":
@@ -737,20 +737,16 @@ def main():
                     baseline_params["lam"] = lam
                     st.caption(f"λ: {lam}")
                 elif baseline_method == "AsLS":
-                    asls_cols = st.columns(2, gap="small")
-                    with asls_cols[0]:
-                        p = st.selectbox("非对称系数p", [0.001, 0.01, 0.1], key="p_asls", label_visibility="collapsed")
-                    with asls_cols[1]:
-                        lam = st.selectbox("平滑系数λ", [10**5, 10**7, 10**9], key="lam_asls", label_visibility="collapsed")
+                    # 避免列嵌套，使用普通布局
+                    p = st.selectbox("非对称系数p", [0.001, 0.01, 0.1], key="p_asls", label_visibility="collapsed")
+                    lam = st.selectbox("平滑系数λ", [10**5, 10**7, 10**9], key="lam_asls", label_visibility="collapsed")
                     niter = st.selectbox("迭代次数", [5, 10, 15], key="niter_asls", label_visibility="collapsed")
                     baseline_params["lam"] = lam
                     baseline_params["p"] = p
                     baseline_params["niter"] = niter
                     st.caption(f"p: {p}, λ: {lam}, 迭代次数: {niter}")
                 elif baseline_method == "airPLS":
-                    airpls_cols = st.columns(2, gap="small")
-                    with airpls_cols[0]:
-                        lam = st.selectbox("λ", [10**7, 10**4, 10**2], key="lam_air", label_visibility="collapsed")
+                    lam = st.selectbox("λ", [10**7, 10**4, 10**2], key="lam_air", label_visibility="collapsed")
                     baseline_params["lam"] = lam
                     st.caption(f"λ: {lam}")
                 elif baseline_method == "二阶差分(D2)":  # 二阶差分参数说明
@@ -787,43 +783,32 @@ def main():
                 label_visibility="collapsed"
             )
 
-            # 滤波参数
+            # 滤波参数（避免列嵌套）
             filtering_params = {}
             if filtering_method != "无":
                 if filtering_method in ["Savitzky-Golay", "sgolayfilt滤波器"]:
-                    sg_cols = st.columns(2, gap="small")
-                    with sg_cols[0]:
-                        k = st.selectbox("多项式阶数", [3, 7], key="k_sg", label_visibility="collapsed")
-                    with sg_cols[1]:
-                        w = st.selectbox("窗口大小", [11, 31, 51], key="w_sg", label_visibility="collapsed")
+                    # 避免列嵌套，使用垂直布局
+                    k = st.selectbox("多项式阶数", [3, 7], key="k_sg", label_visibility="collapsed")
+                    w = st.selectbox("窗口大小", [11, 31, 51], key="w_sg", label_visibility="collapsed")
                     filtering_params["point"] = w
                     filtering_params["degree"] = k
                     st.caption(f"阶数: {k}, 窗口: {w}")
                 elif filtering_method in ["中值滤波(MF)", "移动平均(MAF)"]:
-                    mf_cols = st.columns(2, gap="small")
-                    with mf_cols[0]:
-                        k = st.selectbox("k", [1, 3], key="k_mf", label_visibility="collapsed")
-                    with mf_cols[1]:
-                        w = st.selectbox("w", [7, 11], key="w_mf", label_visibility="collapsed")
+                    k = st.selectbox("k", [1, 3], key="k_mf", label_visibility="collapsed")
+                    w = st.selectbox("w", [7, 11], key="w_mf", label_visibility="collapsed")
                     filtering_params["k"] = k
                     filtering_params["w"] = w
                     st.caption(f"k: {k}, w: {w}")
                 elif filtering_method == "MWA（移动窗口平均）":
-                    mwa_cols = st.columns(2, gap="small")
-                    with mwa_cols[0]:
-                        n = st.selectbox("窗口大小n", [4, 6, 8], key="n_mwa", label_visibility="collapsed")
-                    with mwa_cols[1]:
-                        it = st.selectbox("迭代次数it", [1, 2, 3], key="it_mwa", label_visibility="collapsed")
+                    n = st.selectbox("窗口大小n", [4, 6, 8], key="n_mwa", label_visibility="collapsed")
+                    it = st.selectbox("迭代次数it", [1, 2, 3], key="it_mwa", label_visibility="collapsed")
                     filtering_params["n"] = n
                     filtering_params["it"] = it
                     filtering_params["mode"] = "full"
                     st.caption(f"窗口大小: {n}, 迭代次数: {it}")
                 elif filtering_method == "MWM（移动窗口中值）":
-                    mwm_cols = st.columns(2, gap="small")
-                    with mwm_cols[0]:
-                        n = st.selectbox("窗口大小n", [5, 7, 9], key="n_mwm", label_visibility="collapsed")
-                    with mwm_cols[1]:
-                        it = st.selectbox("迭代次数it", [1, 2, 3], key="it_mwm", label_visibility="collapsed")
+                    n = st.selectbox("窗口大小n", [5, 7, 9], key="n_mwm", label_visibility="collapsed")
+                    it = st.selectbox("迭代次数it", [1, 2, 3], key="it_mwm", label_visibility="collapsed")
                     filtering_params["n"] = n
                     filtering_params["it"] = it
                     st.caption(f"窗口大小: {n}, 迭代次数: {it}")
@@ -872,12 +857,9 @@ def main():
                     squashing_params["maxn"] = maxn
                     st.caption(f"maxn: {maxn}")
                 elif squashing_method == "DTW挤压":
-                    dtw_row1 = st.columns(2, gap="small")
-                    with dtw_row1[0]:
-                        l = st.selectbox("l", [1, 5], key="l_dtw", label_visibility="collapsed")
-                    with dtw_row1[1]:
-                        k1 = st.selectbox("k1", ["T", "F"], key="k1_dtw", label_visibility="collapsed")
-                    
+                    # 避免列嵌套，使用垂直布局
+                    l = st.selectbox("l", [1, 5], key="l_dtw", label_visibility="collapsed")
+                    k1 = st.selectbox("k1", ["T", "F"], key="k1_dtw", label_visibility="collapsed")
                     k2 = st.selectbox("k2", ["T", "F"], key="k2_dtw", label_visibility="collapsed")
                     
                     squashing_params["l"] = l
@@ -894,76 +876,73 @@ def main():
         # 5. 操作按钮（第五列，与四种算法在同一行）
         with preprocess_cols[4]:
             st.subheader("操作")
-            # 应用处理与推荐应用按钮
-            btn_cols = st.columns(2, gap="small")
-            with btn_cols[0]:
-                if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
-                    if st.session_state.raw_data is None:
-                        st.warning("⚠️ 请先上传数据")
-                    else:
-                        try:
-                            wavenumbers, y = st.session_state.raw_data
-                            processed_data, method_name = preprocessor.process(
-                                wavenumbers, y, 
-                                baseline_method=baseline_method,
-                                baseline_params=baseline_params,
-                                squashing_method=squashing_method,
-                                squashing_params=squashing_params,
-                                filtering_method=filtering_method,
-                                filtering_params=filtering_params,
-                                scaling_method=scaling_method,
-                                scaling_params=scaling_params
-                            )
-                            
-                            arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
-                            st.session_state.arrangement_results.append(arr_name)
-                            st.session_state.arrangement_details[arr_name] = {
-                                'data': processed_data,
-                                'method': " → ".join(method_name),
-                                'params': current_algorithms
-                            }
-                            st.session_state.selected_arrangement = arr_name
-                            st.session_state.processed_data = (wavenumbers, processed_data)
-                            st.session_state.process_method = " → ".join(method_name)
-                            st.success(f"✅ 处理完成")
-                        except Exception as e:
-                            st.error(f"❌ 处理失败: {str(e)}")
+            # 应用处理与推荐应用按钮（避免列嵌套）
+            if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
+                if st.session_state.raw_data is None:
+                    st.warning("⚠️ 请先上传数据")
+                else:
+                    try:
+                        wavenumbers, y = st.session_state.raw_data
+                        processed_data, method_name = preprocessor.process(
+                            wavenumbers, y, 
+                            baseline_method=baseline_method,
+                            baseline_params=baseline_params,
+                            squashing_method=squashing_method,
+                            squashing_params=squashing_params,
+                            filtering_method=filtering_method,
+                            filtering_params=filtering_params,
+                            scaling_method=scaling_method,
+                            scaling_params=scaling_params
+                        )
+                        
+                        arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
+                        st.session_state.arrangement_results.append(arr_name)
+                        st.session_state.arrangement_details[arr_name] = {
+                            'data': processed_data,
+                            'method': " → ".join(method_name),
+                            'params': current_algorithms
+                        }
+                        st.session_state.selected_arrangement = arr_name
+                        st.session_state.processed_data = (wavenumbers, processed_data)
+                        st.session_state.process_method = " → ".join(method_name)
+                        st.success(f"✅ 处理完成")
+                    except Exception as e:
+                        st.error(f"❌ 处理失败: {str(e)}")
             
-            with btn_cols[1]:
-                if st.button("🌟 推荐应用", type="primary", use_container_width=True, key="recommend_btn"):
-                    if st.session_state.raw_data is None:
-                        st.warning("⚠️ 请先上传数据")
-                    else:
-                        try:
-                            wavenumbers, y = st.session_state.raw_data
-                            recommended_params = {
-                                'baseline_method': "二阶差分(D2)",
-                                'baseline_params': {},
-                                'scaling_method': "标准化(均值0，方差1)",
-                                'scaling_params': {},
-                                'filtering_method': "小波线性阈值去噪",
-                                'filtering_params': {'threshold': 0.3},
-                                'squashing_method': "余弦挤压(squashing)",
-                                'squashing_params': {}
-                            }
-                            
-                            processed_data, method_name = preprocessor.process(
-                                wavenumbers, y,** recommended_params
-                            )
-                            
-                            arr_name = f"推荐排列_{len(st.session_state.arrangement_results) + 1}"
-                            st.session_state.arrangement_results.append(arr_name)
-                            st.session_state.arrangement_details[arr_name] = {
-                                'data': processed_data,
-                                'method': " → ".join(method_name),
-                                'params': recommended_params
-                            }
-                            st.session_state.selected_arrangement = arr_name
-                            st.session_state.processed_data = (wavenumbers, processed_data)
-                            st.session_state.process_method = " → ".join(method_name)
-                            st.success(f"✅ 推荐处理完成")
-                        except Exception as e:
-                            st.error(f"❌ 推荐失败: {str(e)}")
+            if st.button("🌟 推荐应用", type="primary", use_container_width=True, key="recommend_btn"):
+                if st.session_state.raw_data is None:
+                    st.warning("⚠️ 请先上传数据")
+                else:
+                    try:
+                        wavenumbers, y = st.session_state.raw_data
+                        recommended_params = {
+                            'baseline_method': "二阶差分(D2)",
+                            'baseline_params': {},
+                            'scaling_method': "标准化(均值0，方差1)",
+                            'scaling_params': {},
+                            'filtering_method': "小波线性阈值去噪",
+                            'filtering_params': {'threshold': 0.3},
+                            'squashing_method': "余弦挤压(squashing)",
+                            'squashing_params': {}
+                        }
+                        
+                        processed_data, method_name = preprocessor.process(
+                            wavenumbers, y,** recommended_params
+                        )
+                        
+                        arr_name = f"推荐排列_{len(st.session_state.arrangement_results) + 1}"
+                        st.session_state.arrangement_results.append(arr_name)
+                        st.session_state.arrangement_details[arr_name] = {
+                            'data': processed_data,
+                            'method': " → ".join(method_name),
+                            'params': recommended_params
+                        }
+                        st.session_state.selected_arrangement = arr_name
+                        st.session_state.processed_data = (wavenumbers, processed_data)
+                        st.session_state.process_method = " → ".join(method_name)
+                        st.success(f"✅ 推荐处理完成")
+                    except Exception as e:
+                        st.error(f"❌ 推荐失败: {str(e)}")
             
             # 显示排列按钮
             if st.button("🔍 显示排列", type="secondary", use_container_width=True, key="show_perm_btn"):
@@ -1073,20 +1052,19 @@ def main():
                 
                 # 分类测试（紧凑显示）
                 st.subheader("📝 分类测试")
-                k_cols = st.columns([2, 1], gap="small")
-                with k_cols[0]:
-                    k_value = st.number_input(
-                        "k值", 
-                        min_value=1, 
-                        value=st.session_state.k_value,
-                        step=1,
-                        key="k_input",
-                        label_visibility="collapsed"
-                    )
-                with k_cols[1]:
-                    if st.button("确定", type="secondary", use_container_width=True, key="k_confirm_btn"):
-                        st.session_state.k_value = k_value
-                        st.success(f"k={k_value}")
+                # 避免列嵌套，使用垂直布局
+                k_value = st.number_input(
+                    "k值", 
+                    min_value=1, 
+                    value=st.session_state.k_value,
+                    step=1,
+                    key="k_input",
+                    label_visibility="collapsed"
+                )
+                
+                if st.button("确定k值", type="secondary", use_container_width=True, key="k_confirm_btn"):
+                    st.session_state.k_value = k_value
+                    st.success(f"k={k_value}")
                 
                 # 测试按钮
                 if st.button("测试", type="primary", use_container_width=True, key="test_btn"):
