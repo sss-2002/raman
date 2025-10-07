@@ -700,8 +700,9 @@ def main():
     with col_right:
         # ===== 预处理设置（横向排列在光谱可视化上方，与四种算法在同一行）=====
         st.subheader("⚙️ 预处理设置", divider="gray")
-        # 使用5列布局确保四种算法和操作在同一行
-        preprocess_cols = st.columns(5, gap="small")
+        
+        # 使用9列布局：4个算法列 + 5个操作相关列，确保所有内容横向排列
+        preprocess_cols = st.columns([1, 1, 1, 1, 1.2, 1.2, 1.2, 1.2, 1.2], gap="small")
         
         # 1. 基线校准（第一列）
         with preprocess_cols[0]:
@@ -713,7 +714,7 @@ def main():
                 label_visibility="collapsed"
             )
 
-            # 基线参数（使用简单的条件显示，避免列嵌套）
+            # 基线参数
             baseline_params = {}
             if baseline_method != "无":
                 if baseline_method == "多项式拟合":
@@ -737,7 +738,6 @@ def main():
                     baseline_params["lam"] = lam
                     st.caption(f"λ: {lam}")
                 elif baseline_method == "AsLS":
-                    # 避免列嵌套，使用普通布局
                     p = st.selectbox("非对称系数p", [0.001, 0.01, 0.1], key="p_asls", label_visibility="collapsed")
                     lam = st.selectbox("平滑系数λ", [10**5, 10**7, 10**9], key="lam_asls", label_visibility="collapsed")
                     niter = st.selectbox("迭代次数", [5, 10, 15], key="niter_asls", label_visibility="collapsed")
@@ -783,11 +783,10 @@ def main():
                 label_visibility="collapsed"
             )
 
-            # 滤波参数（避免列嵌套）
+            # 滤波参数
             filtering_params = {}
             if filtering_method != "无":
                 if filtering_method in ["Savitzky-Golay", "sgolayfilt滤波器"]:
-                    # 避免列嵌套，使用垂直布局
                     k = st.selectbox("多项式阶数", [3, 7], key="k_sg", label_visibility="collapsed")
                     w = st.selectbox("窗口大小", [11, 31, 51], key="w_sg", label_visibility="collapsed")
                     filtering_params["point"] = w
@@ -857,7 +856,6 @@ def main():
                     squashing_params["maxn"] = maxn
                     st.caption(f"maxn: {maxn}")
                 elif squashing_method == "DTW挤压":
-                    # 避免列嵌套，使用垂直布局
                     l = st.selectbox("l", [1, 5], key="l_dtw", label_visibility="collapsed")
                     k1 = st.selectbox("k1", ["T", "F"], key="k1_dtw", label_visibility="collapsed")
                     k2 = st.selectbox("k2", ["T", "F"], key="k2_dtw", label_visibility="collapsed")
@@ -873,10 +871,11 @@ def main():
                 elif squashing_method == "逻辑函数":
                     st.caption("无额外参数")
 
-        # 5. 操作按钮（第五列，与四种算法在同一行）
+        # 5-9列：操作相关内容（横向排列在四个预处理算法后面）
+        # 5. 应用处理按钮
         with preprocess_cols[4]:
-            st.subheader("操作")
-            # 应用处理与推荐应用按钮（避免列嵌套）
+            st.subheader("操作1")
+            # 应用处理与推荐应用按钮
             if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
                 if st.session_state.raw_data is None:
                     st.warning("⚠️ 请先上传数据")
@@ -943,7 +942,10 @@ def main():
                         st.success(f"✅ 推荐处理完成")
                     except Exception as e:
                         st.error(f"❌ 推荐失败: {str(e)}")
-            
+
+        # 6. 显示排列与筛选
+        with preprocess_cols[5]:
+            st.subheader("操作2")
             # 显示排列按钮
             if st.button("🔍 显示排列", type="secondary", use_container_width=True, key="show_perm_btn"):
                 st.session_state.show_arrangements = not st.session_state.show_arrangements
@@ -965,8 +967,6 @@ def main():
             
             # 排列方案选择（紧凑显示）
             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
-                st.subheader("🔄 排列方案")
-                
                 # 第一步类型筛选
                 try:
                     all_first_step_types = list({
@@ -993,125 +993,135 @@ def main():
                         p for p in st.session_state.algorithm_permutations 
                         if p.get("first_step_type") == selected_first_step
                     ]
-                
-                # 排列下拉框
-                if st.session_state.filtered_perms:
-                    st.session_state.selected_perm_idx = st.selectbox(
-                        f"选择方案（共{len(st.session_state.filtered_perms)}种）",
-                        range(len(st.session_state.filtered_perms)),
-                        format_func=lambda x: st.session_state.filtered_perms[x].get("name", f"方案{x+1}"),
-                        key="perm_select",
-                        label_visibility="collapsed",
-                        help="选择预处理算法顺序"
-                    )
-                    
-                    # 应用排列按钮
-                    try:
-                        selected_perm = st.session_state.filtered_perms[st.session_state.selected_perm_idx]
-                        st.caption(f"当前: {selected_perm.get('name', '未知')}")
-                        
-                        if st.button("✅ 应用方案", type="primary", use_container_width=True, key="apply_perm_btn"):
-                            if st.session_state.raw_data is None:
-                                st.warning("⚠️ 请先上传数据")
-                            else:
-                                try:
-                                    wavenumbers, y = st.session_state.raw_data
-                                    algos = st.session_state.current_algorithms
-                                    
-                                    processed_data, method_name = preprocessor.process(
-                                        wavenumbers, y, 
-                                        baseline_method=algos['baseline'],
-                                        baseline_params=algos['baseline_params'],
-                                        squashing_method=algos['squashing'],
-                                        squashing_params=algos['squashing_params'],
-                                        filtering_method=algos['filtering'],
-                                        filtering_params=algos['filtering_params'],
-                                        scaling_method=algos['scaling'],
-                                        scaling_params=algos['scaling_params'],
-                                        algorithm_order=selected_perm.get('order', [])
-                                    )
-                                    
-                                    arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
-                                    st.session_state.arrangement_results.append(arr_name)
-                                    st.session_state.arrangement_details[arr_name] = {
-                                        'data': processed_data,
-                                        'method': " → ".join(method_name),
-                                        'order': selected_perm.get('order', []),
-                                        'params': algos
-                                    }
-                                    st.session_state.selected_arrangement = arr_name
-                                    st.session_state.processed_data = (wavenumbers, processed_data)
-                                    st.session_state.process_method = " → ".join(method_name)
-                                    st.success(f"✅ 方案应用完成")
-                                except Exception as e:
-                                    st.error(f"❌ 应用失败: {str(e)}")
-                    except Exception as e:
-                        st.error(f"❌ 方案处理错误: {str(e)}")
-                else:
-                    st.info("ℹ️ 无符合条件的方案")
-                
-                # 分类测试（紧凑显示）
-                st.subheader("📝 分类测试")
-                # 避免列嵌套，使用垂直布局
-                k_value = st.number_input(
-                    "k值", 
-                    min_value=1, 
-                    value=st.session_state.k_value,
-                    step=1,
-                    key="k_input",
-                    label_visibility="collapsed"
+
+        # 7. 排列选择与应用
+        with preprocess_cols[6]:
+            st.subheader("操作3")
+            # 排列下拉框
+            if st.session_state.show_arrangements and st.session_state.filtered_perms:
+                st.session_state.selected_perm_idx = st.selectbox(
+                    f"选择方案（共{len(st.session_state.filtered_perms)}种）",
+                    range(len(st.session_state.filtered_perms)),
+                    format_func=lambda x: st.session_state.filtered_perms[x].get("name", f"方案{x+1}"),
+                    key="perm_select",
+                    label_visibility="collapsed",
+                    help="选择预处理算法顺序"
                 )
                 
-                if st.button("确定k值", type="secondary", use_container_width=True, key="k_confirm_btn"):
-                    st.session_state.k_value = k_value
-                    st.success(f"k={k_value}")
-                
-                # 测试按钮
-                if st.button("测试", type="primary", use_container_width=True, key="test_btn"):
-                    if st.session_state.raw_data is None:
-                        st.warning("⚠️ 请先上传数据")
-                    elif st.session_state.selected_arrangement is None:
-                        st.warning("⚠️ 请先应用排列方案")
-                    elif st.session_state.labels is None:
-                        st.warning("⚠️ 请先输入标签")
-                    elif st.session_state.train_indices is None:
-                        st.warning("⚠️ 无法划分训练集")
-                    else:
-                        try:
-                            selected_arr = st.session_state.selected_arrangement
-                            processed_data = st.session_state.arrangement_details[selected_arr]['data']
-                            train_idx = st.session_state.train_indices
-                            test_idx = st.session_state.test_indices
-                            
-                            train_data = processed_data[:, train_idx]
-                            test_data = processed_data[:, test_idx]
-                            train_labels = st.session_state.labels[train_idx]
-                            test_labels = st.session_state.labels[test_idx]
-                            
-                            with st.spinner("测试中..."):
-                                predictions = knn_classify(
-                                    train_data, 
-                                    train_labels, 
-                                    test_data, 
-                                    k=st.session_state.k_value
+                # 应用排列按钮
+                try:
+                    selected_perm = st.session_state.filtered_perms[st.session_state.selected_perm_idx]
+                    st.caption(f"当前: {selected_perm.get('name', '未知')}")
+                    
+                    if st.button("✅ 应用方案", type="primary", use_container_width=True, key="apply_perm_btn"):
+                        if st.session_state.raw_data is None:
+                            st.warning("⚠️ 请先上传数据")
+                        else:
+                            try:
+                                wavenumbers, y = st.session_state.raw_data
+                                algos = st.session_state.current_algorithms
+                                
+                                processed_data, method_name = preprocessor.process(
+                                    wavenumbers, y, 
+                                    baseline_method=algos['baseline'],
+                                    baseline_params=algos['baseline_params'],
+                                    squashing_method=algos['squashing'],
+                                    squashing_params=algos['squashing_params'],
+                                    filtering_method=algos['filtering'],
+                                    filtering_params=algos['filtering_params'],
+                                    scaling_method=algos['scaling'],
+                                    scaling_params=algos['scaling_params'],
+                                    algorithm_order=selected_perm.get('order', [])
                                 )
-                            
-                            accuracy = accuracy_score(test_labels, predictions)
-                            kappa = cohen_kappa_score(test_labels, predictions)
-                            cm = confusion_matrix(test_labels, predictions)
-                            
-                            st.session_state.test_results = {
-                                'accuracy': accuracy,
-                                'kappa': kappa,
-                                'confusion_matrix': cm,
-                                'predictions': predictions,
-                                'test_labels': test_labels
-                            }
-                            
-                            st.success("✅ 测试完成！结果在下方")
-                            
-                        except Exception as e:
-                            st.error(f"❌ 测试失败: {str(e)}")
+                                
+                                arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
+                                st.session_state.arrangement_results.append(arr_name)
+                                st.session_state.arrangement_details[arr_name] = {
+                                    'data': processed_data,
+                                    'method': " → ".join(method_name),
+                                    'order': selected_perm.get('order', []),
+                                    'params': algos
+                                }
+                                st.session_state.selected_arrangement = arr_name
+                                st.session_state.processed_data = (wavenumbers, processed_data)
+                                st.session_state.process_method = " → ".join(method_name)
+                                st.success(f"✅ 方案应用完成")
+                            except Exception as e:
+                                st.error(f"❌ 应用失败: {str(e)}")
+                except Exception as e:
+                    st.error(f"❌ 方案处理错误: {str(e)}")
+            else:
+                if st.session_state.show_arrangements:
+                    st.info("ℹ️ 无符合条件的方案")
+
+        # 8. 分类测试参数
+        with preprocess_cols[7]:
+            st.subheader("操作4")
+            # 分类测试（紧凑显示）
+            st.subheader("📝 分类测试")
+            # k值设置
+            k_value = st.number_input(
+                "k值", 
+                min_value=1, 
+                value=st.session_state.k_value,
+                step=1,
+                key="k_input",
+                label_visibility="collapsed"
+            )
+            
+            if st.button("确定k值", type="secondary", use_container_width=True, key="k_confirm_btn"):
+                st.session_state.k_value = k_value
+                st.success(f"k={k_value}")
+
+        # 9. 测试按钮
+        with preprocess_cols[8]:
+            st.subheader("操作5")
+            # 测试按钮
+            if st.button("测试", type="primary", use_container_width=True, key="test_btn"):
+                if st.session_state.raw_data is None:
+                    st.warning("⚠️ 请先上传数据")
+                elif st.session_state.selected_arrangement is None:
+                    st.warning("⚠️ 请先应用排列方案")
+                elif st.session_state.labels is None:
+                    st.warning("⚠️ 请先输入标签")
+                elif st.session_state.train_indices is None:
+                    st.warning("⚠️ 无法划分训练集")
+                else:
+                    try:
+                        selected_arr = st.session_state.selected_arrangement
+                        processed_data = st.session_state.arrangement_details[selected_arr]['data']
+                        train_idx = st.session_state.train_indices
+                        test_idx = st.session_state.test_indices
+                        
+                        train_data = processed_data[:, train_idx]
+                        test_data = processed_data[:, test_idx]
+                        train_labels = st.session_state.labels[train_idx]
+                        test_labels = st.session_state.labels[test_idx]
+                        
+                        with st.spinner("测试中..."):
+                            predictions = knn_classify(
+                                train_data, 
+                                train_labels, 
+                                test_data, 
+                                k=st.session_state.k_value
+                            )
+                        
+                        accuracy = accuracy_score(test_labels, predictions)
+                        kappa = cohen_kappa_score(test_labels, predictions)
+                        cm = confusion_matrix(test_labels, predictions)
+                        
+                        st.session_state.test_results = {
+                            'accuracy': accuracy,
+                            'kappa': kappa,
+                            'confusion_matrix': cm,
+                            'predictions': predictions,
+                            'test_labels': test_labels
+                        }
+                        
+                        st.success("✅ 测试完成！结果在下方")
+                        
+                    except Exception as e:
+                        st.error(f"❌ 测试失败: {str(e)}")
 
         # 保存当前选择的算法
         current_algorithms = {
@@ -1840,3 +1850,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
