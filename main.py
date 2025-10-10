@@ -483,7 +483,7 @@ def main():
                  return spectra / norm
      
      # ===== 文件处理类 =====
-     file_handler = FileHandler()
+   
      class FileHandler:
          def load_data(self, wavenumber_file, data_file, lines, much):
              """加载波数和光谱数据"""
@@ -753,6 +753,7 @@ def main():
                          st.success(f"处理完成: {st.session_state.process_method}")
                      except Exception as e:
                          st.error(f"处理失败: {str(e)}")
+
 
 
 
