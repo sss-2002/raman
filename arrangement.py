@@ -1020,7 +1020,7 @@ def main():
                             st.session_state.processed_data = (wavenumbers, processed_data)
                             st.session_state.process_method = " → ".join(method_name)
                             st.success(f"✅ 处理完成")
-                        except Exception as e:
+                    except Exception as e:
                             st.error(f"❌ 处理失败: {str(e)}")
 
             
