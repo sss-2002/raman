@@ -981,47 +981,47 @@ def main():
         #             except Exception as e:
         #                 st.error(f"❌ 处理失败: {str(e)}")
             with preprocess_cols[4]:
-        st.subheader("操作1")
-        # 应用处理与推荐应用按钮
-        if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
-            if st.session_state.raw_data is None:
-                st.warning("⚠️ 请先上传数据")
-            else:
-                try:
-                    wavenumbers, y = st.session_state.raw_data
-                    
-                    # 在这里添加 MWA 处理
-                    if filtering_method == "MWA（移动窗口平均）":
-                        n = filtering_params["n"]
-                        it = filtering_params["it"]
-                        # 调用 MWA 滤波
-                        y = MWA(y, n=n, it=it, mode="full")
-                    
-                    processed_data, method_name = preprocessor.process(
-                        wavenumbers, y, 
-                        baseline_method=baseline_method,
-                        baseline_params=baseline_params,
-                        squashing_method=squashing_method,
-                        squashing_params=squashing_params,
-                        filtering_method=filtering_method,
-                        filtering_params=filtering_params,
-                        scaling_method=scaling_method,
-                        scaling_params=scaling_params
-                    )
-                    
-                    arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
-                    st.session_state.arrangement_results.append(arr_name)
-                    st.session_state.arrangement_details[arr_name] = {
-                        'data': processed_data,
-                        'method': " → ".join(method_name),
-                        'params': current_algorithms
-                    }
-                    st.session_state.selected_arrangement = arr_name
-                    st.session_state.processed_data = (wavenumbers, processed_data)
-                    st.session_state.process_method = " → ".join(method_name)
-                    st.success(f"✅ 处理完成")
-                except Exception as e:
-                    st.error(f"❌ 处理失败: {str(e)}")
+                st.subheader("操作1")
+                # 应用处理与推荐应用按钮
+                if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
+                    if st.session_state.raw_data is None:
+                        st.warning("⚠️ 请先上传数据")
+                    else:
+                        try:
+                            wavenumbers, y = st.session_state.raw_data
+                            
+                            # 在这里添加 MWA 处理
+                            if filtering_method == "MWA（移动窗口平均）":
+                                n = filtering_params["n"]
+                                it = filtering_params["it"]
+                                # 调用 MWA 滤波
+                                y = MWA(y, n=n, it=it, mode="full")
+                            
+                            processed_data, method_name = preprocessor.process(
+                                wavenumbers, y, 
+                                baseline_method=baseline_method,
+                                baseline_params=baseline_params,
+                                squashing_method=squashing_method,
+                                squashing_params=squashing_params,
+                                filtering_method=filtering_method,
+                                filtering_params=filtering_params,
+                                scaling_method=scaling_method,
+                                scaling_params=scaling_params
+                            )
+                            
+                            arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
+                            st.session_state.arrangement_results.append(arr_name)
+                            st.session_state.arrangement_details[arr_name] = {
+                                'data': processed_data,
+                                'method': " → ".join(method_name),
+                                'params': current_algorithms
+                            }
+                            st.session_state.selected_arrangement = arr_name
+                            st.session_state.processed_data = (wavenumbers, processed_data)
+                            st.session_state.process_method = " → ".join(method_name)
+                            st.success(f"✅ 处理完成")
+                        except Exception as e:
+                            st.error(f"❌ 处理失败: {str(e)}")
 
             
             if st.button("🌟 推荐应用", type="primary", use_container_width=True, key="recommend_btn"):
