@@ -716,6 +716,7 @@ def main():
             st.session_state.train_test_split_ratio = train_test_ratio
     
             # 数据加载逻辑（从压缩包加载）
+            file_handler = FileHandler()
             if zip_file:
                 try:
                     st.session_state.raw_data = file_handler.load_data_from_zip(
