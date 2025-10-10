@@ -872,7 +872,7 @@ def main():
                     filtering_params["it"] = it
                     filtering_params["mode"] = "full"
                     st.caption(f"窗口大小: {n}, 迭代次数: {it}")
-                   if st.button("应用处理"):
+                    if st.button("应用处理"):
                         if st.session_state.get("raw_data") is not None:
                             wavenumbers, raw_data = st.session_state.raw_data
                             # 调用MWA滤波
