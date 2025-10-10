@@ -405,26 +405,31 @@ def IModPoly(wavenumbers, originalRaman, polyorder, max_iter=100, tolerance=0.00
 
 # 移动窗口平均（MWA）滤波算法
 def MWA(arr, n=6, it=1, mode="full"):
-    row = arr.shape[0]
-    col = arr.shape[1]
-    average = np.zeros((row, col))
-    ns = []
+    row = arr.shape[0]  # 获取数据行数（样本数）
+    col = arr.shape[1]  # 获取数据列数（特征数）
+    average = np.zeros((row, col))  # 初始化输出数据（所有元素为0）
+    ns = []  # 用于存储每次迭代时使用的窗口大小
+
+    # 每次迭代将窗口大小减2
     for _ in range(it):
         ns.append(n)
         n -= 2
+    
+    # 对每一行数据进行处理
     for i in range(row):
-        average[i] = arr[i].copy()
-        nn = ns.copy()
+        average[i] = arr[i].copy()  # 深拷贝每行数据
+        nn = ns.copy()  # 复制窗口大小列表
         for _ in range(it):
-            n = nn.pop()
+            n = nn.pop()  # 从窗口列表中获取窗口大小
             if n > 1:
+                # 使用numpy的convolve函数进行卷积操作
                 tmp = np.convolve(average[i], np.ones((n,)) / n, mode=mode)
                 for j in range(1, n):
-                    tmp[j - 1] = tmp[j - 1] * n / j
-                    tmp[-j] = tmp[-j] * n / j
+                    tmp[j - 1] = tmp[j - 1] * n / j  # 调整卷积结果
+                    tmp[-j] = tmp[-j] * n / j  # 调整卷积结果
                 j = int(n / 2)
                 k = n - j - 1
-                average[i] = tmp[j:-k]
+                average[i] = tmp[j:-k]  # 更新每一行的平均值
     return average
 
 
@@ -872,14 +877,6 @@ def main():
                     filtering_params["it"] = it
                     filtering_params["mode"] = "full"
                     st.caption(f"窗口大小: {n}, 迭代次数: {it}")
-                    if st.button("应用处理"):
-                        if st.session_state.get("raw_data") is not None:
-                            wavenumbers, raw_data = st.session_state.raw_data
-                            # 调用MWA滤波
-                            filtered_data = MWA(raw_data, n=n, it=it, mode="full")
-                            st.line_chart(filtered_data)  # 显示处理后的数据
-                        else:
-                            st.warning("⚠️ 请先上传数据")
                 elif filtering_method == "MWM（移动窗口中值）":
                     n = st.selectbox("窗口大小n", [5, 7, 9], key="n_mwm", label_visibility="collapsed")
                     it = st.selectbox("迭代次数it", [1, 2, 3], key="it_mwm", label_visibility="collapsed")
@@ -946,42 +943,86 @@ def main():
                 elif squashing_method == "逻辑函数":
                     st.caption("无额外参数")
 
-        # 5-9列：操作相关内容（横向排列在四个预处理算法后面）
-        # 5. 应用处理按钮
-        with preprocess_cols[4]:
-            st.subheader("操作1")
-            # 应用处理与推荐应用按钮
-            if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
-                if st.session_state.raw_data is None:
-                    st.warning("⚠️ 请先上传数据")
-                else:
-                    try:
-                        wavenumbers, y = st.session_state.raw_data
-                        processed_data, method_name = preprocessor.process(
-                            wavenumbers, y, 
-                            baseline_method=baseline_method,
-                            baseline_params=baseline_params,
-                            squashing_method=squashing_method,
-                            squashing_params=squashing_params,
-                            filtering_method=filtering_method,
-                            filtering_params=filtering_params,
-                            scaling_method=scaling_method,
-                            scaling_params=scaling_params
-                        )
+        # # 5-9列：操作相关内容（横向排列在四个预处理算法后面）
+        # # 5. 应用处理按钮
+        # with preprocess_cols[4]:
+        #     st.subheader("操作1")
+        #     # 应用处理与推荐应用按钮
+        #     if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
+        #         if st.session_state.raw_data is None:
+        #             st.warning("⚠️ 请先上传数据")
+        #         else:
+        #             try:
                         
-                        arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
-                        st.session_state.arrangement_results.append(arr_name)
-                        st.session_state.arrangement_details[arr_name] = {
-                            'data': processed_data,
-                            'method': " → ".join(method_name),
-                            'params': current_algorithms
-                        }
-                        st.session_state.selected_arrangement = arr_name
-                        st.session_state.processed_data = (wavenumbers, processed_data)
-                        st.session_state.process_method = " → ".join(method_name)
-                        st.success(f"✅ 处理完成")
-                    except Exception as e:
-                        st.error(f"❌ 处理失败: {str(e)}")
+        #                 wavenumbers, y = st.session_state.raw_data
+        #                 processed_data, method_name = preprocessor.process(
+        #                     wavenumbers, y, 
+        #                     baseline_method=baseline_method,
+        #                     baseline_params=baseline_params,
+        #                     squashing_method=squashing_method,
+        #                     squashing_params=squashing_params,
+        #                     filtering_method=filtering_method,
+        #                     filtering_params=filtering_params,
+        #                     scaling_method=scaling_method,
+        #                     scaling_params=scaling_params
+        #                 )
+                        
+        #                 arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
+        #                 st.session_state.arrangement_results.append(arr_name)
+        #                 st.session_state.arrangement_details[arr_name] = {
+        #                     'data': processed_data,
+        #                     'method': " → ".join(method_name),
+        #                     'params': current_algorithms
+        #                 }
+        #                 st.session_state.selected_arrangement = arr_name
+        #                 st.session_state.processed_data = (wavenumbers, processed_data)
+        #                 st.session_state.process_method = " → ".join(method_name)
+        #                 st.success(f"✅ 处理完成")
+        #             except Exception as e:
+        #                 st.error(f"❌ 处理失败: {str(e)}")
+            with preprocess_cols[4]:
+        st.subheader("操作1")
+        # 应用处理与推荐应用按钮
+        if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
+            if st.session_state.raw_data is None:
+                st.warning("⚠️ 请先上传数据")
+            else:
+                try:
+                    wavenumbers, y = st.session_state.raw_data
+                    
+                    # 在这里添加 MWA 处理
+                    if filtering_method == "MWA（移动窗口平均）":
+                        n = filtering_params["n"]
+                        it = filtering_params["it"]
+                        # 调用 MWA 滤波
+                        y = MWA(y, n=n, it=it, mode="full")
+                    
+                    processed_data, method_name = preprocessor.process(
+                        wavenumbers, y, 
+                        baseline_method=baseline_method,
+                        baseline_params=baseline_params,
+                        squashing_method=squashing_method,
+                        squashing_params=squashing_params,
+                        filtering_method=filtering_method,
+                        filtering_params=filtering_params,
+                        scaling_method=scaling_method,
+                        scaling_params=scaling_params
+                    )
+                    
+                    arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
+                    st.session_state.arrangement_results.append(arr_name)
+                    st.session_state.arrangement_details[arr_name] = {
+                        'data': processed_data,
+                        'method': " → ".join(method_name),
+                        'params': current_algorithms
+                    }
+                    st.session_state.selected_arrangement = arr_name
+                    st.session_state.processed_data = (wavenumbers, processed_data)
+                    st.session_state.process_method = " → ".join(method_name)
+                    st.success(f"✅ 处理完成")
+                except Exception as e:
+                    st.error(f"❌ 处理失败: {str(e)}")
+
             
             if st.button("🌟 推荐应用", type="primary", use_container_width=True, key="recommend_btn"):
                 if st.session_state.raw_data is None:
