@@ -980,22 +980,22 @@ def main():
         #                 st.success(f"✅ 处理完成")
         #             except Exception as e:
         #                 st.error(f"❌ 处理失败: {str(e)}")
-            with preprocess_cols[4]:
-                st.subheader("操作1")
-                # 应用处理与推荐应用按钮
-                if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
-                    if st.session_state.raw_data is None:
+        with preprocess_cols[4]:
+            st.subheader("操作1")
+            # 应用处理与推荐应用按钮
+            if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
+                if st.session_state.raw_data is None:
                         st.warning("⚠️ 请先上传数据")
-                    else:
-                        try:
-                            wavenumbers, y = st.session_state.raw_data
+                else:
+                    try:
+                        wavenumbers, y = st.session_state.raw_data
                             
-                            # 在这里添加 MWA 处理
-                            if filtering_method == "MWA（移动窗口平均）":
-                                n = filtering_params["n"]
-                                it = filtering_params["it"]
-                                # 调用 MWA 滤波
-                                y = MWA(y, n=n, it=it, mode="full")
+                        # 在这里添加 MWA 处理
+                        if filtering_method == "MWA（移动窗口平均）":
+                            n = filtering_params["n"]
+                            it = filtering_params["it"]
+                            # 调用 MWA 滤波
+                            y = MWA(y, n=n, it=it, mode="full")
                             
                             processed_data, method_name = preprocessor.process(
                                 wavenumbers, y, 
