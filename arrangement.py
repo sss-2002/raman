@@ -872,14 +872,12 @@ def main():
                     filtering_params["it"] = it
                     filtering_params["mode"] = "full"
                     st.caption(f"窗口大小: {n}, 迭代次数: {it}")
-                    if st.button("应用 MWA 滤波"):
-                        if st.session_state.get('raw_data') is not None:
+                   if st.button("应用处理"):
+                        if st.session_state.get("raw_data") is not None:
                             wavenumbers, raw_data = st.session_state.raw_data
-                            # 调用MWA函数进行滤波
+                            # 调用MWA滤波
                             filtered_data = MWA(raw_data, n=n, it=it, mode="full")
-                            # 显示滤波后的数据
-                            st.write("滤波后的数据:")
-                            st.line_chart(filtered_data)  # 使用line_chart展示结果
+                            st.line_chart(filtered_data)  # 显示处理后的数据
                         else:
                             st.warning("⚠️ 请先上传数据")
                 elif filtering_method == "MWM（移动窗口中值）":
