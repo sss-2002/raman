@@ -482,72 +482,140 @@ def main():
                  norm[norm == 0] = 1  # 避免除零错误
                  return spectra / norm
      
-     # ===== 文件处理类 =====
-     class FileHandler:
-         def load_data(self, wavenumber_file, data_file, lines, much):
-             """加载波数和光谱数据"""
-             # 读取波数数据
-             wavenumbers = np.loadtxt(wavenumber_file).ravel()
+     # # ===== 文件处理类 =====
+     # class FileHandler:
+     #     def load_data(self, wavenumber_file, data_file, lines, much):
+     #         """加载波数和光谱数据"""
+     #         # 读取波数数据
+     #         wavenumbers = np.loadtxt(wavenumber_file).ravel()
              
-             return wavenumbers, self._getfromone(data_file, lines, much).T 
+     #         return wavenumbers, self._getfromone(data_file, lines, much).T 
          
-         def _getfromone(self, file, lines, much):
-             """从文件中解析光谱数据"""
-             numb = re.compile(r"-?\d+(?:\.\d+)?")
-             ret = np.zeros((lines, much), dtype=float)
+     #     def _getfromone(self, file, lines, much):
+     #         """从文件中解析光谱数据"""
+     #         numb = re.compile(r"-?\d+(?:\.\d+)?")
+     #         ret = np.zeros((lines, much), dtype=float)
              
-             # 读取文件内容
-             content = file.getvalue().decode("utf-8")
+     #         # 读取文件内容
+     #         content = file.getvalue().decode("utf-8")
              
-             # 解析数据
-             lines_list = content.splitlines()
-             con = 0
+     #         # 解析数据
+     #         lines_list = content.splitlines()
+     #         con = 0
              
-             for line in lines_list:
-                 if con >= much:
-                     break
+     #         for line in lines_list:
+     #             if con >= much:
+     #                 break
                      
-                 li = numb.findall(line)
-                 for i in range(min(lines, len(li))):
-                     ret[i][con] = float(li[i])
-                 con += 1
+     #             li = numb.findall(line)
+     #             for i in range(min(lines, len(li))):
+     #                 ret[i][con] = float(li[i])
+     #             con += 1
                  
-             return ret
+     #         return ret
          
-         def export_data(self, filename, data):
-             """导出处理后的数据"""
-             with open(filename, "w") as f:
-                 for line in data.T:  # 转置回原始格式
-                     f.write("\t".join(map(str, line)) + "\n")
+     #     def export_data(self, filename, data):
+     #         """导出处理后的数据"""
+     #         with open(filename, "w") as f:
+     #             for line in data.T:  # 转置回原始格式
+     #                 f.write("\t".join(map(str, line)) + "\n")
      
-     # 创建处理器实例
-     file_handler = FileHandler()
-     preprocessor = Preprocessor()
+     # # 创建处理器实例
+     # file_handler = FileHandler()
+     # preprocessor = Preprocessor()
      
-     # 创建三列布局：左侧数据管理、中间光谱可视化、右侧预处理设置
-     col_left, col_mid, col_right = st.columns([1.5, 2.5, 1.2])
+     # # 创建三列布局：左侧数据管理、中间光谱可视化、右侧预处理设置
+     # col_left, col_mid, col_right = st.columns([1.5, 2.5, 1.2])
      
-     # ===== 左侧：数据管理 =====
-     with col_left:
-         with st.expander("📁 数据管理", expanded=True):
-             # 波数文件上传
-             wavenumber_file = st.file_uploader("上传波数文件", type=['txt'])
+     # # ===== 左侧：数据管理 =====
+     # with col_left:
+     #     with st.expander("📁 数据管理", expanded=True):
+     #         # 波数文件上传
+     #         wavenumber_file = st.file_uploader("上传波数文件", type=['txt'])
              
-             # 光谱数据上传
-             uploaded_file = st.file_uploader("上传光谱数据文件", type=['txt'])
+     #         # 光谱数据上传
+     #         uploaded_file = st.file_uploader("上传光谱数据文件", type=['txt'])
              
-             # 参数设置
-             lines = st.number_input("光谱条数", min_value=1, value=1)
-             much = st.number_input("每条光谱数据点数", min_value=1, value=2000)
+     #         # 参数设置
+     #         lines = st.number_input("光谱条数", min_value=1, value=1)
+     #         much = st.number_input("每条光谱数据点数", min_value=1, value=2000)
      
-             if uploaded_file and wavenumber_file:
-                 try:
-                     st.session_state.raw_data = file_handler.load_data(
-                         wavenumber_file, uploaded_file, lines, much
-                     )
-                     st.success(f"数据加载成功！{lines}条光谱，每条{much}个点")
-                 except Exception as e:
-                     st.error(f"文件加载失败: {str(e)}")
+     #         if uploaded_file and wavenumber_file:
+     #             try:
+     #                 st.session_state.raw_data = file_handler.load_data(
+     #                     wavenumber_file, uploaded_file, lines, much
+     #                 )
+     #                 st.success(f"数据加载成功！{lines}条光谱，每条{much}个点")
+     #             except Exception as e:
+     #                 st.error(f"文件加载失败: {str(e)}")
+     class FileHandler:
+     def load_data(self, wavenumber_file, data_file, lines, much):
+        """加载波数和光谱数据"""
+        # 读取波数数据
+        wavenumbers = np.loadtxt(io.BytesIO(wavenumber_file.read())).ravel()
+        
+        # 解析光谱数据
+        spectra_data = self._getfromone(io.BytesIO(data_file.read()), lines, much)
+        
+        return wavenumbers, spectra_data.T  # 转置后返回
+
+     def _getfromone(self, file, lines, much):
+        """从文件中解析光谱数据"""
+        numb = re.compile(r"-?\d+(?:\.\d+)?")  # 用正则表达式提取数值
+        ret = np.zeros((lines, much), dtype=float)
+        
+        # 读取文件内容
+        content = file.getvalue().decode("utf-8")
+        
+        # 按行分割内容
+        lines_list = content.splitlines()
+        con = 0
+        
+        for line in lines_list:
+            if con >= much:
+                break
+            
+            li = numb.findall(line)
+            for i in range(min(lines, len(li))):
+                ret[i][con] = float(li[i])  # 填充数据
+            con += 1
+        
+        return ret
+    
+     def export_data(self, filename, data):
+        """导出处理后的数据"""
+        with open(filename, "w") as f:
+            for line in data.T:  # 转置回原始格式
+                f.write("\t".join(map(str, line)) + "\n")
+
+
+# 创建处理器实例
+file_handler = FileHandler()
+
+# 创建三列布局：左侧数据管理、中间光谱可视化、右侧预处理设置
+col_left, col_mid, col_right = st.columns([1.5, 2.5, 1.2])
+
+# 在左侧创建文件上传控件
+with col_left:
+    with st.expander("📁 数据管理", expanded=True):
+        # 上传波数文件
+        wavenumber_file = st.file_uploader("上传波数文件", type=['txt'])
+        
+        # 上传光谱数据文件
+        uploaded_file = st.file_uploader("上传光谱数据文件", type=['txt'])
+        
+        # 光谱条数和每条数据点数的输入
+        lines = st.number_input("光谱条数", min_value=1, value=1)
+        much = st.number_input("每条光谱数据点数", min_value=1, value=2000)
+        
+        # 当两个文件都上传时，调用 file_handler 加载数据
+        if uploaded_file and wavenumber_file:
+            try:
+                st.session_state.raw_data = file_handler.load_data(wavenumber_file, uploaded_file, lines, much)
+                st.success(f"数据加载成功！{lines}条光谱，每条{much}个点")
+            except Exception as e:
+                st.error(f"文件加载失败: {str(e)}")
+
          
          # 系统信息
          if st.session_state.get('raw_data'):
@@ -750,5 +818,6 @@ def main():
                          st.success(f"处理完成: {st.session_state.process_method}")
                      except Exception as e:
                          st.error(f"处理失败: {str(e)}")
+
 
 
