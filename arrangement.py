@@ -20,7 +20,7 @@ import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
  # 创建处理器实例
-    file_handler = FileHandler()
+file_handler = FileHandler()
 
 # 新增：squashing函数（基于余弦的挤压变换）
 def squashing(Data):
