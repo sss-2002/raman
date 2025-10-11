@@ -635,12 +635,12 @@ def main():
         st.session_state.current_algorithms = current_algorithms
 
         # ===== 光谱可视化与结果导出（在预处理设置下方）=====
-            st.subheader("📈 光谱可视化", divider="gray")
+        st.subheader("📈 光谱可视化", divider="gray")
     
             # 1. 原始光谱区域
-            st.subheader("原始光谱", divider="gray")
-            spec_cols = st.columns(2, gap="small")
-            with spec_cols[0]:
+        st.subheader("原始光谱", divider="gray")
+        spec_cols = st.columns(2, gap="small")
+        with spec_cols[0]:
                 if st.session_state.get('raw_data'):
                     wavenumbers, y = st.session_state.raw_data
                     idx1 = 0 if y.shape[1] > 0 else 0
@@ -651,7 +651,7 @@ def main():
                         '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
                         unsafe_allow_html=True)
     
-            with spec_cols[1]:
+        with spec_cols[1]:
                 if st.session_state.get('raw_data') and y.shape[1] > 1:
                     idx2 = 1
                     raw_data2 = pd.DataFrame({"原始光谱2": y[:, idx2]}, index=wavenumbers)
@@ -679,34 +679,34 @@ def main():
                                     data = pd.DataFrame({f"原始光谱{i + 2}": y[:, i + 1]}, index=wavenumbers)
                                     st.line_chart(data, height=150)
     
-            # 2. 处理结果展示
-            if st.session_state.get('selected_arrangement'):
-                st.subheader("🔍 预处理结果", divider="gray")
-                selected_arr = st.session_state.selected_arrangement
-                arr_data = st.session_state.arrangement_details[selected_arr]['data']
-                arr_method = st.session_state.arrangement_details[selected_arr]['method']
-                arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
-    
-                # 处理信息
-                st.caption(f"处理方法: {arr_method} | 执行顺序: {arr_order if arr_order else '无预处理'}")
-    
-                # 预处理后光谱
-                st.subheader("预处理后光谱", divider="gray")
-                proc_cols = st.columns(2, gap="small")
-                with proc_cols[0]:
-                    idx1 = 0 if arr_data.shape[1] > 0 else 0
-                    proc_data1 = pd.DataFrame({"预处理后1": arr_data[:, idx1]}, index=wavenumbers)
-                    st.line_chart(proc_data1, height=200)
-                with proc_cols[1]:
-                    if arr_data.shape[1] > 1:
-                        idx2 = 1
-                        proc_data2 = pd.DataFrame({"预处理后2": arr_data[:, idx2]}, index=wavenumbers)
-                        st.line_chart(proc_data2, height=200)
-                    else:
-                        st.markdown(
-                            '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>',
-                            unsafe_allow_html=True)
-    
+                # 2. 处理结果展示
+                if st.session_state.get('selected_arrangement'):
+                    st.subheader("🔍 预处理结果", divider="gray")
+                    selected_arr = st.session_state.selected_arrangement
+                    arr_data = st.session_state.arrangement_details[selected_arr]['data']
+                    arr_method = st.session_state.arrangement_details[selected_arr]['method']
+                    arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
+        
+                    # 处理信息
+                    st.caption(f"处理方法: {arr_method} | 执行顺序: {arr_order if arr_order else '无预处理'}")
+        
+                    # 预处理后光谱
+                    st.subheader("预处理后光谱", divider="gray")
+                    proc_cols = st.columns(2, gap="small")
+                    with proc_cols[0]:
+                        idx1 = 0 if arr_data.shape[1] > 0 else 0
+                        proc_data1 = pd.DataFrame({"预处理后1": arr_data[:, idx1]}, index=wavenumbers)
+                        st.line_chart(proc_data1, height=200)
+                    with proc_cols[1]:
+                        if arr_data.shape[1] > 1:
+                            idx2 = 1
+                            proc_data2 = pd.DataFrame({"预处理后2": arr_data[:, idx2]}, index=wavenumbers)
+                            st.line_chart(proc_data2, height=200)
+                        else:
+                            st.markdown(
+                                '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>',
+                                unsafe_allow_html=True)
+        
                 # k值曲线
                 if arr_order:
                     st.subheader("k值曲线", divider="gray")
