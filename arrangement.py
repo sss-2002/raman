@@ -2,11 +2,22 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import re
+import itertools
+import matplotlib.pyplot as plt
+import math
 import zipfile
 import os
 from sklearn.metrics import accuracy_score, cohen_kappa_score, confusion_matrix
 import seaborn as sns
-import matplotlib.pyplot as plt
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
+from scipy.signal import savgol_filter, medfilt
+from scipy.fft import fft, ifft
+from scipy.fftpack import fft as fftpack_fft, ifft as fftpack_ifft
+import copy
+from statsmodels.nonparametric.smoothers_lowess import lowess
+import pywt
+
 
 class FileHandler:
     def load_data_from_zip(self, zip_file):
@@ -102,7 +113,6 @@ def main():
     for key, value in all_states.items():
         if key not in st.session_state:
             st.session_state[key] = value
-
     file_handler = FileHandler()
 
     # 设置页面：紧凑布局
@@ -203,54 +213,54 @@ def main():
             preprocess_cols = st.columns([1, 1, 1, 1, 1.2, 1.2, 1.2, 1.2, 1.2], gap="small")
 
             # 1. 基线校准（第一列）
-            with preprocess_cols[0]:
-                st.subheader("基线校准")
-                baseline_method = st.selectbox(
-                    "方法",
-                    ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS", "二阶差分(D2)"],
-                    key="baseline_method",
-                    label_visibility="collapsed"
-                )
-                # 基线参数
-                baseline_params = {}
-                if baseline_method != "无":
-                    if baseline_method == "多项式拟合":
-                        polyorder = st.slider("阶数k", 3, 6, 5, key="polyorder", label_visibility="collapsed")
-                        baseline_params["polyorder"] = polyorder
-                        st.caption(f"阶数: {polyorder}")
-                    elif baseline_method == "ModPoly":
-                        k = st.slider("参数k", 4, 10, 10, key="k_mod", label_visibility="collapsed")
-                        baseline_params["k"] = k
-                        st.caption(f"k: {k}")
-                    elif baseline_method == "I-ModPoly":  # IModPoly参数设置
-                        polyorder = st.slider("多项式阶数", 3, 7, 5, key="imod_polyorder", label_visibility="collapsed")
-                        max_iter = st.slider("最大迭代次数", 50, 200, 100, key="imod_maxiter", label_visibility="collapsed")
-                        tolerance = st.slider("收敛容差", 0.001, 0.01, 0.005, key="imod_tol", label_visibility="collapsed")
-                        baseline_params["polyorder"] = polyorder
-                        baseline_params["max_iter"] = max_iter
-                        baseline_params["tolerance"] = tolerance
-                        st.caption(f"阶数: {polyorder}, 迭代: {max_iter}, 容差: {tolerance}")
-                    elif baseline_method == "PLS":
-                        lam = st.selectbox("λ", [10 ** 10, 10 ** 8, 10 ** 7], key="lam_pls", label_visibility="collapsed")
-                        baseline_params["lam"] = lam
-                        st.caption(f"λ: {lam}")
-                    elif baseline_method == "AsLS":
-                        p = st.selectbox("非对称系数p", [0.001, 0.01, 0.1], key="p_asls", label_visibility="collapsed")
-                        lam = st.selectbox("平滑系数λ", [10 ** 5, 10 ** 7, 10 ** 9], key="lam_asls",
-                                           label_visibility="collapsed")
-                        niter = st.selectbox("迭代次数", [5, 10, 15], key="niter_asls", label_visibility="collapsed")
-                        baseline_params["lam"] = lam
-                        baseline_params["p"] = p
-                        baseline_params["niter"] = niter
-                        st.caption(f"p: {p}, λ: {lam}, 迭代次数: {niter}")
-                    elif baseline_method == "airPLS":
-                        lam = st.selectbox("λ", [10 ** 7, 10 ** 4, 10 ** 2], key="lam_air", label_visibility="collapsed")
-                        baseline_params["lam"] = lam
-                        st.caption(f"λ: {lam}")
-                    elif baseline_method == "二阶差分(D2)":  # 二阶差分参数说明
-                        st.caption("二阶差分可增强光谱特征，抑制基线漂移")
-        # 2. 缩放处理（第二列）
-        with preprocess_cols[1]:
+            st.subheader("基线校准")
+            baseline_method = st.selectbox(
+                "方法",
+                ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS", "二阶差分(D2)"],
+                key="baseline_method",
+                label_visibility="collapsed"
+            )
+
+            # 基线参数
+            baseline_params = {}
+            if baseline_method != "无":
+                if baseline_method == "多项式拟合":
+                    polyorder = st.slider("阶数k", 3, 6, 5, key="polyorder", label_visibility="collapsed")
+                    baseline_params["polyorder"] = polyorder
+                    st.caption(f"阶数: {polyorder}")
+                elif baseline_method == "ModPoly":
+                    k = st.slider("参数k", 4, 10, 10, key="k_mod", label_visibility="collapsed")
+                    baseline_params["k"] = k
+                    st.caption(f"k: {k}")
+                elif baseline_method == "I-ModPoly":  # IModPoly参数设置
+                    polyorder = st.slider("多项式阶数", 3, 7, 5, key="imod_polyorder", label_visibility="collapsed")
+                    max_iter = st.slider("最大迭代次数", 50, 200, 100, key="imod_maxiter", label_visibility="collapsed")
+                    tolerance = st.slider("收敛容差", 0.001, 0.01, 0.005, key="imod_tol", label_visibility="collapsed")
+                    baseline_params["polyorder"] = polyorder
+                    baseline_params["max_iter"] = max_iter
+                    baseline_params["tolerance"] = tolerance
+                    st.caption(f"阶数: {polyorder}, 迭代: {max_iter}, 容差: {tolerance}")
+                elif baseline_method == "PLS":
+                    lam = st.selectbox("λ", [10 ** 10, 10 ** 8, 10 ** 7], key="lam_pls", label_visibility="collapsed")
+                    baseline_params["lam"] = lam
+                    st.caption(f"λ: {lam}")
+                elif baseline_method == "AsLS":
+                    p = st.selectbox("非对称系数p", [0.001, 0.01, 0.1], key="p_asls", label_visibility="collapsed")
+                    lam = st.selectbox("平滑系数λ", [10 ** 5, 10 ** 7, 10 ** 9], key="lam_asls",
+                                       label_visibility="collapsed")
+                    niter = st.selectbox("迭代次数", [5, 10, 15], key="niter_asls", label_visibility="collapsed")
+                    baseline_params["lam"] = lam
+                    baseline_params["p"] = p
+                    baseline_params["niter"] = niter
+                    st.caption(f"p: {p}, λ: {lam}, 迭代次数: {niter}")
+                elif baseline_method == "airPLS":
+                    lam = st.selectbox("λ", [10 ** 7, 10 ** 4, 10 ** 2], key="lam_air", label_visibility="collapsed")
+                    baseline_params["lam"] = lam
+                    st.caption(f"λ: {lam}")
+                elif baseline_method == "二阶差分(D2)":  # 二阶差分参数说明
+                    st.caption("二阶差分可增强光谱特征，抑制基线漂移")
+
+            # 2. 缩放处理（第二列）
             st.subheader("📏 缩放")
             scaling_method = st.selectbox(
                 "方法",
@@ -268,8 +278,7 @@ def main():
             elif scaling_method == "标准化(均值0，方差1)":
                 st.caption("将数据标准化到均值为0，方差为1")
 
-        # 3. 滤波处理（第三列）
-        with preprocess_cols[2]:
+            # 3. 滤波处理（第三列）
             st.subheader("📶 滤波")
             filtering_method = st.selectbox(
                 "方法",
@@ -335,8 +344,7 @@ def main():
                     filtering_params["threshold"] = threshold
                     st.caption(f"阈值: {threshold}")
 
-        # 4. 挤压处理（第四列）
-        with preprocess_cols[3]:
+            # 4. 挤压处理（第四列）
             st.subheader("🧪 挤压")
             squashing_method = st.selectbox(
                 "方法",
@@ -423,11 +431,11 @@ def main():
                             'squashing_method': "余弦挤压(squashing)",
                             'squashing_params': {}
                         }
-    
+
                         processed_data, method_name = preprocessor.process(
                             wavenumbers, y, **recommended_params
                         )
-    
+
                         arr_name = f"推荐排列_{len(st.session_state.arrangement_results) + 1}"
                         st.session_state.arrangement_results.append(arr_name)
                         st.session_state.arrangement_details[arr_name] = {
@@ -441,6 +449,7 @@ def main():
                         st.success(f"✅ 推荐处理完成")
                     except Exception as e:
                         st.error(f"❌ 推荐失败: {str(e)}")
+
         # 6. 显示排列与筛选
         with preprocess_cols[5]:
             st.subheader("操作2")
@@ -570,7 +579,6 @@ def main():
             if st.button("确定k值", type="secondary", use_container_width=True, key="k_confirm_btn"):
                 st.session_state.k_value = k_value
                 st.success(f"k={k_value}")
-
         # 9. 测试按钮
         with preprocess_cols[8]:
             st.subheader("操作5")
@@ -634,10 +642,9 @@ def main():
         }
         st.session_state.current_algorithms = current_algorithms
 
-        with col_right:
-        # ===== 光谱可视化 =====
-    st.subheader("📈 光谱可视化", divider="gray")
-        
+        # ===== 光谱可视化与结果导出（在预处理设置下方）=====
+        st.subheader("📈 光谱可视化", divider="gray")
+
         # 1. 原始光谱区域
         st.subheader("原始光谱", divider="gray")
         spec_cols = st.columns(2, gap="small")
@@ -651,7 +658,7 @@ def main():
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
                     unsafe_allow_html=True)
-    
+
         with spec_cols[1]:
             if st.session_state.get('raw_data') and y.shape[1] > 1:
                 idx2 = 1
@@ -679,6 +686,7 @@ def main():
                             if i + 1 < y.shape[1]:
                                 data = pd.DataFrame({f"原始光谱{i + 2}": y[:, i + 1]}, index=wavenumbers)
                                 st.line_chart(data, height=150)
+
         # 2. 处理结果展示
         if st.session_state.get('selected_arrangement'):
             st.subheader("🔍 预处理结果", divider="gray")
@@ -775,7 +783,6 @@ def main():
         else:
             # 未选择排列时的提示
             st.info("ℹ️ 请在上方选择预处理方法并应用排列方案")
-
         # 结果导出
         if st.session_state.arrangement_results or st.session_state.get('processed_data'):
             st.subheader("💾 结果导出", divider="gray")
@@ -800,5 +807,5 @@ def main():
             st.markdown(
                 '<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>',
                 unsafe_allow_html=True)
-        if __name__ == "__main__":
-                main()
+    if __name__ == "__main__":
+        main()
