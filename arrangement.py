@@ -27,29 +27,35 @@ def load_data_from_zip(extract_to):
 def main():
     st.set_page_config(page_title="数据管理", layout="wide")
 
-    # 自定义CSS
+    # 自定义CSS样式
     st.markdown("""
     <style>
-        .stFileUploader {
-            background-color: #f0f8ff;
+        /* 自定义上传框样式 */
+        .css-1v0mbdj {
+            background-color: #f0f8ff;  /* 浅蓝色背景 */
             padding: 15px;
             border-radius: 10px;
             border: 2px solid #ddd;
             font-size: 18px;
             color: #333;
+            font-weight: bold;
         }
-        .stTextInput, .stNumberInput {
-            margin-top: 15px;
-            font-size: 18px;
+        /* 输入框和数字输入框样式 */
+        .css-1p0uvy6, .css-1a1a0l9 {
+            font-size: 16px;
+            padding: 10px;
             border-radius: 8px;
             border: 1px solid #ddd;
-            padding: 10px;
+            margin-top: 15px;
         }
+        /* 滑动条样式 */
         .stSlider {
             margin-top: 20px;
+            font-size: 18px;
         }
+        /* 自定义按钮样式 */
         .stButton {
-            background-color: #4CAF50;
+            background-color: #4CAF50;  /* 按钮绿色 */
             color: white;
             padding: 10px;
             font-size: 16px;
