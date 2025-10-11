@@ -207,10 +207,9 @@ def main():
         preprocess_cols = st.columns([1, 1, 1, 1, 1.2, 1.2, 1.2, 1.2, 1.2], gap="small")
         
         # 1. 基线校准
-        with preprocess_cols[0]:
-            st.subheader("基线校准")
-            baseline_method = st.selectbox("方法", ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS", "二阶差分(D2)"], key="baseline_method", label_visibility="collapsed")
-            baseline_params = {}
+         st.subheader("基线校准")
+         baseline_method = st.selectbox("方法", ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS", "二阶差分(D2)"], key="baseline_method", label_visibility="collapsed")
+         baseline_params = {}
             if baseline_method != "无":
                 if baseline_method == "多项式拟合":
                     polyorder = st.slider("阶数k", 3, 6, 5, key="polyorder", label_visibility="collapsed")
