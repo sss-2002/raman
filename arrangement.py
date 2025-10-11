@@ -636,50 +636,50 @@ with preprocess_cols[4]:
                     except Exception as e:
                         st.error(f"❌ 测试失败: {str(e)}")
 
-        # 保存当前选择的算法
-        current_algorithms = {
-            'baseline': baseline_method,
-            'baseline_params': baseline_params,
-            'scaling': scaling_method,
-            'scaling_params': scaling_params,
-            'filtering': filtering_method,
-            'filtering_params': filtering_params,
-            'squashing': squashing_method,
-            'squashing_params': squashing_params
-        }
-        st.session_state.current_algorithms = current_algorithms
+                        # 保存当前选择的算法
+                        current_algorithms = {
+                            'baseline': baseline_method,
+                            'baseline_params': baseline_params,
+                            'scaling': scaling_method,
+                            'scaling_params': scaling_params,
+                            'filtering': filtering_method,
+                            'filtering_params': filtering_params,
+                            'squashing': squashing_method,
+                            'squashing_params': squashing_params
+                        }
+                        st.session_state.current_algorithms = current_algorithms
 
         # ===== 光谱可视化与结果导出（在预处理设置下方）=====
-    with col_right:
-    st.subheader("📈 光谱可视化", divider="gray")
-
-    # 1. 原始光谱区域
-    st.subheader("原始光谱", divider="gray")
-    spec_cols = st.columns(2, gap="small")
-    with spec_cols[0]:
-        if st.session_state.get('raw_data'):
-            wavenumbers, y = st.session_state.raw_data
-            idx1 = 0 if y.shape[1] > 0 else 0
-            raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
-            st.line_chart(raw_data1, height=200)
-        else:
-            st.markdown(
-                '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
-                unsafe_allow_html=True)
-
-    with spec_cols[1]:
-        if st.session_state.get('raw_data') and y.shape[1] > 1:
-            idx2 = 1
-            raw_data2 = pd.DataFrame({"原始光谱2": y[:, idx2]}, index=wavenumbers)
-            st.line_chart(raw_data2, height=200)
-        elif st.session_state.get('raw_data'):
-            st.markdown(
-                '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条原始光谱</div>',
-                unsafe_allow_html=True)
-        else:
-            st.markdown(
-                '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
-                unsafe_allow_html=True)
+        with col_right:
+        st.subheader("📈 光谱可视化", divider="gray")
+    
+        # 1. 原始光谱区域
+        st.subheader("原始光谱", divider="gray")
+        spec_cols = st.columns(2, gap="small")
+        with spec_cols[0]:
+            if st.session_state.get('raw_data'):
+                wavenumbers, y = st.session_state.raw_data
+                idx1 = 0 if y.shape[1] > 0 else 0
+                raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
+                st.line_chart(raw_data1, height=200)
+            else:
+                st.markdown(
+                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
+                    unsafe_allow_html=True)
+    
+        with spec_cols[1]:
+            if st.session_state.get('raw_data') and y.shape[1] > 1:
+                idx2 = 1
+                raw_data2 = pd.DataFrame({"原始光谱2": y[:, idx2]}, index=wavenumbers)
+                st.line_chart(raw_data2, height=200)
+            elif st.session_state.get('raw_data'):
+                st.markdown(
+                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条原始光谱</div>',
+                    unsafe_allow_html=True)
+            else:
+                st.markdown(
+                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
+                    unsafe_allow_html=True)
 
         # 显示更多原始光谱
         if st.session_state.get('raw_data') and y.shape[1] > 2:
