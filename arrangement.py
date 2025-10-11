@@ -6,73 +6,70 @@ import numpy as np
 
 # 解压上传的文件
 def extract_zip(uploaded_file, extract_to):
-    """
-    解压上传的zip文件到指定目录
-    """
     with zipfile.ZipFile(uploaded_file, 'r') as zip_ref:
         zip_ref.extractall(extract_to)
     return extract_to
 
-# 处理文件内容，假设数据是CSV格式
+# 读取解压的文件
 def load_data_from_zip(extract_to):
-    """
-    从解压的文件夹中读取数据文件，假设文件格式为CSV
-    """
-    # 获取解压后的文件列表
     files = os.listdir(extract_to)
-    data_files = [f for f in files if f.endswith('.csv')]  # 假设数据是CSV文件
+    data_files = [f for f in files if f.endswith('.csv')]
     
     if len(data_files) == 0:
         raise FileNotFoundError("没有找到CSV数据文件。")
     
-    data_file = data_files[0]  # 取第一个CSV文件作为数据文件
-    
-    # 加载数据
+    data_file = data_files[0]
     data_path = os.path.join(extract_to, data_file)
     data = pd.read_csv(data_path)
     return data
 
+# 页面设置和布局调整
 def main():
-    # 设置页面
     st.set_page_config(page_title="数据管理", layout="wide")
 
-    # 使用自定义的 CSS 修改上传框样式
+    # 自定义CSS
     st.markdown("""
     <style>
-        .css-1v0mbdj {
+        .stFileUploader {
             background-color: #f0f8ff;
-            color: #333;
             padding: 15px;
-            font-size: 18px;
             border-radius: 10px;
             border: 2px solid #ddd;
+            font-size: 18px;
+            color: #333;
         }
-        .css-18e3th9 {
+        .stTextInput, .stNumberInput {
+            margin-top: 15px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        .stSlider {
             margin-top: 20px;
+        }
+        .stButton {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 8px;
         }
     </style>
     """, unsafe_allow_html=True)
 
     # 文件上传控件
-    uploaded_file = st.file_uploader("上传压缩包（zip格式）", type=["zip"])
+    uploaded_file = st.file_uploader("上传压缩包（zip格式）", type=["zip"], key="file_uploader")
 
     if uploaded_file is not None:
-        # 显示上传的文件名
         st.write(f"上传的文件名：{uploaded_file.name}")
-
-        # 设置解压缩目录
         extract_dir = "extracted_files"
-
-        # 解压文件
         if not os.path.exists(extract_dir):
             os.makedirs(extract_dir)
 
-        # 调用解压函数
         extract_dir = extract_zip(uploaded_file, extract_dir)
-
         st.success(f"文件已成功解压到: {extract_dir}")
 
-        # 读取并处理数据
         try:
             data = load_data_from_zip(extract_dir)
             st.write("光谱数据：")
@@ -85,7 +82,7 @@ def main():
         num_classes = st.number_input("类别数量", min_value=1, value=2, step=1, key="num_cls")
         labels_input = st.text_input(
             "标签（逗号分隔，与光谱顺序一致）", 
-            placeholder="例：0,0,1,1",
+            placeholder="例如：0,0,1,1",
             key="labels_in"
         )
         
