@@ -673,8 +673,7 @@ def main():
                     proc_data2 = pd.DataFrame({"预处理后2": arr_data[:, idx2]}, index=wavenumbers)
                     st.line_chart(proc_data2, height=200)
                 else:
-                    st.markdown('<div style="border:1
-                                    st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>', unsafe_allow_html=True)
+                     st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>', unsafe_allow_html=True)
             
             # k值曲线
             if arr_order:
