@@ -198,7 +198,155 @@ def main():
             5. 选择k值后点击"测试"  
             6. 查看结果并导出
             """)
+    # ===== 右侧：预处理设置和光谱可视化 =====
+    with col_right:
+    # ===== 预处理设置（横向排列在光谱可视化上方，与四种算法在同一行）=====
+    st.subheader("⚙️ 预处理设置", divider="gray")
 
+    # 使用9列布局：4个算法列 + 5个操作相关列，确保所有内容横向排列
+    preprocess_cols = st.columns([1, 1, 1, 1, 1.2, 1.2, 1.2, 1.2, 1.2], gap="small")
+
+    # 1. 基线校准（第一列）
+    st.subheader("基线校准")
+    baseline_method = st.selectbox(
+        "方法",
+        ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS", "二阶差分(D2)"],
+        key="baseline_method",
+        label_visibility="collapsed"
+    )
+
+    # 基线参数
+    baseline_params = {}
+    if baseline_method != "无":
+        if baseline_method == "多项式拟合":
+            polyorder = st.slider("阶数k", 3, 6, 5, key="polyorder", label_visibility="collapsed")
+            baseline_params["polyorder"] = polyorder
+            st.caption(f"阶数: {polyorder}")
+        elif baseline_method == "ModPoly":
+            k = st.slider("参数k", 4, 10, 10, key="k_mod", label_visibility="collapsed")
+            baseline_params["k"] = k
+            st.caption(f"k: {k}")
+        elif baseline_method == "I-ModPoly":  # IModPoly参数设置
+            polyorder = st.slider("多项式阶数", 3, 7, 5, key="imod_polyorder", label_visibility="collapsed")
+            max_iter = st.slider("最大迭代次数", 50, 200, 100, key="imod_maxiter", label_visibility="collapsed")
+            tolerance = st.slider("收敛容差", 0.001, 0.01, 0.005, key="imod_tol", label_visibility="collapsed")
+            baseline_params["polyorder"] = polyorder
+            baseline_params["max_iter"] = max_iter
+            baseline_params["tolerance"] = tolerance
+            st.caption(f"阶数: {polyorder}, 迭代: {max_iter}, 容差: {tolerance}")
+        elif baseline_method == "PLS":
+            lam = st.selectbox("λ", [10 ** 10, 10 ** 8, 10 ** 7], key="lam_pls", label_visibility="collapsed")
+            baseline_params["lam"] = lam
+            st.caption(f"λ: {lam}")
+        elif baseline_method == "AsLS":
+            p = st.selectbox("非对称系数p", [0.001, 0.01, 0.1], key="p_asls", label_visibility="collapsed")
+            lam = st.selectbox("平滑系数λ", [10 ** 5, 10 ** 7, 10 ** 9], key="lam_asls",
+                               label_visibility="collapsed")
+            niter = st.selectbox("迭代次数", [5, 10, 15], key="niter_asls", label_visibility="collapsed")
+            baseline_params["lam"] = lam
+            baseline_params["p"] = p
+            baseline_params["niter"] = niter
+            st.caption(f"p: {p}, λ: {lam}, 迭代次数: {niter}")
+        elif baseline_method == "airPLS":
+            lam = st.selectbox("λ", [10 ** 7, 10 ** 4, 10 ** 2], key="lam_air", label_visibility="collapsed")
+            baseline_params["lam"] = lam
+            st.caption(f"λ: {lam}")
+        elif baseline_method == "二阶差分(D2)":  # 二阶差分参数说明
+            st.caption("二阶差分可增强光谱特征，抑制基线漂移")
+
+    # 2. 缩放处理（第二列）
+    st.subheader("📏 缩放")
+    scaling_method = st.selectbox(
+        "方法",
+        ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数", "Ma-Minorm", "标准化(均值0，方差1)"],
+        key="scaling_method",
+        label_visibility="collapsed"
+    )
+
+    # 缩放参数
+    scaling_params = {}
+    if scaling_method == "L-范数":
+        p = st.selectbox("p", ["无穷大", "4", "10"], key="p_scale", label_visibility="collapsed")
+        scaling_params["p"] = p
+        st.caption(f"p: {p}")
+    elif scaling_method == "标准化(均值0，方差1)":
+        st.caption("将数据标准化到均值为0，方差为1")
+
+    # 3. 滤波处理（第三列）
+    st.subheader("📶 滤波")
+    filtering_method = st.selectbox(
+        "方法",
+        ["无", "Savitzky-Golay", "sgolayfilt滤波器", "中值滤波(MF)", "移动平均(MAF)",
+         "MWA（移动窗口平均）", "MWM（移动窗口中值）", "卡尔曼滤波", "Lowess", "FFT",
+         "Smfft傅里叶滤波", "小波变换(DWT)", "小波线性阈值去噪"],
+        key="filtering_method",
+        label_visibility="collapsed"
+    )
+
+    # 滤波参数
+    filtering_params = {}
+    if filtering_method != "无":
+        if filtering_method in ["Savitzky-Golay", "sgolayfilt滤波器"]:
+            k = st.selectbox("多项式阶数", [3, 7], key="k_sg", label_visibility="collapsed")
+            w = st.selectbox("窗口大小", [11, 31, 51], key="w_sg", label_visibility="collapsed")
+            filtering_params["point"] = w
+            filtering_params["degree"] = k
+            st.caption(f"阶数: {k}, 窗口: {w}")
+        elif filtering_method in ["中值滤波(MF)", "移动平均(MAF)"]:
+            k = st.selectbox("k", [1, 3], key="k_mf", label_visibility="collapsed")
+            w = st.selectbox("w", [7, 11], key="w_mf", label_visibility="collapsed")
+            filtering_params["k"] = k
+            filtering_params["w"] = w
+            st.caption(f"k: {k}, w: {w}")
+        elif filtering_method == "MWA（移动窗口平均）":
+            n = st.selectbox("窗口大小n", [4, 6, 8], key="n_mwa", label_visibility="collapsed")
+            it = st.selectbox("迭代次数it", [1, 2, 3], key="it_mwa", label_visibility="collapsed")
+            filtering_params["n"] = n
+            filtering_params["it"] = it
+            filtering_params["mode"] = "full"
+            st.caption(f"窗口大小: {n}, 迭代次数: {it}")
+        elif filtering_method == "MWM（移动窗口中值）":
+            n = st.selectbox("窗口大小n", [5, 7, 9], key="n_mwm", label_visibility="collapsed")
+            it = st.selectbox("迭代次数it", [1, 2, 3], key="it_mwm", label_visibility="collapsed")
+            filtering_params["n"] = n
+            filtering_params["it"] = it
+            st.caption(f"窗口大小: {n}, 迭代次数: {it}")
+        elif filtering_method == "卡尔曼滤波":
+            R = st.selectbox("测量噪声方差R", [0.01, 0.1, 0.5], key="r_kalman", label_visibility="collapsed")
+            filtering_params["R"] = R
+            st.caption(f"测量噪声方差: {R}")
+        elif filtering_method == "Lowess":
+            frac = st.selectbox("系数", [0.01, 0.03], key="frac_low", label_visibility="collapsed")
+            filtering_params["frac"] = frac
+            st.caption(f"系数: {frac}")
+        elif filtering_method == "FFT":
+            cutoff = st.selectbox("频率", [30, 50, 90], key="cutoff_fft", label_visibility="collapsed")
+            filtering_params["cutoff"] = cutoff
+            st.caption(f"频率: {cutoff}")
+        elif filtering_method == "Smfft傅里叶滤波":
+            row_e = st.selectbox("保留低频分量数", [31, 51, 71], key="row_e_smfft",
+                                 label_visibility="collapsed")
+            filtering_params["row_e"] = row_e
+            st.caption(f"保留低频分量数: {row_e}")
+        elif filtering_method == "小波变换(DWT)":
+            threshold = st.selectbox("阈值", [0.1, 0.3, 0.5], key="thresh_dwt", label_visibility="collapsed")
+            filtering_params["threshold"] = threshold
+            st.caption(f"阈值: {threshold}")
+        elif filtering_method == "小波线性阈值去噪":
+            threshold = st.selectbox("阈值", [0.1, 0.3, 0.5], key="thresh_wavelet_linear",
+                                     label_visibility="collapsed")
+            filtering_params["threshold"] = threshold
+            st.caption(f"阈值: {threshold}")
+
+    # 4. 挤压处理（第四列）
+    st.subheader("🧪 挤压")
+    squashing_method = st.selectbox(
+        "方法",
+        ["无", "Sigmoid挤压", "改进的Sigmoid挤压", "逻辑函数", "余弦挤压(squashing)", "改进的逻辑函数",
+         "DTW挤压"],
+        key="squashing_method",
+        label_visibility="collapsed"
+    )
    
         
     if __name__ == "__main__":
