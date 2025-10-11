@@ -72,13 +72,25 @@ class FileHandler:
         with open(filename, "w") as f:
             for line in data.T:  # 转置回原始格式
                 f.write("\t".join(map(str, line)) + "\n")
-
 def main():
-    # 初始化session状态
+    # 最优先初始化session state
     if 'show_arrangements' not in st.session_state:
         st.session_state.show_arrangements = False
 
-    # 初始化其他session状态变量
+    # 初始化k_value和其他session状态
+    if 'k_value' not in st.session_state:
+        st.session_state.k_value = 5  # 设置k_value的默认值
+    
+    # 初始化测试相关的session状态变量
+    test_states = {
+        'k_value': st.session_state.k_value,  # 现在从session_state获取k_value
+        'test_results': None,  # 存储测试结果
+        'labels': None,  # 存储样本标签
+        'train_indices': None,  # 训练集索引
+        'test_indices': None  # 测试集索引
+    }
+
+    # 初始化其他必要的session状态变量
     other_states = {
         'raw_data': None,
         'processed_data': None,
@@ -87,15 +99,37 @@ def main():
         'arrangement_results': [],
         'selected_arrangement': None,
         'arrangement_details': {},
+        'algorithm_permutations': [],  # 存储算法排列组合
+        'current_algorithms': {},  # 存储当前选择的算法
+        'filtered_perms': [],  # 存储筛选后的排列方案
+        'selected_perm_idx': 0  # 存储当前选中的排列索引
     }
 
     # 合并所有状态变量并初始化
-    for key, value in other_states.items():
+    all_states = {**test_states, **other_states}
+    for key, value in all_states.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
     # 设置页面：紧凑布局
     st.set_page_config(layout="wide", page_icon="🔬", page_title="排列预处理模型")
+    # 全局样式调整：更紧凑的字体和间距，确保预处理设置在一行显示
+    st.markdown("""
+        <style>
+        /* 全局字体缩小，确保预处理设置在一行显示 */
+        body {font-size: 0.75rem !important;}
+        .css-1v0mbdj {padding: 0.3rem 0.5rem !important;} /* 容器内边距 */
+        .css-1d391kg {padding: 0.2rem 0 !important;} /* 标题间距 */
+        .css-1x8cf1d {line-height: 1.1 !important;} /* 文本行高 */
+        .css-12ttj6m {margin-bottom: 0.3rem !important;} /* 组件底部间距 */
+        .css-16huue1 {padding: 0.2rem 0.5rem !important; font-size: 0.7rem !important;} /* 按钮内边距和字体 */
+        h3 {font-size: 1rem !important; margin: 0.3rem 0 !important;} /* 子标题 */
+        .css-1b3298e {gap: 0.3rem !important;} /* 列间距 */
+        .stSlider, .stSelectbox, .stTextInput {margin-bottom: 0.3rem !important;} /* 输入组件间距 */
+        .stCaption {font-size: 0.65rem !important; margin-top: -0.2rem !important;} /* 说明文字 */
+        .css-1544g2n {padding: 0.2rem 0.5rem !important;} /* 展开面板内边距 */
+        </style>
+    """, unsafe_allow_html=True)
     st.title("🌌 排列预处理模型")
     
     # 页面整体布局：左侧数据管理，右侧主要内容区
