@@ -735,31 +735,31 @@ def main():
                     plt.xticks(fontsize=7)
                     plt.yticks(fontsize=7)
                     st.pyplot(fig, use_container_width=True)
-            else:
-                # 未选择排列时的提示
-                st.info("ℹ️ 请在上方选择预处理方法并应用排列方案")
-                
-            # 结果导出
-            if st.session_state.arrangement_results or st.session_state.get('processed_data'):
-                st.subheader("💾 结果导出", divider="gray")
-                export_cols = st.columns([3, 1], gap="small")
-                with export_cols[0]:
-                    export_name = st.text_input("导出文件名", "processed_spectra.txt", key="export_name")
-                with export_cols[1]:
-                    st.markdown("<br>", unsafe_allow_html=True)  # 垂直对齐
-                    if st.button("导出", type="secondary", key="export_btn"):
-                        try:
-                            if st.session_state.selected_arrangement:
-                                arr_data = st.session_state.arrangement_details[st.session_state.selected_arrangement]['data']
-                                file_handler.export_data(export_name, arr_data)
-                            else:
-                                wavenumbers, y_processed = st.session_state.processed_data
-                                file_handler.export_data(export_name, y_processed)
-                            st.success(f"✅ 已导出到 {export_name}")
-                        except Exception as e:
-                            st.error(f"❌ 导出失败: {str(e)}")
-            else:
-                st.markdown('<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>', unsafe_allow_html=True)
+                else:
+                    # 未选择排列时的提示
+                    st.info("ℹ️ 请在上方选择预处理方法并应用排列方案")
+                    
+                # 结果导出
+                if st.session_state.arrangement_results or st.session_state.get('processed_data'):
+                    st.subheader("💾 结果导出", divider="gray")
+                    export_cols = st.columns([3, 1], gap="small")
+                    with export_cols[0]:
+                        export_name = st.text_input("导出文件名", "processed_spectra.txt", key="export_name")
+                    with export_cols[1]:
+                        st.markdown("<br>", unsafe_allow_html=True)  # 垂直对齐
+                        if st.button("导出", type="secondary", key="export_btn"):
+                            try:
+                                if st.session_state.selected_arrangement:
+                                    arr_data = st.session_state.arrangement_details[st.session_state.selected_arrangement]['data']
+                                    file_handler.export_data(export_name, arr_data)
+                                else:
+                                    wavenumbers, y_processed = st.session_state.processed_data
+                                    file_handler.export_data(export_name, y_processed)
+                                st.success(f"✅ 已导出到 {export_name}")
+                            except Exception as e:
+                                st.error(f"❌ 导出失败: {str(e)}")
+                else:
+                    st.markdown('<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>', unsafe_allow_html=True)
     
     # 预处理类
     class Preprocessor:
