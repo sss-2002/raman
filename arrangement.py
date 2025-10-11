@@ -110,7 +110,7 @@ def main():
     for key, value in all_states.items():
         if key not in st.session_state:
             st.session_state[key] = value
-
+    file_handler = FileHandler()
     # 设置页面：紧凑布局
     st.set_page_config(layout="wide", page_icon="🔬", page_title="排列预处理模型")
     # 全局样式调整：更紧凑的字体和间距，确保预处理设置在一行显示
