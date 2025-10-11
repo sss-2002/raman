@@ -385,75 +385,77 @@ def main():
 
         # 5-9列：操作相关内容（横向排列在四个预处理算法后面）
         # 5. 应用处理按钮
-        with preprocess_cols[4]:
-            st.subheader("操作1")
-            # 应用处理与推荐应用按钮
-            if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
-                if st.session_state.raw_data is None:
-                    st.warning("⚠️ 请先上传数据")
-                else:
-                    try:
-                        wavenumbers, y = st.session_state.raw_data
-                        processed_data, method_name = preprocessor.process(
-                            wavenumbers, y,
-                            baseline_method=baseline_method,
-                            baseline_params=baseline_params,
-                            squashing_method=squashing_method,
-                            squashing_params=squashing_params,
-                            filtering_method=filtering_method,
-                            filtering_params=filtering_params,
-                            scaling_method=scaling_method,
-                            scaling_params=scaling_params
-                        )
+       # 5. 应用处理按钮
+with preprocess_cols[4]:
+    st.subheader("操作1")
+    # 应用处理按钮
+    if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
+        if st.session_state.raw_data is None:
+            st.warning("⚠️ 请先上传数据")
+        else:
+            try:
+                wavenumbers, y = st.session_state.raw_data
+                processed_data, method_name = preprocessor.process(
+                    wavenumbers, y,
+                    baseline_method=baseline_method,
+                    baseline_params=baseline_params,
+                    squashing_method=squashing_method,
+                    squashing_params=squashing_params,
+                    filtering_method=filtering_method,
+                    filtering_params=filtering_params,
+                    scaling_method=scaling_method,
+                    scaling_params=scaling_params
+                )
 
-                        arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
-                        st.session_state.arrangement_results.append(arr_name)
-                        st.session_state.arrangement_details[arr_name] = {
-                            'data': processed_data,
-                            'method': " → ".join(method_name),
-                            'params': current_algorithms
-                        }
-                        st.session_state.selected_arrangement = arr_name
-                        st.session_state.processed_data = (wavenumbers, processed_data)
-                        st.session_state.process_method = " → ".join(method_name)
-                        st.success(f"✅ 处理完成")
-                    except Exception as e:
-                        st.error(f"❌ 处理失败: {str(e)}")
+                arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
+                st.session_state.arrangement_results.append(arr_name)
+                st.session_state.arrangement_details[arr_name] = {
+                    'data': processed_data,
+                    'method': " → ".join(method_name),
+                    'params': current_algorithms
+                }
+                st.session_state.selected_arrangement = arr_name
+                st.session_state.processed_data = (wavenumbers, processed_data)
+                st.session_state.process_method = " → ".join(method_name)
+                st.success(f"✅ 处理完成")
+            except Exception as e:
+                st.error(f"❌ 处理失败: {str(e)}")
 
-        if st.button("🌟 推荐应用", type="primary", use_container_width=True, key="recommend_btn"):
-            if st.session_state.raw_data is None:
-                st.warning("⚠️ 请先上传数据")
-            else:
-                try:
-                    wavenumbers, y = st.session_state.raw_data
-                    recommended_params = {
-                        'baseline_method': "二阶差分(D2)",
-                        'baseline_params': {},
-                        'scaling_method': "标准化(均值0，方差1)",
-                        'scaling_params': {},
-                        'filtering_method': "小波线性阈值去噪",
-                        'filtering_params': {'threshold': 0.3},
-                        'squashing_method': "余弦挤压(squashing)",
-                        'squashing_params': {}
-                    }
+    # 将推荐应用按钮放到应用处理按钮下面
+    if st.button("🌟 推荐应用", type="primary", use_container_width=True, key="recommend_btn"):
+        if st.session_state.raw_data is None:
+            st.warning("⚠️ 请先上传数据")
+        else:
+            try:
+                wavenumbers, y = st.session_state.raw_data
+                recommended_params = {
+                    'baseline_method': "二阶差分(D2)",
+                    'baseline_params': {},
+                    'scaling_method': "标准化(均值0，方差1)",
+                    'scaling_params': {},
+                    'filtering_method': "小波线性阈值去噪",
+                    'filtering_params': {'threshold': 0.3},
+                    'squashing_method': "余弦挤压(squashing)",
+                    'squashing_params': {}
+                }
 
-                    processed_data, method_name = preprocessor.process(
-                        wavenumbers, y, **recommended_params
-                    )
+                processed_data, method_name = preprocessor.process(
+                    wavenumbers, y, **recommended_params
+                )
 
-                    arr_name = f"推荐排列_{len(st.session_state.arrangement_results) + 1}"
-                    st.session_state.arrangement_results.append(arr_name)
-                    st.session_state.arrangement_details[arr_name] = {
-                        'data': processed_data,
-                        'method': " → ".join(method_name),
-                        'params': recommended_params
-                    }
-                    st.session_state.selected_arrangement = arr_name
-                    st.session_state.processed_data = (wavenumbers, processed_data)
-                    st.session_state.process_method = " → ".join(method_name)
-                    st.success(f"✅ 推荐处理完成")
-                except Exception as e:
-                    st.error(f"❌ 推荐失败: {str(e)}")
+                arr_name = f"推荐排列_{len(st.session_state.arrangement_results) + 1}"
+                st.session_state.arrangement_results.append(arr_name)
+                st.session_state.arrangement_details[arr_name] = {
+                    'data': processed_data,
+                    'method': " → ".join(method_name),
+                    'params': recommended_params
+                }
+                st.session_state.selected_arrangement = arr_name
+                st.session_state.processed_data = (wavenumbers, processed_data)
+                st.session_state.process_method = " → ".join(method_name)
+                st.success(f"✅ 推荐处理完成")
+            except Exception as e:
+                st.error(f"❌ 推荐失败: {str(e)}")
         # 6. 显示排列与筛选
         with preprocess_cols[5]:
             st.subheader("操作2")
@@ -648,49 +650,50 @@ def main():
         st.session_state.current_algorithms = current_algorithms
 
         # ===== 光谱可视化与结果导出（在预处理设置下方）=====
-        st.subheader("📈 光谱可视化", divider="gray")
+    with col_right:
+    st.subheader("📈 光谱可视化", divider="gray")
 
-        # 1. 原始光谱区域
-        st.subheader("原始光谱", divider="gray")
-        spec_cols = st.columns(2, gap="small")
-        with spec_cols[0]:
-            if st.session_state.get('raw_data'):
-                wavenumbers, y = st.session_state.raw_data
-                idx1 = 0 if y.shape[1] > 0 else 0
-                raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
-                st.line_chart(raw_data1, height=200)
-            else:
-                st.markdown(
-                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
-                    unsafe_allow_html=True)
+    # 1. 原始光谱区域
+    st.subheader("原始光谱", divider="gray")
+    spec_cols = st.columns(2, gap="small")
+    with spec_cols[0]:
+        if st.session_state.get('raw_data'):
+            wavenumbers, y = st.session_state.raw_data
+            idx1 = 0 if y.shape[1] > 0 else 0
+            raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
+            st.line_chart(raw_data1, height=200)
+        else:
+            st.markdown(
+                '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
+                unsafe_allow_html=True)
 
-        with spec_cols[1]:
-            if st.session_state.get('raw_data') and y.shape[1] > 1:
-                idx2 = 1
-                raw_data2 = pd.DataFrame({"原始光谱2": y[:, idx2]}, index=wavenumbers)
-                st.line_chart(raw_data2, height=200)
-            elif st.session_state.get('raw_data'):
-                st.markdown(
-                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条原始光谱</div>',
-                    unsafe_allow_html=True)
-            else:
-                st.markdown(
-                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
-                    unsafe_allow_html=True)
+    with spec_cols[1]:
+        if st.session_state.get('raw_data') and y.shape[1] > 1:
+            idx2 = 1
+            raw_data2 = pd.DataFrame({"原始光谱2": y[:, idx2]}, index=wavenumbers)
+            st.line_chart(raw_data2, height=200)
+        elif st.session_state.get('raw_data'):
+            st.markdown(
+                '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条原始光谱</div>',
+                unsafe_allow_html=True)
+        else:
+            st.markdown(
+                '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
+                unsafe_allow_html=True)
 
-            # 显示更多原始光谱
-            if st.session_state.get('raw_data') and y.shape[1] > 2:
-                with st.expander("查看更多原始光谱", expanded=False):
-                    more_spec = st.columns(2, gap="small")
-                    for i in range(2, min(y.shape[1], 6), 2):
-                        with more_spec[0]:
-                            if i < y.shape[1]:
-                                data = pd.DataFrame({f"原始光谱{i + 1}": y[:, i]}, index=wavenumbers)
-                                st.line_chart(data, height=150)
-                        with more_spec[1]:
-                            if i + 1 < y.shape[1]:
-                                data = pd.DataFrame({f"原始光谱{i + 2}": y[:, i + 1]}, index=wavenumbers)
-                                st.line_chart(data, height=150)
+        # 显示更多原始光谱
+        if st.session_state.get('raw_data') and y.shape[1] > 2:
+            with st.expander("查看更多原始光谱", expanded=False):
+                more_spec = st.columns(2, gap="small")
+                for i in range(2, min(y.shape[1], 6), 2):
+                    with more_spec[0]:
+                        if i < y.shape[1]:
+                            data = pd.DataFrame({f"原始光谱{i + 1}": y[:, i]}, index=wavenumbers)
+                            st.line_chart(data, height=150)
+                    with more_spec[1]:
+                        if i + 1 < y.shape[1]:
+                            data = pd.DataFrame({f"原始光谱{i + 2}": y[:, i + 1]}, index=wavenumbers)
+                            st.line_chart(data, height=150)
                 # 2. 处理结果展示
                 if st.session_state.get('selected_arrangement'):
                     st.subheader("🔍 预处理结果", divider="gray")
