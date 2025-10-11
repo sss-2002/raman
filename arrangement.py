@@ -636,7 +636,7 @@ def main():
 
         with col_right:
         # ===== 光谱可视化 =====
-        st.subheader("📈 光谱可视化", divider="gray")
+    st.subheader("📈 光谱可视化", divider="gray")
         
         # 1. 原始光谱区域
         st.subheader("原始光谱", divider="gray")
