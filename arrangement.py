@@ -298,8 +298,8 @@ def main():
                     filtering_params["n"] = n
                     filtering_params["it"] = it
                     st.caption(f"窗口大小: {n}, 迭代次数: {it}")
-                elif filtering
-                                elif filtering_method == "卡尔曼滤波":
+            
+                elif filtering_method == "卡尔曼滤波":
                     R = st.selectbox("测量噪声方差R", [0.01, 0.1, 0.5], key="r_kalman", label_visibility="collapsed")
                     filtering_params["R"] = R
                     st.caption(f"测量噪声方差: {R}")
