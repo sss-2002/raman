@@ -407,40 +407,40 @@ def main():
                     except Exception as e:
                         st.error(f"❌ 处理失败: {str(e)}")
 
-        if st.button("🌟 推荐应用", type="primary", use_container_width=True, key="recommend_btn"):
-            if st.session_state.raw_data is None:
-                st.warning("⚠️ 请先上传数据")
-            else:
-                try:
-                    wavenumbers, y = st.session_state.raw_data
-                    recommended_params = {
-                        'baseline_method': "二阶差分(D2)",
-                        'baseline_params': {},
-                        'scaling_method': "标准化(均值0，方差1)",
-                        'scaling_params': {},
-                        'filtering_method': "小波线性阈值去噪",
-                        'filtering_params': {'threshold': 0.3},
-                        'squashing_method': "余弦挤压(squashing)",
-                        'squashing_params': {}
-                    }
-
-                    processed_data, method_name = preprocessor.process(
-                        wavenumbers, y, **recommended_params
-                    )
-
-                    arr_name = f"推荐排列_{len(st.session_state.arrangement_results) + 1}"
-                    st.session_state.arrangement_results.append(arr_name)
-                    st.session_state.arrangement_details[arr_name] = {
-                        'data': processed_data,
-                        'method': " → ".join(method_name),
-                        'params': recommended_params
-                    }
-                    st.session_state.selected_arrangement = arr_name
-                    st.session_state.processed_data = (wavenumbers, processed_data)
-                    st.session_state.process_method = " → ".join(method_name)
-                    st.success(f"✅ 推荐处理完成")
-                except Exception as e:
-                    st.error(f"❌ 推荐失败: {str(e)}")
+            if st.button("🌟 推荐应用", type="primary", use_container_width=True, key="recommend_btn"):
+                if st.session_state.raw_data is None:
+                    st.warning("⚠️ 请先上传数据")
+                else:
+                    try:
+                        wavenumbers, y = st.session_state.raw_data
+                        recommended_params = {
+                            'baseline_method': "二阶差分(D2)",
+                            'baseline_params': {},
+                            'scaling_method': "标准化(均值0，方差1)",
+                            'scaling_params': {},
+                            'filtering_method': "小波线性阈值去噪",
+                            'filtering_params': {'threshold': 0.3},
+                            'squashing_method': "余弦挤压(squashing)",
+                            'squashing_params': {}
+                        }
+    
+                        processed_data, method_name = preprocessor.process(
+                            wavenumbers, y, **recommended_params
+                        )
+    
+                        arr_name = f"推荐排列_{len(st.session_state.arrangement_results) + 1}"
+                        st.session_state.arrangement_results.append(arr_name)
+                        st.session_state.arrangement_details[arr_name] = {
+                            'data': processed_data,
+                            'method': " → ".join(method_name),
+                            'params': recommended_params
+                        }
+                        st.session_state.selected_arrangement = arr_name
+                        st.session_state.processed_data = (wavenumbers, processed_data)
+                        st.session_state.process_method = " → ".join(method_name)
+                        st.success(f"✅ 推荐处理完成")
+                    except Exception as e:
+                        st.error(f"❌ 推荐失败: {str(e)}")
         # 6. 显示排列与筛选
         with preprocess_cols[5]:
             st.subheader("操作2")
