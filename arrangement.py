@@ -676,255 +676,255 @@ def main():
                     st.markdown('<div style="border:1
                                     st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>', unsafe_allow_html=True)
             
-            # k值曲线
-            if arr_order:
-                st.subheader("k值曲线", divider="gray")
-                k_cols = st.columns(2, gap="small")
-                with k_cols[0]:
-                    k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
-                    k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
-                    st.line_chart(k_data1, height=200)
-                with k_cols[1]:
-                    if y.shape[1] > 1:
-                        k_vals2 = np.abs(arr_data[:, 1] / (y[:, 1] + 1e-8))
-                        k_data2 = pd.DataFrame({"k值2": k_vals2}, index=wavenumbers)
-                        st.line_chart(k_data2, height=200)
-                    else:
-                        st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条k值曲线</div>', unsafe_allow_html=True)
-            else:
-                st.info("ℹ️ 无预处理（原始光谱），不显示k值曲线")
-            
-            # 原始与处理后对比
-            st.subheader("原始vs预处理对比", divider="gray")
-            comp_cols = st.columns(2, gap="small")
-            with comp_cols[0]:
-                if y.shape[1] > 0:
-                    comp_data1 = pd.DataFrame({
-                        "原始": y[:, 0],
-                        "预处理后": arr_data[:, 0]
-                    }, index=wavenumbers)
-                    st.line_chart(comp_data1, height=200)
-            with comp_cols[1]:
-                if y.shape[1] > 1:
-                    comp_data2 = pd.DataFrame({
-                        "原始": y[:, 1],
-                        "预处理后": arr_data[:, 1]
-                    }, index=wavenumbers)
-                    st.line_chart(comp_data2, height=200)
-                else:
-                    st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条对比曲线</div>', unsafe_allow_html=True)
-            
-            # 测试结果
-            if st.session_state.get('test_results') is not None:
-                st.subheader("📊 分类测试结果", divider="gray")
-                results = st.session_state.test_results
-                
-                # 指标
-                metrics_cols = st.columns(2, gap="small")
-                with metrics_cols[0]:
-                    st.metric("准确率", f"{results['accuracy']:.4f}", delta=None)
-                with metrics_cols[1]:
-                    st.metric("卡帕系数", f"{results['kappa']:.4f}", delta=None)
-                
-                # 混淆矩阵
-                st.subheader("混淆矩阵", divider="gray")
-                fig, ax = plt.subplots(figsize=(5, 4))
-                sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax, annot_kws={"size": 8})
-                ax.set_xlabel('预测标签', fontsize=8)
-                ax.set_ylabel('真实标签', fontsize=8)
-                ax.set_title('混淆矩阵', fontsize=10)
-                plt.xticks(fontsize=7)
-                plt.yticks(fontsize=7)
-                st.pyplot(fig, use_container_width=True)
-        else:
-            # 未选择排列时的提示
-            st.info("ℹ️ 请在上方选择预处理方法并应用排列方案")
-            
-        # 结果导出
-        if st.session_state.arrangement_results or st.session_state.get('processed_data'):
-            st.subheader("💾 结果导出", divider="gray")
-            export_cols = st.columns([3, 1], gap="small")
-            with export_cols[0]:
-                export_name = st.text_input("导出文件名", "processed_spectra.txt", key="export_name")
-            with export_cols[1]:
-                st.markdown("<br>", unsafe_allow_html=True)  # 垂直对齐
-                if st.button("导出", type="secondary", key="export_btn"):
-                    try:
-                        if st.session_state.selected_arrangement:
-                            arr_data = st.session_state.arrangement_details[st.session_state.selected_arrangement]['data']
-                            file_handler.export_data(export_name, arr_data)
+                # k值曲线
+                if arr_order:
+                    st.subheader("k值曲线", divider="gray")
+                    k_cols = st.columns(2, gap="small")
+                    with k_cols[0]:
+                        k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
+                        k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
+                        st.line_chart(k_data1, height=200)
+                    with k_cols[1]:
+                        if y.shape[1] > 1:
+                            k_vals2 = np.abs(arr_data[:, 1] / (y[:, 1] + 1e-8))
+                            k_data2 = pd.DataFrame({"k值2": k_vals2}, index=wavenumbers)
+                            st.line_chart(k_data2, height=200)
                         else:
-                            wavenumbers, y_processed = st.session_state.processed_data
-                            file_handler.export_data(export_name, y_processed)
-                        st.success(f"✅ 已导出到 {export_name}")
-                    except Exception as e:
-                        st.error(f"❌ 导出失败: {str(e)}")
-        else:
-            st.markdown('<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>', unsafe_allow_html=True)
-
-# 预处理类
-class Preprocessor:
-    def __init__(self):
-        self.BASELINE_ALGORITHMS = {
-            "SD": self._sd_baseline,
-            "FD": self._fd_baseline,
-            "多项式拟合": polynomial_fit,
-            "ModPoly": modpoly,
-            "I-ModPoly": IModPoly,  # 集成IModPoly算法
-            "PLS": pls,
-            "AsLS": baseline_als,  # 使用改进的AsLS算法
-            "airPLS": airpls,
-            "二阶差分(D2)": self.d2  # 将二阶差分归类到基线校准中
-        }
-        self.FILTERING_ALGORITHMS = {
-            "Savitzky-Golay": self.savitzky_golay,
-            "sgolayfilt滤波器": self.sgolay_filter_custom,  # 添加自定义SG滤波器
-            "中值滤波(MF)": self.median_filter,
-            "移动平均(MAF)": self.moving_average,
-            "MWA（移动窗口平均）": self.mwa_filter,  # 添加MWA算法
-            "MWM（移动窗口中值）": self.mwm_filter,  # MWM滤波算法
-            "卡尔曼滤波": self.kalman_filter,  # 添加卡尔曼滤波算法
-            "Lowess": self.lowess_filter,
-            "FFT": self.fft_filter,
-            "Smfft傅里叶滤波": self.smfft_filter,  # 添加Smfft傅里叶滤波
-            "小波变换(DWT)": self.wavelet_filter,
-            "小波线性阈值去噪": self.wavelet_linear  # 新增：小波线性阈值去噪
-        }
-        
-        self.SCALING_ALGORITHMS = {
-            "Peak-Norm": self.peak_norm,
-            "SNV": self.snv,
-            "MSC": self.msc,  # 使用新的MSC实现
-            "M-M-Norm": self.mm_norm,
-            "L-范数": self.l_norm,  # 使用LPnorm函数实现
-            "Ma-Minorm": self.ma_minorm,  # 添加Ma-Minorm归一化
-            "标准化(均值0，方差1)": self.standardize  # 添加标准化算法
-        }
-        
-        self.SQUASHING_ALGORITHMS = {
-            "Sigmoid挤压": sigmoid,  # 使用sigmoid函数
-            "改进的Sigmoid挤压": i_sigmoid,  # 使用改进的i_sigmoid函数
-            "逻辑函数": squashing_legacy,  # 保留原逻辑函数以便对比
-            "余弦挤压(squashing)": squashing,  # 新增：基于余弦的挤压变换
-            "改进的逻辑函数": i_squashing,  # 使用i_squashing函数
-            "DTW挤压": dtw_squashing
-        }
-
-    def process(self, wavenumbers, data, 
-                baseline_method="无", baseline_params=None,
-                squashing_method="无", squashing_params=None,
-                filtering_method="无", filtering_params=None,
-                scaling_method="无", scaling_params=None,
-                algorithm_order=None):
-        """执行预处理流程，支持指定算法顺序，空顺序表示返回原始数据"""
-        if baseline_params is None: baseline_params = {}
-        if squashing_params is None: squashing_params = {}
-        if filtering_params is None: filtering_params = {}
-        if scaling_params is None: scaling_params = {}
+                            st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条k值曲线</div>', unsafe_allow_html=True)
+                else:
+                    st.info("ℹ️ 无预处理（原始光谱），不显示k值曲线")
                 
-        # 如果算法顺序为空（无预处理），直接返回原始数据
-        if algorithm_order is not None and len(algorithm_order) == 0:
-            return data.copy(), ["无预处理（原始光谱）"]
-                
-        y_processed = data.copy()
-        method_name = []
-        
-        # 如果指定了算法顺序，则按顺序执行
-        if algorithm_order is not None and len(algorithm_order) > 0:
-            # 根据算法编号映射到对应的处理步骤
-            step_mapping = {
-                1: ("baseline", baseline_method, baseline_params),
-                2: ("scaling", scaling_method, scaling_params),
-                3: ("filtering", filtering_method, filtering_params),
-                4: ("squashing", squashing_method, squashing_params)
-            }
-            # 按指定顺序创建步骤列表
-            steps = [step_mapping[order] for order in algorithm_order]
-        else:
-            # 默认顺序：基线 → 挤压 → 滤波 → 缩放（只执行已选择的方法）
-            steps = []
-            if baseline_method != "无":
-                steps.append(("baseline", baseline_method, baseline_params))
-            if squashing_method != "无":
-                steps.append(("squashing", squashing_method, squashing_params))
-            if filtering_method != "无":
-                steps.append(("filtering", filtering_method, filtering_params))
-            if scaling_method != "无":
-                steps.append(("scaling", scaling_method, scaling_params))
-    
-        # 按顺序执行预处理步骤
-        for step_type, method, params in steps:
-            if method == "无":
-                continue
-                    
-            try:
-                if step_type == "baseline":
-                    algorithm_func = self.BASELINE_ALGORITHMS[method]
-                    if method in ["多项式拟合", "ModPoly", "I-ModPoly"]:
-                        y_processed = algorithm_func(wavenumbers, y_processed,** params)
-                    elif method in ["PLS"]:
-                        y_processed = algorithm_func(y_processed, **params)
-                    elif method == "AsLS":
-                        y_processed = algorithm_func(y_processed,** params)
-                    elif method == "airPLS":
-                        y_processed = algorithm_func(y_processed, **params)
-                    elif method == "二阶差分(D2)":  # 处理二阶差分
-                        y_processed = algorithm_func(y_processed)
-                    else:  # SD、FD 无额外参数
-                        y_processed = algorithm_func(y_processed)
-                    method_name.append(f"{method}({', '.join([f'{k}={v}' for k, v in params.items()])})")
-                        
-                elif step_type == "squashing":
-                    algorithm_func = self.SQUASHING_ALGORITHMS[method]
-                    if method == "改进的Sigmoid挤压":
-                        maxn = params.get("maxn", 10)
-                        y_processed = algorithm_func(y_processed, maxn=maxn)
-                        method_name.append(f"{method}(maxn={maxn})")
-                    elif method == "改进的逻辑函数":
-                        y_processed = algorithm_func(y_processed)
-                        method_name.append(f"{method}")
-                    elif method == "DTW挤压":
-                        l = params.get("l", 1)
-                        k1 = params.get("k1", "T")
-                        k2 = params.get("k2", "T")
-                        y_processed = algorithm_func(y_processed, l=l, k1=k1, k2=k2)
-                        method_name.append(f"DTW挤压(l={l}, k1={k1}, k2={k2})")
-                    elif method == "Sigmoid挤压":
-                        y_processed = algorithm_func(y_processed)
-                        method_name.append(f"{method}")
-                    elif method == "余弦挤压(squashing)":
-                        y_processed = algorithm_func(y_processed)
-                        method_name.append(f"{method}")
+                # 原始与处理后对比
+                st.subheader("原始vs预处理对比", divider="gray")
+                comp_cols = st.columns(2, gap="small")
+                with comp_cols[0]:
+                    if y.shape[1] > 0:
+                        comp_data1 = pd.DataFrame({
+                            "原始": y[:, 0],
+                            "预处理后": arr_data[:, 0]
+                        }, index=wavenumbers)
+                        st.line_chart(comp_data1, height=200)
+                with comp_cols[1]:
+                    if y.shape[1] > 1:
+                        comp_data2 = pd.DataFrame({
+                            "原始": y[:, 1],
+                            "预处理后": arr_data[:, 1]
+                        }, index=wavenumbers)
+                        st.line_chart(comp_data2, height=200)
                     else:
-                        y_processed = algorithm_func(y_processed)
-                        method_name.append(method)
-                        
-                elif step_type == "filtering":
-                    algorithm_func = self.FILTERING_ALGORITHMS[method]
-                    y_processed = algorithm_func(y_processed,** params)
-                    params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
-                    method_name.append(f"{method}({params_str})")
+                        st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条对比曲线</div>', unsafe_allow_html=True)
+                
+                # 测试结果
+                if st.session_state.get('test_results') is not None:
+                    st.subheader("📊 分类测试结果", divider="gray")
+                    results = st.session_state.test_results
                     
-                    if method == "小波线性阈值去噪":
-                        threshold = params.get("threshold", 0.3)
-                        method_name[-1] = f"{method}(threshold={threshold})"
-                        
-                elif step_type == "scaling":
-                    algorithm_func = self.SCALING_ALGORITHMS[method]
-                    y_processed = algorithm_func(y_processed, **params)
-                    params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
-                    method_name.append(f"{method}({params_str})")
+                    # 指标
+                    metrics_cols = st.columns(2, gap="small")
+                    with metrics_cols[0]:
+                        st.metric("准确率", f"{results['accuracy']:.4f}", delta=None)
+                    with metrics_cols[1]:
+                        st.metric("卡帕系数", f"{results['kappa']:.4f}", delta=None)
                     
-            except Exception as e:
-                raise ValueError(f"{step_type}处理失败: {str(e)}")
+                    # 混淆矩阵
+                    st.subheader("混淆矩阵", divider="gray")
+                    fig, ax = plt.subplots(figsize=(5, 4))
+                    sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax, annot_kws={"size": 8})
+                    ax.set_xlabel('预测标签', fontsize=8)
+                    ax.set_ylabel('真实标签', fontsize=8)
+                    ax.set_title('混淆矩阵', fontsize=10)
+                    plt.xticks(fontsize=7)
+                    plt.yticks(fontsize=7)
+                    st.pyplot(fig, use_container_width=True)
+            else:
+                # 未选择排列时的提示
+                st.info("ℹ️ 请在上方选择预处理方法并应用排列方案")
+                
+            # 结果导出
+            if st.session_state.arrangement_results or st.session_state.get('processed_data'):
+                st.subheader("💾 结果导出", divider="gray")
+                export_cols = st.columns([3, 1], gap="small")
+                with export_cols[0]:
+                    export_name = st.text_input("导出文件名", "processed_spectra.txt", key="export_name")
+                with export_cols[1]:
+                    st.markdown("<br>", unsafe_allow_html=True)  # 垂直对齐
+                    if st.button("导出", type="secondary", key="export_btn"):
+                        try:
+                            if st.session_state.selected_arrangement:
+                                arr_data = st.session_state.arrangement_details[st.session_state.selected_arrangement]['data']
+                                file_handler.export_data(export_name, arr_data)
+                            else:
+                                wavenumbers, y_processed = st.session_state.processed_data
+                                file_handler.export_data(export_name, y_processed)
+                            st.success(f"✅ 已导出到 {export_name}")
+                        except Exception as e:
+                            st.error(f"❌ 导出失败: {str(e)}")
+            else:
+                st.markdown('<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>', unsafe_allow_html=True)
     
-        return y_processed, method_name
-
-    def _sd_baseline(self, spectra):
-        return spectra - np.min(spectra, axis=0)
+    # 预处理类
+    class Preprocessor:
+        def __init__(self):
+            self.BASELINE_ALGORITHMS = {
+                "SD": self._sd_baseline,
+                "FD": self._fd_baseline,
+                "多项式拟合": polynomial_fit,
+                "ModPoly": modpoly,
+                "I-ModPoly": IModPoly,  # 集成IModPoly算法
+                "PLS": pls,
+                "AsLS": baseline_als,  # 使用改进的AsLS算法
+                "airPLS": airpls,
+                "二阶差分(D2)": self.d2  # 将二阶差分归类到基线校准中
+            }
+            self.FILTERING_ALGORITHMS = {
+                "Savitzky-Golay": self.savitzky_golay,
+                "sgolayfilt滤波器": self.sgolay_filter_custom,  # 添加自定义SG滤波器
+                "中值滤波(MF)": self.median_filter,
+                "移动平均(MAF)": self.moving_average,
+                "MWA（移动窗口平均）": self.mwa_filter,  # 添加MWA算法
+                "MWM（移动窗口中值）": self.mwm_filter,  # MWM滤波算法
+                "卡尔曼滤波": self.kalman_filter,  # 添加卡尔曼滤波算法
+                "Lowess": self.lowess_filter,
+                "FFT": self.fft_filter,
+                "Smfft傅里叶滤波": self.smfft_filter,  # 添加Smfft傅里叶滤波
+                "小波变换(DWT)": self.wavelet_filter,
+                "小波线性阈值去噪": self.wavelet_linear  # 新增：小波线性阈值去噪
+            }
+            
+            self.SCALING_ALGORITHMS = {
+                "Peak-Norm": self.peak_norm,
+                "SNV": self.snv,
+                "MSC": self.msc,  # 使用新的MSC实现
+                "M-M-Norm": self.mm_norm,
+                "L-范数": self.l_norm,  # 使用LPnorm函数实现
+                "Ma-Minorm": self.ma_minorm,  # 添加Ma-Minorm归一化
+                "标准化(均值0，方差1)": self.standardize  # 添加标准化算法
+            }
+            
+            self.SQUASHING_ALGORITHMS = {
+                "Sigmoid挤压": sigmoid,  # 使用sigmoid函数
+                "改进的Sigmoid挤压": i_sigmoid,  # 使用改进的i_sigmoid函数
+                "逻辑函数": squashing_legacy,  # 保留原逻辑函数以便对比
+                "余弦挤压(squashing)": squashing,  # 新增：基于余弦的挤压变换
+                "改进的逻辑函数": i_squashing,  # 使用i_squashing函数
+                "DTW挤压": dtw_squashing
+            }
     
-    def _fd_baseline(self, spectra):
-        return spectra - np.percentile(spectra, 5, axis=0)
+        def process(self, wavenumbers, data, 
+                    baseline_method="无", baseline_params=None,
+                    squashing_method="无", squashing_params=None,
+                    filtering_method="无", filtering_params=None,
+                    scaling_method="无", scaling_params=None,
+                    algorithm_order=None):
+            """执行预处理流程，支持指定算法顺序，空顺序表示返回原始数据"""
+            if baseline_params is None: baseline_params = {}
+            if squashing_params is None: squashing_params = {}
+            if filtering_params is None: filtering_params = {}
+            if scaling_params is None: scaling_params = {}
+                    
+            # 如果算法顺序为空（无预处理），直接返回原始数据
+            if algorithm_order is not None and len(algorithm_order) == 0:
+                return data.copy(), ["无预处理（原始光谱）"]
+                    
+            y_processed = data.copy()
+            method_name = []
+            
+            # 如果指定了算法顺序，则按顺序执行
+            if algorithm_order is not None and len(algorithm_order) > 0:
+                # 根据算法编号映射到对应的处理步骤
+                step_mapping = {
+                    1: ("baseline", baseline_method, baseline_params),
+                    2: ("scaling", scaling_method, scaling_params),
+                    3: ("filtering", filtering_method, filtering_params),
+                    4: ("squashing", squashing_method, squashing_params)
+                }
+                # 按指定顺序创建步骤列表
+                steps = [step_mapping[order] for order in algorithm_order]
+            else:
+                # 默认顺序：基线 → 挤压 → 滤波 → 缩放（只执行已选择的方法）
+                steps = []
+                if baseline_method != "无":
+                    steps.append(("baseline", baseline_method, baseline_params))
+                if squashing_method != "无":
+                    steps.append(("squashing", squashing_method, squashing_params))
+                if filtering_method != "无":
+                    steps.append(("filtering", filtering_method, filtering_params))
+                if scaling_method != "无":
+                    steps.append(("scaling", scaling_method, scaling_params))
+        
+            # 按顺序执行预处理步骤
+            for step_type, method, params in steps:
+                if method == "无":
+                    continue
+                        
+                try:
+                    if step_type == "baseline":
+                        algorithm_func = self.BASELINE_ALGORITHMS[method]
+                        if method in ["多项式拟合", "ModPoly", "I-ModPoly"]:
+                            y_processed = algorithm_func(wavenumbers, y_processed,** params)
+                        elif method in ["PLS"]:
+                            y_processed = algorithm_func(y_processed, **params)
+                        elif method == "AsLS":
+                            y_processed = algorithm_func(y_processed,** params)
+                        elif method == "airPLS":
+                            y_processed = algorithm_func(y_processed, **params)
+                        elif method == "二阶差分(D2)":  # 处理二阶差分
+                            y_processed = algorithm_func(y_processed)
+                        else:  # SD、FD 无额外参数
+                            y_processed = algorithm_func(y_processed)
+                        method_name.append(f"{method}({', '.join([f'{k}={v}' for k, v in params.items()])})")
+                            
+                    elif step_type == "squashing":
+                        algorithm_func = self.SQUASHING_ALGORITHMS[method]
+                        if method == "改进的Sigmoid挤压":
+                            maxn = params.get("maxn", 10)
+                            y_processed = algorithm_func(y_processed, maxn=maxn)
+                            method_name.append(f"{method}(maxn={maxn})")
+                        elif method == "改进的逻辑函数":
+                            y_processed = algorithm_func(y_processed)
+                            method_name.append(f"{method}")
+                        elif method == "DTW挤压":
+                            l = params.get("l", 1)
+                            k1 = params.get("k1", "T")
+                            k2 = params.get("k2", "T")
+                            y_processed = algorithm_func(y_processed, l=l, k1=k1, k2=k2)
+                            method_name.append(f"DTW挤压(l={l}, k1={k1}, k2={k2})")
+                        elif method == "Sigmoid挤压":
+                            y_processed = algorithm_func(y_processed)
+                            method_name.append(f"{method}")
+                        elif method == "余弦挤压(squashing)":
+                            y_processed = algorithm_func(y_processed)
+                            method_name.append(f"{method}")
+                        else:
+                            y_processed = algorithm_func(y_processed)
+                            method_name.append(method)
+                            
+                    elif step_type == "filtering":
+                        algorithm_func = self.FILTERING_ALGORITHMS[method]
+                        y_processed = algorithm_func(y_processed,** params)
+                        params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
+                        method_name.append(f"{method}({params_str})")
+                        
+                        if method == "小波线性阈值去噪":
+                            threshold = params.get("threshold", 0.3)
+                            method_name[-1] = f"{method}(threshold={threshold})"
+                            
+                    elif step_type == "scaling":
+                        algorithm_func = self.SCALING_ALGORITHMS[method]
+                        y_processed = algorithm_func(y_processed, **params)
+                        params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
+                        method_name.append(f"{method}({params_str})")
+                        
+                except Exception as e:
+                    raise ValueError(f"{step_type}处理失败: {str(e)}")
+        
+            return y_processed, method_name
     
-if __name__ == "__main__":
-    main()
+        def _sd_baseline(self, spectra):
+            return spectra - np.min(spectra, axis=0)
+        
+        def _fd_baseline(self, spectra):
+            return spectra - np.percentile(spectra, 5, axis=0)
+        
+    if __name__ == "__main__":
+        main()
