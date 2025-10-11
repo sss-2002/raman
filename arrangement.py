@@ -36,6 +36,23 @@ def main():
     # 设置页面
     st.set_page_config(page_title="数据管理", layout="wide")
 
+    # 使用自定义的 CSS 修改上传框样式
+    st.markdown("""
+    <style>
+        .css-1v0mbdj {
+            background-color: #f0f8ff;
+            color: #333;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+        }
+        .css-18e3th9 {
+            margin-top: 20px;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
     # 文件上传控件
     uploaded_file = st.file_uploader("上传压缩包（zip格式）", type=["zip"])
 
