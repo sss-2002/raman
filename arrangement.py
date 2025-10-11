@@ -739,6 +739,9 @@ def main():
                 plt.xticks(fontsize=7)
                 plt.yticks(fontsize=7)
                 st.pyplot(fig, use_container_width=True)
+        else:
+            # 未选择排列时的提示
+            st.info("ℹ️ 请在上方选择预处理方法并应用排列方案")
                
                     
         # 结果导出
