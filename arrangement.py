@@ -34,7 +34,7 @@ def load_data_from_zip(extract_to):
 
 def main():
     # 设置页面
-    st.set_page_config(page_title="上传光谱数据", layout="wide")
+    st.set_page_config(page_title="数据管理", layout="wide")
 
     # 文件上传控件
     uploaded_file = st.file_uploader("上传压缩包（zip格式）", type=["zip"])
