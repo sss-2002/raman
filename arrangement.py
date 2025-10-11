@@ -1785,6 +1785,9 @@ def main():
                 return D2(spectra)
     
     # ===== 文件处理类 =====
+     # 创建处理器实例
+    file_handler = FileHandler()
+    preprocessor = Preprocessor()
     class FileHandler:
         def load_data_from_zip(self, zip_file):
             """从压缩包中加载波数和光谱数据，自动识别数据维度"""
@@ -1849,9 +1852,7 @@ def main():
                 for line in data.T:  # 转置回原始格式
                     f.write("\t".join(map(str, line)) + "\n")
     
-    # 创建处理器实例
-    file_handler = FileHandler()
-    preprocessor = Preprocessor()
+   
 
 
 if __name__ == "__main__":
