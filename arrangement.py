@@ -635,170 +635,170 @@ def main():
         st.session_state.current_algorithms = current_algorithms
 
         # ===== 光谱可视化与结果导出（在预处理设置下方）=====
-        st.subheader("📈 光谱可视化", divider="gray")
-
-        # 1. 原始光谱区域
-        st.subheader("原始光谱", divider="gray")
-        spec_cols = st.columns(2, gap="small")
-        with spec_cols[0]:
-            if st.session_state.get('raw_data'):
-                wavenumbers, y = st.session_state.raw_data
-                idx1 = 0 if y.shape[1] > 0 else 0
-                raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
-                st.line_chart(raw_data1, height=200)
-            else:
-                st.markdown(
-                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
-                    unsafe_allow_html=True)
-
-        with spec_cols[1]:
-            if st.session_state.get('raw_data') and y.shape[1] > 1:
-                idx2 = 1
-                raw_data2 = pd.DataFrame({"原始光谱2": y[:, idx2]}, index=wavenumbers)
-                st.line_chart(raw_data2, height=200)
-            elif st.session_state.get('raw_data'):
-                st.markdown(
-                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条原始光谱</div>',
-                    unsafe_allow_html=True)
-            else:
-                st.markdown(
-                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
-                    unsafe_allow_html=True)
-
-            # 显示更多原始光谱
-            if st.session_state.get('raw_data') and y.shape[1] > 2:
-                with st.expander("查看更多原始光谱", expanded=False):
-                    more_spec = st.columns(2, gap="small")
-                    for i in range(2, min(y.shape[1], 6), 2):
-                        with more_spec[0]:
-                            if i < y.shape[1]:
-                                data = pd.DataFrame({f"原始光谱{i + 1}": y[:, i]}, index=wavenumbers)
-                                st.line_chart(data, height=150)
-                        with more_spec[1]:
-                            if i + 1 < y.shape[1]:
-                                data = pd.DataFrame({f"原始光谱{i + 2}": y[:, i + 1]}, index=wavenumbers)
-                                st.line_chart(data, height=150)
-
-        # 2. 处理结果展示
-        if st.session_state.get('selected_arrangement'):
-            st.subheader("🔍 预处理结果", divider="gray")
-            selected_arr = st.session_state.selected_arrangement
-            arr_data = st.session_state.arrangement_details[selected_arr]['data']
-            arr_method = st.session_state.arrangement_details[selected_arr]['method']
-            arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
-
-            # 处理信息
-            st.caption(f"处理方法: {arr_method} | 执行顺序: {arr_order if arr_order else '无预处理'}")
-
-            # 预处理后光谱
-            st.subheader("预处理后光谱", divider="gray")
-            proc_cols = st.columns(2, gap="small")
-            with proc_cols[0]:
-                idx1 = 0 if arr_data.shape[1] > 0 else 0
-                proc_data1 = pd.DataFrame({"预处理后1": arr_data[:, idx1]}, index=wavenumbers)
-                st.line_chart(proc_data1, height=200)
-            with proc_cols[1]:
-                if arr_data.shape[1] > 1:
-                    idx2 = 1
-                    proc_data2 = pd.DataFrame({"预处理后2": arr_data[:, idx2]}, index=wavenumbers)
-                    st.line_chart(proc_data2, height=200)
+            st.subheader("📈 光谱可视化", divider="gray")
+    
+            # 1. 原始光谱区域
+            st.subheader("原始光谱", divider="gray")
+            spec_cols = st.columns(2, gap="small")
+            with spec_cols[0]:
+                if st.session_state.get('raw_data'):
+                    wavenumbers, y = st.session_state.raw_data
+                    idx1 = 0 if y.shape[1] > 0 else 0
+                    raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
+                    st.line_chart(raw_data1, height=200)
                 else:
                     st.markdown(
-                        '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>',
+                        '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
                         unsafe_allow_html=True)
-
-            # k值曲线
-            if arr_order:
-                st.subheader("k值曲线", divider="gray")
-                k_cols = st.columns(2, gap="small")
-                with k_cols[0]:
-                    k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
-                    k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
-                    st.line_chart(k_data1, height=200)
-                with k_cols[1]:
-                    if y.shape[1] > 1:
-                        k_vals2 = np.abs(arr_data[:, 1] / (y[:, 1] + 1e-8))
-                        k_data2 = pd.DataFrame({"k值2": k_vals2}, index=wavenumbers)
-                        st.line_chart(k_data2, height=200)
+    
+            with spec_cols[1]:
+                if st.session_state.get('raw_data') and y.shape[1] > 1:
+                    idx2 = 1
+                    raw_data2 = pd.DataFrame({"原始光谱2": y[:, idx2]}, index=wavenumbers)
+                    st.line_chart(raw_data2, height=200)
+                elif st.session_state.get('raw_data'):
+                    st.markdown(
+                        '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条原始光谱</div>',
+                        unsafe_allow_html=True)
+                else:
+                    st.markdown(
+                        '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
+                        unsafe_allow_html=True)
+    
+                # 显示更多原始光谱
+                if st.session_state.get('raw_data') and y.shape[1] > 2:
+                    with st.expander("查看更多原始光谱", expanded=False):
+                        more_spec = st.columns(2, gap="small")
+                        for i in range(2, min(y.shape[1], 6), 2):
+                            with more_spec[0]:
+                                if i < y.shape[1]:
+                                    data = pd.DataFrame({f"原始光谱{i + 1}": y[:, i]}, index=wavenumbers)
+                                    st.line_chart(data, height=150)
+                            with more_spec[1]:
+                                if i + 1 < y.shape[1]:
+                                    data = pd.DataFrame({f"原始光谱{i + 2}": y[:, i + 1]}, index=wavenumbers)
+                                    st.line_chart(data, height=150)
+    
+            # 2. 处理结果展示
+            if st.session_state.get('selected_arrangement'):
+                st.subheader("🔍 预处理结果", divider="gray")
+                selected_arr = st.session_state.selected_arrangement
+                arr_data = st.session_state.arrangement_details[selected_arr]['data']
+                arr_method = st.session_state.arrangement_details[selected_arr]['method']
+                arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
+    
+                # 处理信息
+                st.caption(f"处理方法: {arr_method} | 执行顺序: {arr_order if arr_order else '无预处理'}")
+    
+                # 预处理后光谱
+                st.subheader("预处理后光谱", divider="gray")
+                proc_cols = st.columns(2, gap="small")
+                with proc_cols[0]:
+                    idx1 = 0 if arr_data.shape[1] > 0 else 0
+                    proc_data1 = pd.DataFrame({"预处理后1": arr_data[:, idx1]}, index=wavenumbers)
+                    st.line_chart(proc_data1, height=200)
+                with proc_cols[1]:
+                    if arr_data.shape[1] > 1:
+                        idx2 = 1
+                        proc_data2 = pd.DataFrame({"预处理后2": arr_data[:, idx2]}, index=wavenumbers)
+                        st.line_chart(proc_data2, height=200)
                     else:
                         st.markdown(
-                            '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条k值曲线</div>',
+                            '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>',
                             unsafe_allow_html=True)
-            else:
-                st.info("ℹ️ 无预处理（原始光谱），不显示k值曲线")
-
-            # 原始与处理后对比
-            st.subheader("原始vs预处理对比", divider="gray")
-            comp_cols = st.columns(2, gap="small")
-            with comp_cols[0]:
-                if y.shape[1] > 0:
-                    comp_data1 = pd.DataFrame({
-                        "原始": y[:, 0],
-                        "预处理后": arr_data[:, 0]
-                    }, index=wavenumbers)
-                    st.line_chart(comp_data1, height=200)
-            with comp_cols[1]:
-                if y.shape[1] > 1:
-                    comp_data2 = pd.DataFrame({
-                        "原始": y[:, 1],
-                        "预处理后": arr_data[:, 1]
-                    }, index=wavenumbers)
-                    st.line_chart(comp_data2, height=200)
-                else:
-                    st.markdown(
-                        '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条对比曲线</div>',
-                        unsafe_allow_html=True)
-
-            # 测试结果
-            if st.session_state.get('test_results') is not None:
-                st.subheader("📊 分类测试结果", divider="gray")
-                results = st.session_state.test_results
-
-                # 指标
-                metrics_cols = st.columns(2, gap="small")
-                with metrics_cols[0]:
-                    st.metric("准确率", f"{results['accuracy']:.4f}", delta=None)
-                with metrics_cols[1]:
-                    st.metric("卡帕系数", f"{results['kappa']:.4f}", delta=None)
-
-                # 混淆矩阵
-                st.subheader("混淆矩阵", divider="gray")
-                fig, ax = plt.subplots(figsize=(5, 4))
-                sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax,
-                            annot_kws={"size": 8})
-                ax.set_xlabel('预测标签', fontsize=8)
-                ax.set_ylabel('真实标签', fontsize=8)
-                ax.set_title('混淆矩阵', fontsize=10)
-                plt.xticks(fontsize=7)
-                plt.yticks(fontsize=7)
-                st.pyplot(fig, use_container_width=True)
-        else:
-            # 未选择排列时的提示
-            st.info("ℹ️ 请在上方选择预处理方法并应用排列方案")
-
-        # 结果导出
-        if st.session_state.arrangement_results or st.session_state.get('processed_data'):
-            st.subheader("💾 结果导出", divider="gray")
-            export_cols = st.columns([3, 1], gap="small")
-            with export_cols[0]:
-                export_name = st.text_input("导出文件名", "processed_spectra.txt", key="export_name")
-            with export_cols[1]:
-                st.markdown("<br>", unsafe_allow_html=True)  # 垂直对齐
-                if st.button("导出", type="secondary", key="export_btn"):
-                    try:
-                        if st.session_state.selected_arrangement:
-                            arr_data = st.session_state.arrangement_details[st.session_state.selected_arrangement][
-                                'data']
-                            file_handler.export_data(export_name, arr_data)
+    
+                # k值曲线
+                if arr_order:
+                    st.subheader("k值曲线", divider="gray")
+                    k_cols = st.columns(2, gap="small")
+                    with k_cols[0]:
+                        k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
+                        k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
+                        st.line_chart(k_data1, height=200)
+                    with k_cols[1]:
+                        if y.shape[1] > 1:
+                            k_vals2 = np.abs(arr_data[:, 1] / (y[:, 1] + 1e-8))
+                            k_data2 = pd.DataFrame({"k值2": k_vals2}, index=wavenumbers)
+                            st.line_chart(k_data2, height=200)
                         else:
-                            wavenumbers, y_processed = st.session_state.processed_data
-                            file_handler.export_data(export_name, y_processed)
-                        st.success(f"✅ 已导出到 {export_name}")
-                    except Exception as e:
-                        st.error(f"❌ 导出失败: {str(e)}")
-        else:
-            st.markdown(
-                '<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>',
-                unsafe_allow_html=True)
+                            st.markdown(
+                                '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条k值曲线</div>',
+                                unsafe_allow_html=True)
+                else:
+                    st.info("ℹ️ 无预处理（原始光谱），不显示k值曲线")
+    
+                # 原始与处理后对比
+                st.subheader("原始vs预处理对比", divider="gray")
+                comp_cols = st.columns(2, gap="small")
+                with comp_cols[0]:
+                    if y.shape[1] > 0:
+                        comp_data1 = pd.DataFrame({
+                            "原始": y[:, 0],
+                            "预处理后": arr_data[:, 0]
+                        }, index=wavenumbers)
+                        st.line_chart(comp_data1, height=200)
+                with comp_cols[1]:
+                    if y.shape[1] > 1:
+                        comp_data2 = pd.DataFrame({
+                            "原始": y[:, 1],
+                            "预处理后": arr_data[:, 1]
+                        }, index=wavenumbers)
+                        st.line_chart(comp_data2, height=200)
+                    else:
+                        st.markdown(
+                            '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条对比曲线</div>',
+                            unsafe_allow_html=True)
+    
+                # 测试结果
+                if st.session_state.get('test_results') is not None:
+                    st.subheader("📊 分类测试结果", divider="gray")
+                    results = st.session_state.test_results
+    
+                    # 指标
+                    metrics_cols = st.columns(2, gap="small")
+                    with metrics_cols[0]:
+                        st.metric("准确率", f"{results['accuracy']:.4f}", delta=None)
+                    with metrics_cols[1]:
+                        st.metric("卡帕系数", f"{results['kappa']:.4f}", delta=None)
+    
+                    # 混淆矩阵
+                    st.subheader("混淆矩阵", divider="gray")
+                    fig, ax = plt.subplots(figsize=(5, 4))
+                    sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax,
+                                annot_kws={"size": 8})
+                    ax.set_xlabel('预测标签', fontsize=8)
+                    ax.set_ylabel('真实标签', fontsize=8)
+                    ax.set_title('混淆矩阵', fontsize=10)
+                    plt.xticks(fontsize=7)
+                    plt.yticks(fontsize=7)
+                    st.pyplot(fig, use_container_width=True)
+            else:
+                # 未选择排列时的提示
+                st.info("ℹ️ 请在上方选择预处理方法并应用排列方案")
+    
+            # 结果导出
+            if st.session_state.arrangement_results or st.session_state.get('processed_data'):
+                st.subheader("💾 结果导出", divider="gray")
+                export_cols = st.columns([3, 1], gap="small")
+                with export_cols[0]:
+                    export_name = st.text_input("导出文件名", "processed_spectra.txt", key="export_name")
+                with export_cols[1]:
+                    st.markdown("<br>", unsafe_allow_html=True)  # 垂直对齐
+                    if st.button("导出", type="secondary", key="export_btn"):
+                        try:
+                            if st.session_state.selected_arrangement:
+                                arr_data = st.session_state.arrangement_details[st.session_state.selected_arrangement][
+                                    'data']
+                                file_handler.export_data(export_name, arr_data)
+                            else:
+                                wavenumbers, y_processed = st.session_state.processed_data
+                                file_handler.export_data(export_name, y_processed)
+                            st.success(f"✅ 已导出到 {export_name}")
+                        except Exception as e:
+                            st.error(f"❌ 导出失败: {str(e)}")
+            else:
+                st.markdown(
+                    '<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>',
+                    unsafe_allow_html=True)
         if __name__ == "__main__":
                 main()
