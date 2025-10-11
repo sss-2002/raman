@@ -405,31 +405,26 @@ def IModPoly(wavenumbers, originalRaman, polyorder, max_iter=100, tolerance=0.00
 
 # 移动窗口平均（MWA）滤波算法
 def MWA(arr, n=6, it=1, mode="full"):
-    row = arr.shape[0]  # 获取数据行数（样本数）
-    col = arr.shape[1]  # 获取数据列数（特征数）
-    average = np.zeros((row, col))  # 初始化输出数据（所有元素为0）
-    ns = []  # 用于存储每次迭代时使用的窗口大小
-
-    # 每次迭代将窗口大小减2
+    row = arr.shape[0]
+    col = arr.shape[1]
+    average = np.zeros((row, col))
+    ns = []
     for _ in range(it):
         ns.append(n)
         n -= 2
-    
-    # 对每一行数据进行处理
     for i in range(row):
-        average[i] = arr[i].copy()  # 深拷贝每行数据
-        nn = ns.copy()  # 复制窗口大小列表
+        average[i] = arr[i].copy()
+        nn = ns.copy()
         for _ in range(it):
-            n = nn.pop()  # 从窗口列表中获取窗口大小
+            n = nn.pop()
             if n > 1:
-                # 使用numpy的convolve函数进行卷积操作
                 tmp = np.convolve(average[i], np.ones((n,)) / n, mode=mode)
                 for j in range(1, n):
-                    tmp[j - 1] = tmp[j - 1] * n / j  # 调整卷积结果
-                    tmp[-j] = tmp[-j] * n / j  # 调整卷积结果
+                    tmp[j - 1] = tmp[j - 1] * n / j
+                    tmp[-j] = tmp[-j] * n / j
                 j = int(n / 2)
                 k = n - j - 1
-                average[i] = tmp[j:-k]  # 更新每一行的平均值
+                average[i] = tmp[j:-k]
     return average
 
 
@@ -943,86 +938,42 @@ def main():
                 elif squashing_method == "逻辑函数":
                     st.caption("无额外参数")
 
-        # # 5-9列：操作相关内容（横向排列在四个预处理算法后面）
-        # # 5. 应用处理按钮
-        # with preprocess_cols[4]:
-        #     st.subheader("操作1")
-        #     # 应用处理与推荐应用按钮
-        #     if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
-        #         if st.session_state.raw_data is None:
-        #             st.warning("⚠️ 请先上传数据")
-        #         else:
-        #             try:
-                        
-        #                 wavenumbers, y = st.session_state.raw_data
-        #                 processed_data, method_name = preprocessor.process(
-        #                     wavenumbers, y, 
-        #                     baseline_method=baseline_method,
-        #                     baseline_params=baseline_params,
-        #                     squashing_method=squashing_method,
-        #                     squashing_params=squashing_params,
-        #                     filtering_method=filtering_method,
-        #                     filtering_params=filtering_params,
-        #                     scaling_method=scaling_method,
-        #                     scaling_params=scaling_params
-        #                 )
-                        
-        #                 arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
-        #                 st.session_state.arrangement_results.append(arr_name)
-        #                 st.session_state.arrangement_details[arr_name] = {
-        #                     'data': processed_data,
-        #                     'method': " → ".join(method_name),
-        #                     'params': current_algorithms
-        #                 }
-        #                 st.session_state.selected_arrangement = arr_name
-        #                 st.session_state.processed_data = (wavenumbers, processed_data)
-        #                 st.session_state.process_method = " → ".join(method_name)
-        #                 st.success(f"✅ 处理完成")
-        #             except Exception as e:
-        #                 st.error(f"❌ 处理失败: {str(e)}")
+        # 5-9列：操作相关内容（横向排列在四个预处理算法后面）
+        # 5. 应用处理按钮
         with preprocess_cols[4]:
             st.subheader("操作1")
             # 应用处理与推荐应用按钮
             if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
                 if st.session_state.raw_data is None:
-                        st.warning("⚠️ 请先上传数据")
+                    st.warning("⚠️ 请先上传数据")
                 else:
                     try:
                         wavenumbers, y = st.session_state.raw_data
-                            
-                        # 在这里添加 MWA 处理
-                        if filtering_method == "MWA（移动窗口平均）":
-                            n = filtering_params["n"]
-                            it = filtering_params["it"]
-                            # 调用 MWA 滤波
-                            y = MWA(y, n=n, it=it, mode="full")
-                            
-                            processed_data, method_name = preprocessor.process(
-                                wavenumbers, y, 
-                                baseline_method=baseline_method,
-                                baseline_params=baseline_params,
-                                squashing_method=squashing_method,
-                                squashing_params=squashing_params,
-                                filtering_method=filtering_method,
-                                filtering_params=filtering_params,
-                                scaling_method=scaling_method,
-                                scaling_params=scaling_params
-                            )
-                            
-                            arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
-                            st.session_state.arrangement_results.append(arr_name)
-                            st.session_state.arrangement_details[arr_name] = {
-                                'data': processed_data,
-                                'method': " → ".join(method_name),
-                                'params': current_algorithms
-                            }
-                            st.session_state.selected_arrangement = arr_name
-                            st.session_state.processed_data = (wavenumbers, processed_data)
-                            st.session_state.process_method = " → ".join(method_name)
-                            st.success(f"✅ 处理完成")
+                        processed_data, method_name = preprocessor.process(
+                            wavenumbers, y, 
+                            baseline_method=baseline_method,
+                            baseline_params=baseline_params,
+                            squashing_method=squashing_method,
+                            squashing_params=squashing_params,
+                            filtering_method=filtering_method,
+                            filtering_params=filtering_params,
+                            scaling_method=scaling_method,
+                            scaling_params=scaling_params
+                        )
+                        
+                        arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
+                        st.session_state.arrangement_results.append(arr_name)
+                        st.session_state.arrangement_details[arr_name] = {
+                            'data': processed_data,
+                            'method': " → ".join(method_name),
+                            'params': current_algorithms
+                        }
+                        st.session_state.selected_arrangement = arr_name
+                        st.session_state.processed_data = (wavenumbers, processed_data)
+                        st.session_state.process_method = " → ".join(method_name)
+                        st.success(f"✅ 处理完成")
                     except Exception as e:
-                            st.error(f"❌ 处理失败: {str(e)}")
-
+                        st.error(f"❌ 处理失败: {str(e)}")
             
             if st.button("🌟 推荐应用", type="primary", use_container_width=True, key="recommend_btn"):
                 if st.session_state.raw_data is None:
@@ -1833,10 +1784,76 @@ def main():
             else:
                 return D2(spectra)
     
+    # ===== 文件处理类 =====
+    class FileHandler:
+        def load_data_from_zip(self, zip_file):
+            """从压缩包中加载波数和光谱数据，自动识别数据维度"""
+            with zipfile.ZipFile(zip_file, 'r') as zf:
+                # 列出压缩包中的所有文件
+                file_list = zf.namelist()
+                
+                # 尝试识别波数文件和光谱数据文件
+                wavenumber_files = [f for f in file_list if 'wave' in f.lower() or 'wn' in f.lower() or '波数' in f]
+                data_files = [f for f in file_list if 'spec' in f.lower() or 'data' in f.lower() or '光谱' in f]
+                
+                if not wavenumber_files:
+                    raise ValueError("压缩包中未找到波数文件（通常包含'wave'、'wn'或'波数'）")
+                if not data_files:
+                    raise ValueError("压缩包中未找到光谱数据文件（通常包含'spec'、'data'或'光谱'）")
+                
+                # 取第一个符合条件的文件
+                wn_file = wavenumber_files[0]
+                data_file = data_files[0]
+                
+                # 读取波数文件
+                with zf.open(wn_file) as f:
+                    wavenumbers = np.loadtxt(f).ravel()
+                
+                # 读取光谱数据文件
+                with zf.open(data_file) as f:
+                    content = f.read().decode("utf-8")
+                    data = self._parse_data(content)
+                
+                return wavenumbers, data.T
+        
+        def _parse_data(self, content):
+            """解析光谱数据内容，自动识别数据维度"""
+            numb = re.compile(r"-?\d+(?:\.\d+)?")
+            lines_list = content.splitlines()
+            
+            # 提取所有数字
+            all_numbers = []
+            for line in lines_list:
+                all_numbers.extend(numb.findall(line))
+            
+            # 尝试确定数据形状
+            # 假设波数长度为数据点数
+            # 光谱条数 = 总数据点 / 数据点数
+            # 这里先简单处理为二维数组
+            data = np.array([float(num) for num in all_numbers])
+            
+            # 尝试合理的形状（假设每行数据点大致相等）
+            # 先按行数划分
+            n_rows = len(lines_list)
+            n_cols = len(data) // n_rows if n_rows > 0 else 0
+            
+            if n_cols * n_rows != len(data):
+                # 如果无法完美划分，调整最后一行
+                n_cols = len(data) // n_rows + 1
+                data = data[:n_rows * n_cols]  # 截断多余数据
+            
+            return data.reshape(n_rows, n_cols)
+        
+        def export_data(self, filename, data):
+            with open(filename, "w") as f:
+                for line in data.T:  # 转置回原始格式
+                    f.write("\t".join(map(str, line)) + "\n")
+    
+    # 创建处理器实例
+    file_handler = FileHandler()
+    preprocessor = Preprocessor()
+
 
 if __name__ == "__main__":
     main()
-
-
-
     
