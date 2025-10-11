@@ -634,9 +634,10 @@ def main():
         }
         st.session_state.current_algorithms = current_algorithms
 
-        # ===== 光谱可视化与结果导出（在预处理设置下方）=====
+        with col_right:
+        # ===== 光谱可视化 =====
         st.subheader("📈 光谱可视化", divider="gray")
-
+        
         # 1. 原始光谱区域
         st.subheader("原始光谱", divider="gray")
         spec_cols = st.columns(2, gap="small")
@@ -650,7 +651,7 @@ def main():
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
                     unsafe_allow_html=True)
-
+    
         with spec_cols[1]:
             if st.session_state.get('raw_data') and y.shape[1] > 1:
                 idx2 = 1
@@ -665,20 +666,19 @@ def main():
                     '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
                     unsafe_allow_html=True)
 
-            # 显示更多原始光谱
-            if st.session_state.get('raw_data') and y.shape[1] > 2:
-                with st.expander("查看更多原始光谱", expanded=False):
-                    more_spec = st.columns(2, gap="small")
-                    for i in range(2, min(y.shape[1], 6), 2):
-                        with more_spec[0]:
-                            if i < y.shape[1]:
-                                data = pd.DataFrame({f"原始光谱{i + 1}": y[:, i]}, index=wavenumbers)
-                                st.line_chart(data, height=150)
-                        with more_spec[1]:
-                            if i + 1 < y.shape[1]:
-                                data = pd.DataFrame({f"原始光谱{i + 2}": y[:, i + 1]}, index=wavenumbers)
-                                st.line_chart(data, height=150)
-
+    # 显示更多原始光谱
+    if st.session_state.get('raw_data') and y.shape[1] > 2:
+        with st.expander("查看更多原始光谱", expanded=False):
+            more_spec = st.columns(2, gap="small")
+            for i in range(2, min(y.shape[1], 6), 2):
+                with more_spec[0]:
+                    if i < y.shape[1]:
+                        data = pd.DataFrame({f"原始光谱{i + 1}": y[:, i]}, index=wavenumbers)
+                        st.line_chart(data, height=150)
+                with more_spec[1]:
+                    if i + 1 < y.shape[1]:
+                        data = pd.DataFrame({f"原始光谱{i + 2}": y[:, i + 1]}, index=wavenumbers)
+                        st.line_chart(data, height=150)
         # 2. 处理结果展示
         if st.session_state.get('selected_arrangement'):
             st.subheader("🔍 预处理结果", divider="gray")
