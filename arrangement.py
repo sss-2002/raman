@@ -72,6 +72,7 @@ class FileHandler:
         with open(filename, "w") as f:
             for line in data.T:  # 转置回原始格式
                 f.write("\t".join(map(str, line)) + "\n")
+
 def main():
     # 最优先初始化session state
     if 'show_arrangements' not in st.session_state:
@@ -111,67 +112,50 @@ def main():
         if key not in st.session_state:
             st.session_state[key] = value
     file_handler = FileHandler()
+
     # 设置页面：紧凑布局
     st.set_page_config(layout="wide", page_icon="🔬", page_title="排列预处理模型")
+    
     # 全局样式调整：更紧凑的字体和间距，确保预处理设置在一行显示
     st.markdown("""
         <style>
-        /* 全局字体缩小，确保预处理设置在一行显示 */
         body {font-size: 0.75rem !important;}
-        .css-1v0mbdj {padding: 0.3rem 0.5rem !important;} /* 容器内边距 */
-        .css-1d391kg {padding: 0.2rem 0 !important;} /* 标题间距 */
-        .css-1x8cf1d {line-height: 1.1 !important;} /* 文本行高 */
-        .css-12ttj6m {margin-bottom: 0.3rem !important;} /* 组件底部间距 */
-        .css-16huue1 {padding: 0.2rem 0.5rem !important; font-size: 0.7rem !important;} /* 按钮内边距和字体 */
-        h3 {font-size: 1rem !important; margin: 0.3rem 0 !important;} /* 子标题 */
-        .css-1b3298e {gap: 0.3rem !important;} /* 列间距 */
-        .stSlider, .stSelectbox, .stTextInput {margin-bottom: 0.3rem !important;} /* 输入组件间距 */
-        .stCaption {font-size: 0.65rem !important; margin-top: -0.2rem !important;} /* 说明文字 */
-        .css-1544g2n {padding: 0.2rem 0.5rem !important;} /* 展开面板内边距 */
+        .css-1v0mbdj {padding: 0.3rem 0.5rem !important;} 
+        .css-1d391kg {padding: 0.2rem 0 !important;} 
+        .css-1x8cf1d {line-height: 1.1 !important;} 
+        .css-12ttj6m {margin-bottom: 0.3rem !important;} 
+        .css-16huue1 {padding: 0.2rem 0.5rem !important; font-size: 0.7rem !important;} 
+        h3 {font-size: 1rem !important; margin: 0.3rem 0 !important;} 
+        .css-1b3298e {gap: 0.3rem !important;} 
+        .stSlider, .stSelectbox, .stTextInput {margin-bottom: 0.3rem !important;} 
+        .stCaption {font-size: 0.65rem !important; margin-top: -0.2rem !important;} 
+        .css-1544g2n {padding: 0.2rem 0.5rem !important;} 
         </style>
     """, unsafe_allow_html=True)
+
     st.title("🌌 排列预处理模型")
     
     # 页面整体布局：左侧数据管理，右侧主要内容区
     col_left, col_right = st.columns([1.2, 3.9])
     
-    # ===== 左侧：数据管理模块（移除光谱条数和数据点数）=====
+    # ===== 左侧：数据管理模块 =====
     with col_left:
         with st.expander("📁 数据管理", expanded=True):
-            # 上传文件夹压缩包
             zip_file = st.file_uploader("上传包含波数和光谱数据的压缩包", type=['zip'], key="zip_file")
             st.caption("压缩包(.zip)需包含波数和光谱数据文件")
             
-            # 标签输入
             st.subheader("样本标签")
             num_classes = st.number_input("类别数量", min_value=1, value=2, step=1, key="num_cls")
-            labels_input = st.text_input(
-                "标签（逗号分隔，与光谱顺序一致）", 
-                placeholder="例：0,0,1,1",
-                key="labels_in"
-            )
+            labels_input = st.text_input("标签（逗号分隔，与光谱顺序一致）", placeholder="例：0,0,1,1", key="labels_in")
             
-            # 训练测试比例
             st.subheader("训练测试划分")
-            train_test_ratio = st.slider(
-               "训练集比例",
-               min_value=0.1,
-               max_value=0.9,
-               value=0.8,
-               step=0.1,
-               format="%.1f",
-               key="train_ratio"
-            )
+            train_test_ratio = st.slider("训练集比例", min_value=0.1, max_value=0.9, value=0.8, step=0.1, format="%.1f", key="train_ratio")
             st.session_state.train_test_split_ratio = train_test_ratio
     
-            # 数据加载逻辑（从压缩包加载）
             if zip_file:
                 try:
-                    st.session_state.raw_data = file_handler.load_data_from_zip(
-                        zip_file
-                    )
+                    st.session_state.raw_data = file_handler.load_data_from_zip(zip_file)
                     
-                    # 处理标签
                     if labels_input:
                         try:
                             labels = np.array([int(l.strip()) for l in labels_input.split(',')])
@@ -195,7 +179,6 @@ def main():
                 except Exception as e:
                     st.error(f"❌ 文件加载失败: {str(e)}")
         
-        # 系统信息
         if st.session_state.get('raw_data'):
             wavenumbers, y = st.session_state.raw_data
             st.info(f"📊 数据维度: {y.shape[1]}条 × {y.shape[0]}点")
@@ -206,7 +189,6 @@ def main():
             if st.session_state.get('process_method'):
                 st.success(f"🛠️ 处理流程: {st.session_state.process_method}")
         
-        # 使用说明
         with st.expander("ℹ️ 使用指南", expanded=False):
             st.markdown("""
             1. 上传包含波数和光谱数据的压缩包  
@@ -216,26 +198,18 @@ def main():
             5. 选择k值后点击"测试"  
             6. 查看结果并导出
             """)
-    
+
     # ===== 右侧：预处理设置和光谱可视化 =====
     with col_right:
         # ===== 预处理设置（横向排列在光谱可视化上方，与四种算法在同一行）=====
         st.subheader("⚙️ 预处理设置", divider="gray")
         
-        # 使用9列布局：4个算法列 + 5个操作相关列，确保所有内容横向排列
         preprocess_cols = st.columns([1, 1, 1, 1, 1.2, 1.2, 1.2, 1.2, 1.2], gap="small")
         
-        # 1. 基线校准（第一列）
+        # 1. 基线校准
         with preprocess_cols[0]:
             st.subheader("基线校准")
-            baseline_method = st.selectbox(
-                "方法",
-                ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS", "二阶差分(D2)"],
-                key="baseline_method",
-                label_visibility="collapsed"
-            )
-
-            # 基线参数
+            baseline_method = st.selectbox("方法", ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS", "二阶差分(D2)"], key="baseline_method", label_visibility="collapsed")
             baseline_params = {}
             if baseline_method != "无":
                 if baseline_method == "多项式拟合":
@@ -246,7 +220,7 @@ def main():
                     k = st.slider("参数k", 4, 10, 10, key="k_mod", label_visibility="collapsed")
                     baseline_params["k"] = k
                     st.caption(f"k: {k}")
-                elif baseline_method == "I-ModPoly":  # IModPoly参数设置
+                elif baseline_method == "I-ModPoly":
                     polyorder = st.slider("多项式阶数", 3, 7, 5, key="imod_polyorder", label_visibility="collapsed")
                     max_iter = st.slider("最大迭代次数", 50, 200, 100, key="imod_maxiter", label_visibility="collapsed")
                     tolerance = st.slider("收敛容差", 0.001, 0.01, 0.005, key="imod_tol", label_visibility="collapsed")
@@ -273,17 +247,10 @@ def main():
                 elif baseline_method == "二阶差分(D2)":  # 二阶差分参数说明
                     st.caption("二阶差分可增强光谱特征，抑制基线漂移")
 
-        # 2. 缩放处理（第二列）
+        # 2. 缩放处理
         with preprocess_cols[1]:
             st.subheader("📏 缩放")
-            scaling_method = st.selectbox(
-                "方法",
-                ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数", "Ma-Minorm", "标准化(均值0，方差1)"],
-                key="scaling_method",
-                label_visibility="collapsed"
-            )
-
-            # 缩放参数
+            scaling_method = st.selectbox("方法", ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数", "Ma-Minorm", "标准化(均值0，方差1)"], key="scaling_method", label_visibility="collapsed")
             scaling_params = {}
             if scaling_method == "L-范数":
                 p = st.selectbox("p", ["无穷大", "4", "10"], key="p_scale", label_visibility="collapsed")
@@ -292,7 +259,7 @@ def main():
             elif scaling_method == "标准化(均值0，方差1)":
                 st.caption("将数据标准化到均值为0，方差为1")
 
-        # 3. 滤波处理（第三列）
+        # 3. 滤波处理
         with preprocess_cols[2]:
             st.subheader("📶 滤波")
             filtering_method = st.selectbox(
@@ -304,7 +271,6 @@ def main():
                 label_visibility="collapsed"
             )
 
-            # 滤波参数
             filtering_params = {}
             if filtering_method != "无":
                 if filtering_method in ["Savitzky-Golay", "sgolayfilt滤波器"]:
@@ -332,7 +298,8 @@ def main():
                     filtering_params["n"] = n
                     filtering_params["it"] = it
                     st.caption(f"窗口大小: {n}, 迭代次数: {it}")
-                elif filtering_method == "卡尔曼滤波":
+                elif filtering
+                                elif filtering_method == "卡尔曼滤波":
                     R = st.selectbox("测量噪声方差R", [0.01, 0.1, 0.5], key="r_kalman", label_visibility="collapsed")
                     filtering_params["R"] = R
                     st.caption(f"测量噪声方差: {R}")
@@ -380,7 +347,6 @@ def main():
                     l = st.selectbox("l", [1, 5], key="l_dtw", label_visibility="collapsed")
                     k1 = st.selectbox("k1", ["T", "F"], key="k1_dtw", label_visibility="collapsed")
                     k2 = st.selectbox("k2", ["T", "F"], key="k2_dtw", label_visibility="collapsed")
-                    
                     squashing_params["l"] = l
                     squashing_params["k1"] = k1
                     squashing_params["k2"] = k2
@@ -396,7 +362,6 @@ def main():
         # 5. 应用处理按钮
         with preprocess_cols[4]:
             st.subheader("操作1")
-            # 应用处理与推荐应用按钮
             if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
                 if st.session_state.raw_data is None:
                     st.warning("⚠️ 请先上传数据")
@@ -467,7 +432,6 @@ def main():
         # 6. 显示排列与筛选
         with preprocess_cols[5]:
             st.subheader("操作2")
-            # 显示排列按钮
             if st.button("🔍 显示排列", type="secondary", use_container_width=True, key="show_perm_btn"):
                 st.session_state.show_arrangements = not st.session_state.show_arrangements
                 
@@ -485,10 +449,8 @@ def main():
                     st.session_state.filtered_perms = []
                 
                 st.rerun()
-            
-            # 排列方案选择（紧凑显示）
+
             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
-                # 第一步类型筛选
                 try:
                     all_first_step_types = list({
                         perm.get("first_step_type", "未知") 
@@ -506,7 +468,6 @@ def main():
                     label_visibility="collapsed"
                 )
                 
-                # 筛选排列
                 if selected_first_step == "全部":
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                 else:
@@ -518,7 +479,6 @@ def main():
         # 7. 排列选择与应用
         with preprocess_cols[6]:
             st.subheader("操作3")
-            # 排列下拉框
             if st.session_state.show_arrangements and st.session_state.filtered_perms:
                 st.session_state.selected_perm_idx = st.selectbox(
                     f"选择方案（共{len(st.session_state.filtered_perms)}种）",
@@ -529,7 +489,6 @@ def main():
                     help="选择预处理算法顺序"
                 )
                 
-                # 应用排列按钮
                 try:
                     selected_perm = st.session_state.filtered_perms[st.session_state.selected_perm_idx]
                     st.caption(f"当前: {selected_perm.get('name', '未知')}")
@@ -574,13 +533,11 @@ def main():
             else:
                 if st.session_state.show_arrangements:
                     st.info("ℹ️ 无符合条件的方案")
-
+        
         # 8. 分类测试参数
         with preprocess_cols[7]:
             st.subheader("操作4")
-            # 分类测试（紧凑显示）
             st.subheader("📝 分类测试")
-            # k值设置
             k_value = st.number_input(
                 "k值", 
                 min_value=1, 
@@ -597,7 +554,6 @@ def main():
         # 9. 测试按钮
         with preprocess_cols[8]:
             st.subheader("操作5")
-            # 测试按钮
             if st.button("测试", type="primary", use_container_width=True, key="test_btn"):
                 if st.session_state.raw_data is None:
                     st.warning("⚠️ 请先上传数据")
@@ -682,7 +638,6 @@ def main():
             else:
                 st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>', unsafe_allow_html=True)
             
-            # 显示更多原始光谱
             if st.session_state.get('raw_data') and y.shape[1] > 2:
                 with st.expander("查看更多原始光谱", expanded=False):
                     more_spec = st.columns(2, gap="small")
@@ -704,10 +659,8 @@ def main():
             arr_method = st.session_state.arrangement_details[selected_arr]['method']
             arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
             
-            # 处理信息
             st.caption(f"处理方法: {arr_method} | 执行顺序: {arr_order if arr_order else '无预处理'}")
             
-            # 预处理后光谱
             st.subheader("预处理后光谱", divider="gray")
             proc_cols = st.columns(2, gap="small")
             with proc_cols[0]:
@@ -720,7 +673,8 @@ def main():
                     proc_data2 = pd.DataFrame({"预处理后2": arr_data[:, idx2]}, index=wavenumbers)
                     st.line_chart(proc_data2, height=200)
                 else:
-                    st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>', unsafe_allow_html=True)
+                    st.markdown('<div style="border:1
+                                    st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>', unsafe_allow_html=True)
             
             # k值曲线
             if arr_order:
@@ -808,184 +762,169 @@ def main():
         else:
             st.markdown('<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>', unsafe_allow_html=True)
 
-
-   
-    
-    # ===== 预处理类 =====
-    class Preprocessor:
-        def __init__(self):
-            self.BASELINE_ALGORITHMS = {
-                "SD": self._sd_baseline,
-                "FD": self._fd_baseline,
-                "多项式拟合": polynomial_fit,
-                "ModPoly": modpoly,
-                "I-ModPoly": IModPoly,  # 集成IModPoly算法
-                "PLS": pls,
-                "AsLS": baseline_als,  # 使用改进的AsLS算法
-                "airPLS": airpls,
-                "二阶差分(D2)": self.d2  # 将二阶差分归类到基线校准中
-            }
-            self.FILTERING_ALGORITHMS = {
-                "Savitzky-Golay": self.savitzky_golay,
-                "sgolayfilt滤波器": self.sgolay_filter_custom,  # 添加自定义SG滤波器
-                "中值滤波(MF)": self.median_filter,
-                "移动平均(MAF)": self.moving_average,
-                "MWA（移动窗口平均）": self.mwa_filter,  # 添加MWA算法
-                "MWM（移动窗口中值）": self.mwm_filter,  # MWM滤波算法
-                "卡尔曼滤波": self.kalman_filter,  # 添加卡尔曼滤波算法
-                "Lowess": self.lowess_filter,
-                "FFT": self.fft_filter,
-                "Smfft傅里叶滤波": self.smfft_filter,  # 添加Smfft傅里叶滤波
-                "小波变换(DWT)": self.wavelet_filter,
-                "小波线性阈值去噪": self.wavelet_linear  # 新增：小波线性阈值去噪
-            }
-            
-            self.SCALING_ALGORITHMS = {
-                "Peak-Norm": self.peak_norm,
-                "SNV": self.snv,
-                "MSC": self.msc,  # 使用新的MSC实现
-                "M-M-Norm": self.mm_norm,
-                "L-范数": self.l_norm,  # 使用LPnorm函数实现
-                "Ma-Minorm": self.ma_minorm,  # 添加Ma-Minorm归一化
-                "标准化(均值0，方差1)": self.standardize  # 添加标准化算法
-            }
-            
-            self.SQUASHING_ALGORITHMS = {
-                "Sigmoid挤压": sigmoid,  # 使用sigmoid函数
-                "改进的Sigmoid挤压": i_sigmoid,  # 使用改进的i_sigmoid函数
-                "逻辑函数": squashing_legacy,  # 保留原逻辑函数以便对比
-                "余弦挤压(squashing)": squashing,  # 新增：基于余弦的挤压变换
-                "改进的逻辑函数": i_squashing,  # 使用i_squashing函数
-                "DTW挤压": dtw_squashing
-            }
-    
-        def process(self, wavenumbers, data, 
-                    baseline_method="无", baseline_params=None,
-                    squashing_method="无", squashing_params=None,
-                    filtering_method="无", filtering_params=None,
-                    scaling_method="无", scaling_params=None,
-                    algorithm_order=None):
-            """执行预处理流程，支持指定算法顺序，空顺序表示返回原始数据"""
-            if baseline_params is None: baseline_params = {}
-            if squashing_params is None: squashing_params = {}
-            if filtering_params is None: filtering_params = {}
-            if scaling_params is None: scaling_params = {}
-                
-            # 如果算法顺序为空（无预处理），直接返回原始数据
-            if algorithm_order is not None and len(algorithm_order) == 0:
-                return data.copy(), ["无预处理（原始光谱）"]
-                
-            y_processed = data.copy()
-            method_name = []
-            
-            # 如果指定了算法顺序，则按顺序执行
-            if algorithm_order is not None and len(algorithm_order) > 0:
-                # 根据算法编号映射到对应的处理步骤
-                step_mapping = {
-                    1: ("baseline", baseline_method, baseline_params),
-                    2: ("scaling", scaling_method, scaling_params),
-                    3: ("filtering", filtering_method, filtering_params),
-                    4: ("squashing", squashing_method, squashing_params)
-                }
-                # 按指定顺序创建步骤列表
-                steps = [step_mapping[order] for order in algorithm_order]
-            else:
-                # 默认顺序：基线 → 挤压 → 滤波 → 缩放（只执行已选择的方法）
-                steps = []
-                if baseline_method != "无":
-                    steps.append(("baseline", baseline_method, baseline_params))
-                if squashing_method != "无":
-                    steps.append(("squashing", squashing_method, squashing_params))
-                if filtering_method != "无":
-                    steps.append(("filtering", filtering_method, filtering_params))
-                if scaling_method != "无":
-                    steps.append(("scaling", scaling_method, scaling_params))
-    
-            # 按顺序执行预处理步骤
-            for step_type, method, params in steps:
-                if method == "无":
-                    continue
-                    
-                try:
-                    if step_type == "baseline":
-                        algorithm_func = self.BASELINE_ALGORITHMS[method]
-                        if method in ["多项式拟合", "ModPoly", "I-ModPoly"]:
-                            y_processed = algorithm_func(wavenumbers, y_processed,** params)
-                        elif method in ["PLS"]:
-                            y_processed = algorithm_func(y_processed, **params)
-                        elif method == "AsLS":
-                            # 适配改进的AsLS算法参数
-                            y_processed = algorithm_func(y_processed,** params)
-                        elif method == "airPLS":
-                            y_processed = algorithm_func(y_processed, **params)
-                        elif method == "二阶差分(D2)":  # 处理二阶差分
-                            y_processed = algorithm_func(y_processed)
-                        else:  # SD、FD 无额外参数
-                            y_processed = algorithm_func(y_processed)
-                        method_name.append(f"{method}({', '.join([f'{k}={v}' for k, v in params.items()])})")
-                            
-                    elif step_type == "squashing":
-                        algorithm_func = self.SQUASHING_ALGORITHMS[method]
-                        if method == "改进的Sigmoid挤压":
-                            # 使用改进的i_sigmoid函数，支持maxn参数
-                            maxn = params.get("maxn", 10)
-                            y_processed = algorithm_func(y_processed, maxn=maxn)
-                            method_name.append(f"{method}(maxn={maxn})")
-                        elif method == "改进的逻辑函数":
-                            # i_squashing函数不需要额外参数
-                            y_processed = algorithm_func(y_processed)
-                            method_name.append(f"{method}")
-                        elif method == "DTW挤压":
-                            l = params.get("l", 1)
-                            k1 = params.get("k1", "T")
-                            k2 = params.get("k2", "T")
-                            y_processed = algorithm_func(y_processed, l=l, k1=k1, k2=k2)
-                            method_name.append(f"DTW挤压(l={l}, k1={k1}, k2={k2})")
-                        elif method == "Sigmoid挤压":
-                            # 使用sigmoid函数
-                            y_processed = algorithm_func(y_processed)
-                            method_name.append(f"{method}")
-                        elif method == "余弦挤压(squashing)":
-                            # 使用新添加的squashing函数
-                            y_processed = algorithm_func(y_processed)
-                            method_name.append(f"{method}")
-                        else:
-                            y_processed = algorithm_func(y_processed)
-                            method_name.append(method)
-                            
-                    elif step_type == "filtering":
-                        algorithm_func = self.FILTERING_ALGORITHMS[method]
-                        y_processed = algorithm_func(y_processed,** params)
-                        params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
-                        method_name.append(f"{method}({params_str})")
-                        
-                        # 特殊处理小波线性阈值去噪的参数
-                        if method == "小波线性阈值去噪":
-                            threshold = params.get("threshold", 0.3)
-                            method_name[-1] = f"{method}(threshold={threshold})"
-                            
-                    elif step_type == "scaling":
-                        algorithm_func = self.SCALING_ALGORITHMS[method]
-                        y_processed = algorithm_func(y_processed, **params)
-                        params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
-                        method_name.append(f"{method}({params_str})")
-                        
-                except Exception as e:
-                    raise ValueError(f"{step_type}处理失败: {str(e)}")
-    
-            return y_processed, method_name
-         
-        def _sd_baseline(self, spectra):
-            return spectra - np.min(spectra, axis=0)
+# 预处理类
+class Preprocessor:
+    def __init__(self):
+        self.BASELINE_ALGORITHMS = {
+            "SD": self._sd_baseline,
+            "FD": self._fd_baseline,
+            "多项式拟合": polynomial_fit,
+            "ModPoly": modpoly,
+            "I-ModPoly": IModPoly,  # 集成IModPoly算法
+            "PLS": pls,
+            "AsLS": baseline_als,  # 使用改进的AsLS算法
+            "airPLS": airpls,
+            "二阶差分(D2)": self.d2  # 将二阶差分归类到基线校准中
+        }
+        self.FILTERING_ALGORITHMS = {
+            "Savitzky-Golay": self.savitzky_golay,
+            "sgolayfilt滤波器": self.sgolay_filter_custom,  # 添加自定义SG滤波器
+            "中值滤波(MF)": self.median_filter,
+            "移动平均(MAF)": self.moving_average,
+            "MWA（移动窗口平均）": self.mwa_filter,  # 添加MWA算法
+            "MWM（移动窗口中值）": self.mwm_filter,  # MWM滤波算法
+            "卡尔曼滤波": self.kalman_filter,  # 添加卡尔曼滤波算法
+            "Lowess": self.lowess_filter,
+            "FFT": self.fft_filter,
+            "Smfft傅里叶滤波": self.smfft_filter,  # 添加Smfft傅里叶滤波
+            "小波变换(DWT)": self.wavelet_filter,
+            "小波线性阈值去噪": self.wavelet_linear  # 新增：小波线性阈值去噪
+        }
         
-        def _fd_baseline(self, spectra):
-            return spectra - np.percentile(spectra, 5, axis=0)
+        self.SCALING_ALGORITHMS = {
+            "Peak-Norm": self.peak_norm,
+            "SNV": self.snv,
+            "MSC": self.msc,  # 使用新的MSC实现
+            "M-M-Norm": self.mm_norm,
+            "L-范数": self.l_norm,  # 使用LPnorm函数实现
+            "Ma-Minorm": self.ma_minorm,  # 添加Ma-Minorm归一化
+            "标准化(均值0，方差1)": self.standardize  # 添加标准化算法
+        }
+        
+        self.SQUASHING_ALGORITHMS = {
+            "Sigmoid挤压": sigmoid,  # 使用sigmoid函数
+            "改进的Sigmoid挤压": i_sigmoid,  # 使用改进的i_sigmoid函数
+            "逻辑函数": squashing_legacy,  # 保留原逻辑函数以便对比
+            "余弦挤压(squashing)": squashing,  # 新增：基于余弦的挤压变换
+            "改进的逻辑函数": i_squashing,  # 使用i_squashing函数
+            "DTW挤压": dtw_squashing
+        }
+
+    def process(self, wavenumbers, data, 
+                baseline_method="无", baseline_params=None,
+                squashing_method="无", squashing_params=None,
+                filtering_method="无", filtering_params=None,
+                scaling_method="无", scaling_params=None,
+                algorithm_order=None):
+        """执行预处理流程，支持指定算法顺序，空顺序表示返回原始数据"""
+        if baseline_params is None: baseline_params = {}
+        if squashing_params is None: squashing_params = {}
+        if filtering_params is None: filtering_params = {}
+        if scaling_params is None: scaling_params = {}
+                
+        # 如果算法顺序为空（无预处理），直接返回原始数据
+        if algorithm_order is not None and len(algorithm_order) == 0:
+            return data.copy(), ["无预处理（原始光谱）"]
+                
+        y_processed = data.copy()
+        method_name = []
+        
+        # 如果指定了算法顺序，则按顺序执行
+        if algorithm_order is not None and len(algorithm_order) > 0:
+            # 根据算法编号映射到对应的处理步骤
+            step_mapping = {
+                1: ("baseline", baseline_method, baseline_params),
+                2: ("scaling", scaling_method, scaling_params),
+                3: ("filtering", filtering_method, filtering_params),
+                4: ("squashing", squashing_method, squashing_params)
+            }
+            # 按指定顺序创建步骤列表
+            steps = [step_mapping[order] for order in algorithm_order]
+        else:
+            # 默认顺序：基线 → 挤压 → 滤波 → 缩放（只执行已选择的方法）
+            steps = []
+            if baseline_method != "无":
+                steps.append(("baseline", baseline_method, baseline_params))
+            if squashing_method != "无":
+                steps.append(("squashing", squashing_method, squashing_params))
+            if filtering_method != "无":
+                steps.append(("filtering", filtering_method, filtering_params))
+            if scaling_method != "无":
+                steps.append(("scaling", scaling_method, scaling_params))
     
-      
+        # 按顺序执行预处理步骤
+        for step_type, method, params in steps:
+            if method == "无":
+                continue
+                    
+            try:
+                if step_type == "baseline":
+                    algorithm_func = self.BASELINE_ALGORITHMS[method]
+                    if method in ["多项式拟合", "ModPoly", "I-ModPoly"]:
+                        y_processed = algorithm_func(wavenumbers, y_processed,** params)
+                    elif method in ["PLS"]:
+                        y_processed = algorithm_func(y_processed, **params)
+                    elif method == "AsLS":
+                        y_processed = algorithm_func(y_processed,** params)
+                    elif method == "airPLS":
+                        y_processed = algorithm_func(y_processed, **params)
+                    elif method == "二阶差分(D2)":  # 处理二阶差分
+                        y_processed = algorithm_func(y_processed)
+                    else:  # SD、FD 无额外参数
+                        y_processed = algorithm_func(y_processed)
+                    method_name.append(f"{method}({', '.join([f'{k}={v}' for k, v in params.items()])})")
+                        
+                elif step_type == "squashing":
+                    algorithm_func = self.SQUASHING_ALGORITHMS[method]
+                    if method == "改进的Sigmoid挤压":
+                        maxn = params.get("maxn", 10)
+                        y_processed = algorithm_func(y_processed, maxn=maxn)
+                        method_name.append(f"{method}(maxn={maxn})")
+                    elif method == "改进的逻辑函数":
+                        y_processed = algorithm_func(y_processed)
+                        method_name.append(f"{method}")
+                    elif method == "DTW挤压":
+                        l = params.get("l", 1)
+                        k1 = params.get("k1", "T")
+                        k2 = params.get("k2", "T")
+                        y_processed = algorithm_func(y_processed, l=l, k1=k1, k2=k2)
+                        method_name.append(f"DTW挤压(l={l}, k1={k1}, k2={k2})")
+                    elif method == "Sigmoid挤压":
+                        y_processed = algorithm_func(y_processed)
+                        method_name.append(f"{method}")
+                    elif method == "余弦挤压(squashing)":
+                        y_processed = algorithm_func(y_processed)
+                        method_name.append(f"{method}")
+                    else:
+                        y_processed = algorithm_func(y_processed)
+                        method_name.append(method)
+                        
+                elif step_type == "filtering":
+                    algorithm_func = self.FILTERING_ALGORITHMS[method]
+                    y_processed = algorithm_func(y_processed,** params)
+                    params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
+                    method_name.append(f"{method}({params_str})")
+                    
+                    if method == "小波线性阈值去噪":
+                        threshold = params.get("threshold", 0.3)
+                        method_name[-1] = f"{method}(threshold={threshold})"
+                        
+                elif step_type == "scaling":
+                    algorithm_func = self.SCALING_ALGORITHMS[method]
+                    y_processed = algorithm_func(y_processed, **params)
+                    params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
+                    method_name.append(f"{method}({params_str})")
+                    
+            except Exception as e:
+                raise ValueError(f"{step_type}处理失败: {str(e)}")
     
+        return y_processed, method_name
 
-
-
+    def _sd_baseline(self, spectra):
+        return spectra - np.min(spectra, axis=0)
+    
+    def _fd_baseline(self, spectra):
+        return spectra - np.percentile(spectra, 5, axis=0)
+    
 if __name__ == "__main__":
     main()
-    
