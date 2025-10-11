@@ -650,8 +650,6 @@ with preprocess_cols[4]:
                         st.session_state.current_algorithms = current_algorithms
 
         # ===== 光谱可视化与结果导出（在预处理设置下方）=====
-        with col_right:
-        st.subheader("📈 光谱可视化", divider="gray")
     
         # 1. 原始光谱区域
         st.subheader("原始光谱", divider="gray")
