@@ -21,12 +21,15 @@ from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
     # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
-        """多项式拟合基线校正"""
-        baseline = np.zeros_like(spectra)
-        for i in range(spectra.shape[1]):
-            coeffs = np.polyfit(wavenumbers, spectra[:, i], deg=polyorder)
-            baseline[:, i] = np.polyval(coeffs, wavenumbers)
-        return spectra - baseline  # 扣除基线
+    """多项式拟合基线校正"""
+    print(f"wavenumbers shape: {wavenumbers.shape}")
+    print(f"spectra shape: {spectra.shape}")
+    
+    baseline = np.zeros_like(spectra)
+    for i in range(spectra.shape[1]):
+        coeffs = np.polyfit(wavenumbers, spectra[:, i], deg=polyorder)
+        baseline[:, i] = np.polyval(coeffs, wavenumbers)
+    return spectra - baseline  # 扣除基线
 
 def modpoly(wavenumbers, spectra, k):
         """Modified Polynomial (ModPoly) 基线校正"""
