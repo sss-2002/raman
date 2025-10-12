@@ -199,65 +199,65 @@ def main():
             6. 查看结果并导出
             """)
 
-    # ===== 右侧：预处理设置和光谱可视化 =====
-    # with col_right:
-    #     # ===== 预处理设置（横向排列在光谱可视化上方，与四种算法在同一行）=====
-    #     st.subheader("⚙️ 预处理设置", divider="gray")
+    ===== 右侧：预处理设置和光谱可视化 =====
+    with col_right:
+        # ===== 预处理设置（横向排列在光谱可视化上方，与四种算法在同一行）=====
+        st.subheader("⚙️ 预处理设置", divider="gray")
         
-    #     preprocess_cols = st.columns([1, 1, 1, 1, 1.2, 1.2, 1.2, 1.2, 1.2], gap="small")
+        preprocess_cols = st.columns([1, 1, 1, 1, 1.2, 1.2, 1.2, 1.2, 1.2], gap="small")
         
-    #     # 1. 基线校准
-    #     with preprocess_cols[0]:
-    #         st.subheader("基线校准")
-    #         baseline_method = st.selectbox("方法", ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS", "二阶差分(D2)"], key="baseline_method", label_visibility="collapsed")
-    #         baseline_params = {}
-    #         if baseline_method != "无":
-    #             if baseline_method == "多项式拟合":
-    #                 polyorder = st.slider("阶数k", 3, 6, 5, key="polyorder", label_visibility="collapsed")
-    #                 baseline_params["polyorder"] = polyorder
-    #                 st.caption(f"阶数: {polyorder}")
-    #             elif baseline_method == "ModPoly":
-    #                 k = st.slider("参数k", 4, 10, 10, key="k_mod", label_visibility="collapsed")
-    #                 baseline_params["k"] = k
-    #                 st.caption(f"k: {k}")
-    #             elif baseline_method == "I-ModPoly":
-    #                 polyorder = st.slider("多项式阶数", 3, 7, 5, key="imod_polyorder", label_visibility="collapsed")
-    #                 max_iter = st.slider("最大迭代次数", 50, 200, 100, key="imod_maxiter", label_visibility="collapsed")
-    #                 tolerance = st.slider("收敛容差", 0.001, 0.01, 0.005, key="imod_tol", label_visibility="collapsed")
-    #                 baseline_params["polyorder"] = polyorder
-    #                 baseline_params["max_iter"] = max_iter
-    #                 baseline_params["tolerance"] = tolerance
-    #                 st.caption(f"阶数: {polyorder}, 迭代: {max_iter}, 容差: {tolerance}")
-    #             elif baseline_method == "PLS":
-    #                 lam = st.selectbox("λ", [10**10, 10**8, 10**7], key="lam_pls", label_visibility="collapsed")
-    #                 baseline_params["lam"] = lam
-    #                 st.caption(f"λ: {lam}")
-    #             elif baseline_method == "AsLS":
-    #                 p = st.selectbox("非对称系数p", [0.001, 0.01, 0.1], key="p_asls", label_visibility="collapsed")
-    #                 lam = st.selectbox("平滑系数λ", [10**5, 10**7, 10**9], key="lam_asls", label_visibility="collapsed")
-    #                 niter = st.selectbox("迭代次数", [5, 10, 15], key="niter_asls", label_visibility="collapsed")
-    #                 baseline_params["lam"] = lam
-    #                 baseline_params["p"] = p
-    #                 baseline_params["niter"] = niter
-    #                 st.caption(f"p: {p}, λ: {lam}, 迭代次数: {niter}")
-    #             elif baseline_method == "airPLS":
-    #                 lam = st.selectbox("λ", [10**7, 10**4, 10**2], key="lam_air", label_visibility="collapsed")
-    #                 baseline_params["lam"] = lam
-    #                 st.caption(f"λ: {lam}")
-    #             elif baseline_method == "二阶差分(D2)":  # 二阶差分参数说明
-    #                 st.caption("二阶差分可增强光谱特征，抑制基线漂移")
+        # 1. 基线校准
+        with preprocess_cols[0]:
+            st.subheader("基线校准")
+            baseline_method = st.selectbox("方法", ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS", "二阶差分(D2)"], key="baseline_method", label_visibility="collapsed")
+            baseline_params = {}
+            if baseline_method != "无":
+                if baseline_method == "多项式拟合":
+                    polyorder = st.slider("阶数k", 3, 6, 5, key="polyorder", label_visibility="collapsed")
+                    baseline_params["polyorder"] = polyorder
+                    st.caption(f"阶数: {polyorder}")
+                elif baseline_method == "ModPoly":
+                    k = st.slider("参数k", 4, 10, 10, key="k_mod", label_visibility="collapsed")
+                    baseline_params["k"] = k
+                    st.caption(f"k: {k}")
+                elif baseline_method == "I-ModPoly":
+                    polyorder = st.slider("多项式阶数", 3, 7, 5, key="imod_polyorder", label_visibility="collapsed")
+                    max_iter = st.slider("最大迭代次数", 50, 200, 100, key="imod_maxiter", label_visibility="collapsed")
+                    tolerance = st.slider("收敛容差", 0.001, 0.01, 0.005, key="imod_tol", label_visibility="collapsed")
+                    baseline_params["polyorder"] = polyorder
+                    baseline_params["max_iter"] = max_iter
+                    baseline_params["tolerance"] = tolerance
+                    st.caption(f"阶数: {polyorder}, 迭代: {max_iter}, 容差: {tolerance}")
+                elif baseline_method == "PLS":
+                    lam = st.selectbox("λ", [10**10, 10**8, 10**7], key="lam_pls", label_visibility="collapsed")
+                    baseline_params["lam"] = lam
+                    st.caption(f"λ: {lam}")
+                elif baseline_method == "AsLS":
+                    p = st.selectbox("非对称系数p", [0.001, 0.01, 0.1], key="p_asls", label_visibility="collapsed")
+                    lam = st.selectbox("平滑系数λ", [10**5, 10**7, 10**9], key="lam_asls", label_visibility="collapsed")
+                    niter = st.selectbox("迭代次数", [5, 10, 15], key="niter_asls", label_visibility="collapsed")
+                    baseline_params["lam"] = lam
+                    baseline_params["p"] = p
+                    baseline_params["niter"] = niter
+                    st.caption(f"p: {p}, λ: {lam}, 迭代次数: {niter}")
+                elif baseline_method == "airPLS":
+                    lam = st.selectbox("λ", [10**7, 10**4, 10**2], key="lam_air", label_visibility="collapsed")
+                    baseline_params["lam"] = lam
+                    st.caption(f"λ: {lam}")
+                elif baseline_method == "二阶差分(D2)":  # 二阶差分参数说明
+                    st.caption("二阶差分可增强光谱特征，抑制基线漂移")
 
-    #     # 2. 缩放处理
-    #     with preprocess_cols[1]:
-    #         st.subheader("📏 缩放")
-    #         scaling_method = st.selectbox("方法", ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数", "Ma-Minorm", "标准化(均值0，方差1)"], key="scaling_method", label_visibility="collapsed")
-    #         scaling_params = {}
-    #         if scaling_method == "L-范数":
-    #             p = st.selectbox("p", ["无穷大", "4", "10"], key="p_scale", label_visibility="collapsed")
-    #             scaling_params["p"] = p
-    #             st.caption(f"p: {p}")
-    #         elif scaling_method == "标准化(均值0，方差1)":
-    #             st.caption("将数据标准化到均值为0，方差为1")
+        # 2. 缩放处理
+        with preprocess_cols[1]:
+            st.subheader("📏 缩放")
+            scaling_method = st.selectbox("方法", ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数", "Ma-Minorm", "标准化(均值0，方差1)"], key="scaling_method", label_visibility="collapsed")
+            scaling_params = {}
+            if scaling_method == "L-范数":
+                p = st.selectbox("p", ["无穷大", "4", "10"], key="p_scale", label_visibility="collapsed")
+                scaling_params["p"] = p
+                st.caption(f"p: {p}")
+            elif scaling_method == "标准化(均值0，方差1)":
+                st.caption("将数据标准化到均值为0，方差为1")
 
     #     # 3. 滤波处理
     #     with preprocess_cols[2]:
