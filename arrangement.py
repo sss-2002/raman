@@ -19,6 +19,44 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
+def airpls(spectra, lam, max_iter=15, threshold=0.001):
+    """Adaptive Iteratively Reweighted Penalized Least Squares (airPLS) 基线校正"""
+    n_points = spectra.shape[0]
+    baseline = np.zeros_like(spectra)
+    
+    # Create the second derivative matrix for regularization
+    D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(n_points, n_points - 2))
+    D = lam * D.dot(D.transpose())  # Apply the penalty
+
+    for i in range(spectra.shape[1]):
+        y = spectra[:, i]
+        w = np.ones(n_points)  # Initialize weights as 1
+        baseline_i = np.zeros(n_points)
+        
+        for j in range(max_iter):
+            # Create a diagonal weight matrix
+            W = sparse.diags(w, 0)
+            Z = W + D
+            b = spsolve(Z, W * y)  # Solve the system
+
+            # Compute the residuals (y - baseline)
+            d = y - b
+
+            # Update weights based on residuals (weights are larger for smaller residuals)
+            neg_mask = d < 0
+            w[neg_mask] = np.exp(j * np.abs(d[neg_mask]) / np.std(d[neg_mask]))
+            w[~neg_mask] = 0  # Set weights to zero for positive residuals
+
+            # Check for convergence
+            diff = np.sum(np.abs(b - baseline_i)) / np.sum(np.abs(baseline_i)) if np.sum(np.abs(baseline_i)) > 0 else 0
+            if diff < threshold:
+                break
+
+            baseline_i = b
+        
+        baseline[:, i] = baseline_i
+    
+    return spectra - baseline  # Subtract baseline from spectra
 def pls(spectra, lam):
     """Penalized Least Squares (PLS) 基线校正"""
     n_points = spectra.shape[0]
