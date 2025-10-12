@@ -19,50 +19,354 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 
 
+# ===== 预处理类 =====
+class Preprocessor:
+    def __init__(self):
+        self.BASELINE_ALGORITHMS = {
+            "SD": self._sd_baseline,
+            "FD": self._fd_baseline,
+            "多项式拟合": polynomial_fit,
+            "ModPoly": modpoly,
+            "I-ModPoly": IModPoly,  # 集成IModPoly算法
+            "PLS": pls,
+            "AsLS": baseline_als,  # 使用改进的AsLS算法
+            "airPLS": airpls,
+            "二阶差分(D2)": self.d2  # 将二阶差分归类到基线校准中
+        }
+        self.FILTERING_ALGORITHMS = {
+            "Savitzky-Golay": self.savitzky_golay,
+            "sgolayfilt滤波器": self.sgolay_filter_custom,  # 添加自定义SG滤波器
+            "中值滤波(MF)": self.median_filter,
+            "移动平均(MAF)": self.moving_average,
+            "MWA（移动窗口平均）": self.mwa_filter,  # 添加MWA算法
+            "MWM（移动窗口中值）": self.mwm_filter,  # MWM滤波算法
+            "卡尔曼滤波": self.kalman_filter,  # 添加卡尔曼滤波算法
+            "Lowess": self.lowess_filter,
+            "FFT": self.fft_filter,
+            "Smfft傅里叶滤波": self.smfft_filter,  # 添加Smfft傅里叶滤波
+            "小波变换(DWT)": self.wavelet_filter,
+            "小波线性阈值去噪": self.wavelet_linear  # 新增：小波线性阈值去噪
+        }
+
+        self.SCALING_ALGORITHMS = {
+            "Peak-Norm": self.peak_norm,
+            "SNV": self.snv,
+            "MSC": self.msc,  # 使用新的MSC实现
+            "M-M-Norm": self.mm_norm,
+            "L-范数": self.l_norm,  # 使用LPnorm函数实现
+            "Ma-Minorm": self.ma_minorm,  # 添加Ma-Minorm归一化
+            "标准化(均值0，方差1)": self.standardize  # 添加标准化算法
+        }
+
+        self.SQUASHING_ALGORITHMS = {
+            "Sigmoid挤压": sigmoid,  # 使用sigmoid函数
+            "改进的Sigmoid挤压": i_sigmoid,  # 使用改进的i_sigmoid函数
+            "逻辑函数": squashing_legacy,  # 保留原逻辑函数以便对比
+            "余弦挤压(squashing)": squashing,  # 新增：基于余弦的挤压变换
+            "改进的逻辑函数": i_squashing,  # 使用i_squashing函数
+            "DTW挤压": dtw_squashing
+        }
+
+    def process(self, wavenumbers, data,
+                baseline_method="无", baseline_params=None,
+                squashing_method="无", squashing_params=None,
+                filtering_method="无", filtering_params=None,
+                scaling_method="无", scaling_params=None,
+                algorithm_order=None):
+        """执行预处理流程，支持指定算法顺序，空顺序表示返回原始数据"""
+        if baseline_params is None: baseline_params = {}
+        if squashing_params is None: squashing_params = {}
+        if filtering_params is None: filtering_params = {}
+        if scaling_params is None: scaling_params = {}
+
+        # 如果算法顺序为空（无预处理），直接返回原始数据
+        if algorithm_order is not None and len(algorithm_order) == 0:
+            return data.copy(), ["无预处理（原始光谱）"]
+
+        y_processed = data.copy()
+        method_name = []
+
+        # 如果指定了算法顺序，则按顺序执行
+        if algorithm_order is not None and len(algorithm_order) > 0:
+            # 根据算法编号映射到对应的处理步骤
+            step_mapping = {
+                1: ("baseline", baseline_method, baseline_params),
+                2: ("scaling", scaling_method, scaling_params),
+                3: ("filtering", filtering_method, filtering_params),
+                4: ("squashing", squashing_method, squashing_params)
+            }
+            # 按指定顺序创建步骤列表
+            steps = [step_mapping[order] for order in algorithm_order]
+        else:
+            # 默认顺序：基线 → 挤压 → 滤波 → 缩放（只执行已选择的方法）
+            steps = []
+            if baseline_method != "无":
+                steps.append(("baseline", baseline_method, baseline_params))
+            if squashing_method != "无":
+                steps.append(("squashing", squashing_method, squashing_params))
+            if filtering_method != "无":
+                steps.append(("filtering", filtering_method, filtering_params))
+            if scaling_method != "无":
+                steps.append(("scaling", scaling_method, scaling_params))
+
+        # 按顺序执行预处理步骤
+        for step_type, method, params in steps:
+            if method == "无":
+                continue
+
+            try:
+                if step_type == "baseline":
+                    algorithm_func = self.BASELINE_ALGORITHMS[method]
+                    if method in ["多项式拟合", "ModPoly", "I-ModPoly"]:
+                        y_processed = algorithm_func(wavenumbers, y_processed, **params)
+                    elif method in ["PLS"]:
+                        y_processed = algorithm_func(y_processed, **params)
+                    elif method == "AsLS":
+                        # 适配改进的AsLS算法参数
+                        y_processed = algorithm_func(y_processed, **params)
+                    elif method == "airPLS":
+                        y_processed = algorithm_func(y_processed, **params)
+                    elif method == "二阶差分(D2)":  # 处理二阶差分
+                        y_processed = algorithm_func(y_processed)
+                    else:  # SD、FD 无额外参数
+                        y_processed = algorithm_func(y_processed)
+                    method_name.append(f"{method}({', '.join([f'{k}={v}' for k, v in params.items()])})")
+
+                elif step_type == "squashing":
+                    algorithm_func = self.SQUASHING_ALGORITHMS[method]
+                    if method == "改进的Sigmoid挤压":
+                        # 使用改进的i_sigmoid函数，支持maxn参数
+                        maxn = params.get("maxn", 10)
+                        y_processed = algorithm_func(y_processed, maxn=maxn)
+                        method_name.append(f"{method}(maxn={maxn})")
+                    elif method == "改进的逻辑函数":
+                        # i_squashing函数不需要额外参数
+                        y_processed = algorithm_func(y_processed)
+                        method_name.append(f"{method}")
+                    elif method == "DTW挤压":
+                        l = params.get("l", 1)
+                        k1 = params.get("k1", "T")
+                        k2 = params.get("k2", "T")
+                        y_processed = algorithm_func(y_processed, l=l, k1=k1, k2=k2)
+                        method_name.append(f"DTW挤压(l={l}, k1={k1}, k2={k2})")
+                    elif method == "Sigmoid挤压":
+                        # 使用sigmoid函数
+                        y_processed = algorithm_func(y_processed)
+                        method_name.append(f"{method}")
+                    elif method == "余弦挤压(squashing)":
+                        # 使用新添加的squashing函数
+                        y_processed = algorithm_func(y_processed)
+                        method_name.append(f"{method}")
+                    else:
+                        y_processed = algorithm_func(y_processed)
+                        method_name.append(method)
+
+                elif step_type == "filtering":
+                    algorithm_func = self.FILTERING_ALGORITHMS[method]
+                    y_processed = algorithm_func(y_processed, **params)
+                    params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
+                    method_name.append(f"{method}({params_str})")
+
+                    # 特殊处理小波线性阈值去噪的参数
+                    if method == "小波线性阈值去噪":
+                        threshold = params.get("threshold", 0.3)
+                        method_name[-1] = f"{method}(threshold={threshold})"
+
+                elif step_type == "scaling":
+                    algorithm_func = self.SCALING_ALGORITHMS[method]
+                    y_processed = algorithm_func(y_processed, **params)
+                    params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
+                    method_name.append(f"{method}({params_str})")
+
+            except Exception as e:
+                raise ValueError(f"{step_type}处理失败: {str(e)}")
+
+        return y_processed, method_name
+
+    def _sd_baseline(self, spectra):
+        return spectra - np.min(spectra, axis=0)
+
+    def _fd_baseline(self, spectra):
+        return spectra - np.percentile(spectra, 5, axis=0)
+
+    # ===== 滤波算法实现 =====
+    def savitzky_golay(self, spectra, k, w):
+        return savgol_filter(spectra, w, k, axis=0)
+
+    # 自定义sgolayfilt滤波器的封装
+    def sgolay_filter_custom(self, spectra, point, degree):
+        """使用自定义的SGfilter函数进行滤波"""
+        # 确保输入数据形状与SGfilter要求一致
+        if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+            filtered = SGfilter(spectra.T, point, degree)
+            return filtered.T  # 转回原始形状
+        else:
+            return SGfilter(spectra, point, degree)
+
+    def median_filter(self, spectra, k, w):
+        return medfilt(spectra, kernel_size=(w, 1))
+
+    def moving_average(self, spectra, k, w):
+        kernel = np.ones(w) / w
+        return np.apply_along_axis(lambda x: np.convolve(x, kernel, mode='same'), 0, spectra)
+
+    # 添加MWA滤波方法的封装
+    def mwa_filter(self, spectra, n=6, it=1, mode="full"):
+        return MWA(spectra, n=n, it=it, mode=mode)
+
+    # MWM滤波方法的封装
+    def mwm_filter(self, spectra, n=7, it=1):
+        """使用MWM函数进行移动窗口中值滤波"""
+        # 确保输入数据形状与MWM要求一致
+        if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+            filtered = MWM(spectra.T, n=n, it=it)
+            return filtered.T  # 转回原始形状
+        else:
+            return MWM(spectra, n=n, it=it)
+
+    # 添加卡尔曼滤波方法的封装
+    def kalman_filter(self, spectra, R=0.1):
+        return KalmanF(spectra, R)
+
+    def lowess_filter(self, spectra, frac):
+        result = np.zeros_like(spectra)
+        for i in range(spectra.shape[1]):
+            smoothed = lowess(spectra[:, i], np.arange(len(spectra)), frac=frac, it=0)
+            result[:, i] = smoothed[:, 1]
+        return result
+
+    def fft_filter(self, spectra, cutoff):
+        fft_result = fft(spectra, axis=0)
+        frequencies = np.fft.fftfreq(spectra.shape[0])
+        filter_mask = np.abs(frequencies) < cutoff
+        fft_result[~filter_mask, :] = 0
+        return np.real(ifft(fft_result, axis=0))
+
+    # 添加Smfft傅里叶滤波方法的封装
+    def smfft_filter(self, spectra, row_e=51):
+        """使用Smfft函数进行傅里叶滤波"""
+        # 确保输入数据形状与Smfft要求一致
+        if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+            filtered = Smfft(spectra.T, row_e=row_e)
+            return filtered.T  # 转回原始形状
+        else:
+            return Smfft(spectra, row_e=row_e)
+
+    def wavelet_filter(self, spectra, threshold):
+        coeffs = pywt.wavedec(spectra, 'db4', axis=0)
+        coeffs[1:] = [pywt.threshold(c, threshold, mode='soft') for c in coeffs[1:]]
+        return pywt.waverec(coeffs, 'db4', axis=0)
+
+    # 新增：小波线性阈值去噪方法的封装
+    def wavelet_linear(self, spectra, threshold=0.3):
+        """使用新添加的waveletlinear函数进行小波线性阈值去噪"""
+        # 确保输入数据形状与waveletlinear要求一致
+        if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+            filtered = waveletlinear(spectra.T, threshold=threshold)
+            return filtered.T  # 转回原始形状
+        else:
+            return waveletlinear(spectra, threshold=threshold)
+
+    # ===== 缩放算法实现 =====
+    def peak_norm(self, spectra):
+        return spectra / np.max(spectra, axis=0)
+
+    def snv(self, spectra):
+        mean = np.mean(spectra, axis=0)
+        std = np.std(spectra, axis=0)
+        return (spectra - mean) / std
+
+    def msc(self, spectra):
+        """使用新的MSC函数实现多元散射校正"""
+        # 注意：输入数据形状需要与MSC函数要求一致 (n_samples, n_features)
+        # 如果当前数据形状为(n_features, n_samples)，需要先转置
+        if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，说明需要转置
+            corrected = MSC(spectra.T)  # 转置后处理
+            return corrected.T  # 转回原始形状
+        else:
+            return MSC(spectra)
+
+    def mm_norm(self, spectra):
+        min_vals = np.min(spectra, axis=0)
+        max_vals = np.max(spectra, axis=0)
+        return (spectra - min_vals) / (max_vals - min_vals)
+
+    def l_norm(self, spectra, p):
+        """使用LPnorm函数实现L-范数归一化"""
+        if p == "无穷大":
+            return LPnorm(spectra, np.inf)
+        else:
+            p_val = float(p)
+            return LPnorm(spectra, p_val)
+
+    def ma_minorm(self, spectra):
+        """使用MaMinorm函数实现归一化"""
+        return MaMinorm(spectra)
+
+    # 标准化算法实现（均值为0，方差为1）
+    def standardize(self, spectra):
+        """使用plotst函数实现标准化处理"""
+        # 处理数据形状适配
+        if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+            standardized = plotst(spectra.T)  # 转置后处理
+            return standardized.T  # 转回原始形状
+        else:
+            return plotst(spectra)
+
+    # 二阶差分方法的封装（归类到基线校准）
+    def d2(self, spectra):
+        """使用D2函数实现二阶差分计算"""
+        # 处理数据形状适配
+        if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+            diff_result = D2(spectra.T)  # 转置后处理
+            return diff_result.T  # 转回原始形状
+        else:
+            return D2(spectra)
+
 class FileHandler:
     def load_data_from_zip(self, zip_file):
         """从压缩包中加载波数和光谱数据，自动识别数据维度"""
         with zipfile.ZipFile(zip_file, 'r') as zf:
             # 列出压缩包中的所有文件
             file_list = zf.namelist()
-            
+
             # 尝试识别波数文件和光谱数据文件
             wavenumber_files = [f for f in file_list if 'wave' in f.lower() or 'wn' in f.lower() or '波数' in f]
             data_files = [f for f in file_list if 'spec' in f.lower() or 'data' in f.lower() or '光谱' in f]
-            
+
             if not wavenumber_files:
                 raise ValueError("压缩包中未找到波数文件（通常包含'wave'、'wn'或'波数'）")
             if not data_files:
                 raise ValueError("压缩包中未找到光谱数据文件（通常包含'spec'、'data'或'光谱'）")
-            
+
             # 取第一个符合条件的文件
             wn_file = wavenumber_files[0]
             data_file = data_files[0]
-            
+
             # 读取波数文件
             with zf.open(wn_file) as f:
                 wavenumbers = np.loadtxt(f).ravel()
-            
+
             # 读取光谱数据文件
             with zf.open(data_file) as f:
                 content = f.read().decode("utf-8")
                 data = self._parse_data(content)
-            
+
             return wavenumbers, data.T
 
     def _parse_data(self, content):
         """解析光谱数据内容，自动识别数据维度"""
         numb = re.compile(r"-?\d+(?:\.\d+)?")
         lines_list = content.splitlines()
-        
+
         # 提取所有数字
         all_numbers = []
         for line in lines_list:
             all_numbers.extend(numb.findall(line))
-        
+
         # 将提取到的数字转换为浮动类型
         data = np.array([float(num) for num in all_numbers])
-        
+
         # 假设每条光谱的点数为 `much`
         n_rows = len(lines_list)
         n_cols = len(data) // n_rows if n_rows > 0 else 0
@@ -74,6 +378,7 @@ class FileHandler:
             for line in data.T:  # 转置回原始格式
                 f.write("\t".join(map(str, line)) + "\n")
 
+
 def main():
     # 最优先初始化session state
     if 'show_arrangements' not in st.session_state:
@@ -82,7 +387,7 @@ def main():
     # 初始化k_value和其他session状态
     if 'k_value' not in st.session_state:
         st.session_state.k_value = 5  # 设置k_value的默认值
-    
+
     # 初始化测试相关的session状态变量
     test_states = {
         'k_value': st.session_state.k_value,  # 现在从session_state获取k_value
@@ -115,10 +420,9 @@ def main():
     preprocessor = Preprocessor()
     file_handler = FileHandler()
 
-
     # 设置页面：紧凑布局
     st.set_page_config(layout="wide", page_icon="🔬", page_title="排列预处理模型")
-    
+
     # 全局样式调整：更紧凑的字体和间距，确保预处理设置在一行显示
     st.markdown("""
         <style>
@@ -137,28 +441,29 @@ def main():
     """, unsafe_allow_html=True)
 
     st.title("🌌 排列预处理模型")
-    
+
     # 页面整体布局：左侧数据管理，右侧主要内容区
     col_left, col_right = st.columns([1.2, 3.9])
-    
+
     # ===== 左侧：数据管理模块 =====
     with col_left:
         with st.expander("📁 数据管理", expanded=True):
             zip_file = st.file_uploader("上传包含波数和光谱数据的压缩包", type=['zip'], key="zip_file")
             st.caption("压缩包(.zip)需包含波数和光谱数据文件")
-            
+
             st.subheader("样本标签")
             num_classes = st.number_input("类别数量", min_value=1, value=2, step=1, key="num_cls")
             labels_input = st.text_input("标签（逗号分隔，与光谱顺序一致）", placeholder="例：0,0,1,1", key="labels_in")
-            
+
             st.subheader("训练测试划分")
-            train_test_ratio = st.slider("训练集比例", min_value=0.1, max_value=0.9, value=0.8, step=0.1, format="%.1f", key="train_ratio")
+            train_test_ratio = st.slider("训练集比例", min_value=0.1, max_value=0.9, value=0.8, step=0.1, format="%.1f",
+                                         key="train_ratio")
             st.session_state.train_test_split_ratio = train_test_ratio
-    
+
             if zip_file:
                 try:
                     st.session_state.raw_data = file_handler.load_data_from_zip(zip_file)
-                    
+
                     if labels_input:
                         try:
                             labels = np.array([int(l.strip()) for l in labels_input.split(',')])
@@ -169,7 +474,8 @@ def main():
                                 indices = np.random.permutation(n_samples)
                                 st.session_state.train_indices = indices[:train_size]
                                 st.session_state.test_indices = indices[train_size:]
-                                st.success(f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{len(np.unique(labels))}类")
+                                st.success(
+                                    f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{len(np.unique(labels))}类")
                             else:
                                 st.warning(f"⚠️ 标签数({len(labels)})≠光谱数({st.session_state.raw_data[1].shape[1]})")
                                 st.session_state.labels = None
@@ -177,21 +483,23 @@ def main():
                             st.warning(f"⚠️ 标签格式错误: {str(e)}")
                             st.session_state.labels = None
                     else:
-                        st.success(f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{st.session_state.raw_data[1].shape[0]}个点")
+                        st.success(
+                            f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{st.session_state.raw_data[1].shape[0]}个点")
                         st.warning("⚠️ 请输入样本标签以进行分类测试")
                 except Exception as e:
                     st.error(f"❌ 文件加载失败: {str(e)}")
-        
+
         if st.session_state.get('raw_data'):
             wavenumbers, y = st.session_state.raw_data
             st.info(f"📊 数据维度: {y.shape[1]}条 × {y.shape[0]}点")
-            st.info(f"🔢 训练集:{train_test_ratio:.1f} | 测试集:{1-train_test_ratio:.1f}")
+            st.info(f"🔢 训练集:{train_test_ratio:.1f} | 测试集:{1 - train_test_ratio:.1f}")
             if st.session_state.get('labels') is not None:
                 class_counts = np.bincount(st.session_state.labels)
-                st.info(f"🏷️ 类别分布: {', '.join([f'类{i}:{count}个' for i, count in enumerate(class_counts) if count>0])}")
+                st.info(
+                    f"🏷️ 类别分布: {', '.join([f'类{i}:{count}个' for i, count in enumerate(class_counts) if count > 0])}")
             if st.session_state.get('process_method'):
                 st.success(f"🛠️ 处理流程: {st.session_state.process_method}")
-        
+
         with st.expander("ℹ️ 使用指南", expanded=False):
             st.markdown("""
             1. 上传包含波数和光谱数据的压缩包  
@@ -206,13 +514,16 @@ def main():
     with col_right:
         # ===== 预处理设置（横向排列在光谱可视化上方，与四种算法在同一行）=====
         st.subheader("⚙️ 预处理设置", divider="gray")
-        
+
         preprocess_cols = st.columns([1, 1, 1, 1, 1.2, 1.2, 1.2, 1.2, 1.2], gap="small")
-        
+
         # 1. 基线校准
         with preprocess_cols[0]:
             st.subheader("基线校准")
-            baseline_method = st.selectbox("方法", ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS", "airPLS", "二阶差分(D2)"], key="baseline_method", label_visibility="collapsed")
+            baseline_method = st.selectbox("方法",
+                                           ["无", "SD", "FD", "多项式拟合", "ModPoly", "I-ModPoly", "PLS", "AsLS",
+                                            "airPLS", "二阶差分(D2)"], key="baseline_method",
+                                           label_visibility="collapsed")
             baseline_params = {}
             if baseline_method != "无":
                 if baseline_method == "多项式拟合":
@@ -232,19 +543,20 @@ def main():
                     baseline_params["tolerance"] = tolerance
                     st.caption(f"阶数: {polyorder}, 迭代: {max_iter}, 容差: {tolerance}")
                 elif baseline_method == "PLS":
-                    lam = st.selectbox("λ", [10**10, 10**8, 10**7], key="lam_pls", label_visibility="collapsed")
+                    lam = st.selectbox("λ", [10 ** 10, 10 ** 8, 10 ** 7], key="lam_pls", label_visibility="collapsed")
                     baseline_params["lam"] = lam
                     st.caption(f"λ: {lam}")
                 elif baseline_method == "AsLS":
                     p = st.selectbox("非对称系数p", [0.001, 0.01, 0.1], key="p_asls", label_visibility="collapsed")
-                    lam = st.selectbox("平滑系数λ", [10**5, 10**7, 10**9], key="lam_asls", label_visibility="collapsed")
+                    lam = st.selectbox("平滑系数λ", [10 ** 5, 10 ** 7, 10 ** 9], key="lam_asls",
+                                       label_visibility="collapsed")
                     niter = st.selectbox("迭代次数", [5, 10, 15], key="niter_asls", label_visibility="collapsed")
                     baseline_params["lam"] = lam
                     baseline_params["p"] = p
                     baseline_params["niter"] = niter
                     st.caption(f"p: {p}, λ: {lam}, 迭代次数: {niter}")
                 elif baseline_method == "airPLS":
-                    lam = st.selectbox("λ", [10**7, 10**4, 10**2], key="lam_air", label_visibility="collapsed")
+                    lam = st.selectbox("λ", [10 ** 7, 10 ** 4, 10 ** 2], key="lam_air", label_visibility="collapsed")
                     baseline_params["lam"] = lam
                     st.caption(f"λ: {lam}")
                 elif baseline_method == "二阶差分(D2)":  # 二阶差分参数说明
@@ -253,7 +565,9 @@ def main():
         # 2. 缩放处理
         with preprocess_cols[1]:
             st.subheader("📏 缩放")
-            scaling_method = st.selectbox("方法", ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数", "Ma-Minorm", "标准化(均值0，方差1)"], key="scaling_method", label_visibility="collapsed")
+            scaling_method = st.selectbox("方法", ["无", "Peak-Norm", "SNV", "MSC", "M-M-Norm", "L-范数", "Ma-Minorm",
+                                                   "标准化(均值0，方差1)"], key="scaling_method",
+                                          label_visibility="collapsed")
             scaling_params = {}
             if scaling_method == "L-范数":
                 p = st.selectbox("p", ["无穷大", "4", "10"], key="p_scale", label_visibility="collapsed")
@@ -267,8 +581,8 @@ def main():
             st.subheader("📶 滤波")
             filtering_method = st.selectbox(
                 "方法",
-                ["无", "Savitzky-Golay", "sgolayfilt滤波器", "中值滤波(MF)", "移动平均(MAF)", 
-                 "MWA（移动窗口平均）", "MWM（移动窗口中值）", "卡尔曼滤波", "Lowess", "FFT", 
+                ["无", "Savitzky-Golay", "sgolayfilt滤波器", "中值滤波(MF)", "移动平均(MAF)",
+                 "MWA（移动窗口平均）", "MWM（移动窗口中值）", "卡尔曼滤波", "Lowess", "FFT",
                  "Smfft傅里叶滤波", "小波变换(DWT)", "小波线性阈值去噪"],
                 key="filtering_method",
                 label_visibility="collapsed"
@@ -301,7 +615,7 @@ def main():
                     filtering_params["n"] = n
                     filtering_params["it"] = it
                     st.caption(f"窗口大小: {n}, 迭代次数: {it}")
-            
+
                 elif filtering_method == "卡尔曼滤波":
                     R = st.selectbox("测量噪声方差R", [0.01, 0.1, 0.5], key="r_kalman", label_visibility="collapsed")
                     filtering_params["R"] = R
@@ -315,7 +629,8 @@ def main():
                     filtering_params["cutoff"] = cutoff
                     st.caption(f"频率: {cutoff}")
                 elif filtering_method == "Smfft傅里叶滤波":
-                    row_e = st.selectbox("保留低频分量数", [31, 51, 71], key="row_e_smfft", label_visibility="collapsed")
+                    row_e = st.selectbox("保留低频分量数", [31, 51, 71], key="row_e_smfft",
+                                         label_visibility="collapsed")
                     filtering_params["row_e"] = row_e
                     st.caption(f"保留低频分量数: {row_e}")
                 elif filtering_method == "小波变换(DWT)":
@@ -323,7 +638,8 @@ def main():
                     filtering_params["threshold"] = threshold
                     st.caption(f"阈值: {threshold}")
                 elif filtering_method == "小波线性阈值去噪":
-                    threshold = st.selectbox("阈值", [0.1, 0.3, 0.5], key="thresh_wavelet_linear", label_visibility="collapsed")
+                    threshold = st.selectbox("阈值", [0.1, 0.3, 0.5], key="thresh_wavelet_linear",
+                                             label_visibility="collapsed")
                     filtering_params["threshold"] = threshold
                     st.caption(f"阈值: {threshold}")
 
@@ -332,7 +648,8 @@ def main():
             st.subheader("🧪 挤压")
             squashing_method = st.selectbox(
                 "方法",
-                ["无", "Sigmoid挤压", "改进的Sigmoid挤压", "逻辑函数", "余弦挤压(squashing)", "改进的逻辑函数", "DTW挤压"],
+                ["无", "Sigmoid挤压", "改进的Sigmoid挤压", "逻辑函数", "余弦挤压(squashing)", "改进的逻辑函数",
+                 "DTW挤压"],
                 key="squashing_method",
                 label_visibility="collapsed"
             )
@@ -372,7 +689,7 @@ def main():
                     try:
                         wavenumbers, y = st.session_state.raw_data
                         processed_data, method_name = preprocessor.process(
-                            wavenumbers, y, 
+                            wavenumbers, y,
                             baseline_method=baseline_method,
                             baseline_params=baseline_params,
                             squashing_method=squashing_method,
@@ -382,7 +699,7 @@ def main():
                             scaling_method=scaling_method,
                             scaling_params=scaling_params
                         )
-                        
+
                         arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
                         st.session_state.arrangement_results.append(arr_name)
                         st.session_state.arrangement_details[arr_name] = {
@@ -396,7 +713,7 @@ def main():
                         st.success(f"✅ 处理完成")
                     except Exception as e:
                         st.error(f"❌ 处理失败: {str(e)}")
-            
+
             if st.button("🌟 推荐应用", type="primary", use_container_width=True, key="recommend_btn"):
                 if st.session_state.raw_data is None:
                     st.warning("⚠️ 请先上传数据")
@@ -413,11 +730,11 @@ def main():
                             'squashing_method': "余弦挤压(squashing)",
                             'squashing_params': {}
                         }
-                        
+
                         processed_data, method_name = preprocessor.process(
-                            wavenumbers, y,** recommended_params
+                            wavenumbers, y, **recommended_params
                         )
-                        
+
                         arr_name = f"推荐排列_{len(st.session_state.arrangement_results) + 1}"
                         st.session_state.arrangement_results.append(arr_name)
                         st.session_state.arrangement_details[arr_name] = {
@@ -437,7 +754,7 @@ def main():
             st.subheader("操作2")
             if st.button("🔍 显示排列", type="secondary", use_container_width=True, key="show_perm_btn"):
                 st.session_state.show_arrangements = not st.session_state.show_arrangements
-                
+
                 if st.session_state.show_arrangements:
                     selected_algorithms = {
                         'baseline': baseline_method,
@@ -450,32 +767,32 @@ def main():
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
                 else:
                     st.session_state.filtered_perms = []
-                
+
                 st.rerun()
 
             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
                 try:
                     all_first_step_types = list({
-                        perm.get("first_step_type", "未知") 
+                        perm.get("first_step_type", "未知")
                         for perm in st.session_state.algorithm_permutations
                     })
                     all_first_step_types.sort()
                 except Exception as e:
                     st.error(f"❌ 筛选错误: {str(e)}")
                     all_first_step_types = ["全部", "无预处理", "基线校准", "缩放", "滤波", "挤压"]
-                
+
                 selected_first_step = st.selectbox(
                     "第一步类型",
                     ["全部"] + all_first_step_types,
                     key="first_step_filter",
                     label_visibility="collapsed"
                 )
-                
+
                 if selected_first_step == "全部":
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                 else:
                     st.session_state.filtered_perms = [
-                        p for p in st.session_state.algorithm_permutations 
+                        p for p in st.session_state.algorithm_permutations
                         if p.get("first_step_type") == selected_first_step
                     ]
 
@@ -486,16 +803,16 @@ def main():
                 st.session_state.selected_perm_idx = st.selectbox(
                     f"选择方案（共{len(st.session_state.filtered_perms)}种）",
                     range(len(st.session_state.filtered_perms)),
-                    format_func=lambda x: st.session_state.filtered_perms[x].get("name", f"方案{x+1}"),
+                    format_func=lambda x: st.session_state.filtered_perms[x].get("name", f"方案{x + 1}"),
                     key="perm_select",
                     label_visibility="collapsed",
                     help="选择预处理算法顺序"
                 )
-                
+
                 try:
                     selected_perm = st.session_state.filtered_perms[st.session_state.selected_perm_idx]
                     st.caption(f"当前: {selected_perm.get('name', '未知')}")
-                    
+
                     if st.button("✅ 应用方案", type="primary", use_container_width=True, key="apply_perm_btn"):
                         if st.session_state.raw_data is None:
                             st.warning("⚠️ 请先上传数据")
@@ -503,9 +820,9 @@ def main():
                             try:
                                 wavenumbers, y = st.session_state.raw_data
                                 algos = st.session_state.current_algorithms
-                                
+
                                 processed_data, method_name = preprocessor.process(
-                                    wavenumbers, y, 
+                                    wavenumbers, y,
                                     baseline_method=algos['baseline'],
                                     baseline_params=algos['baseline_params'],
                                     squashing_method=algos['squashing'],
@@ -516,7 +833,7 @@ def main():
                                     scaling_params=algos['scaling_params'],
                                     algorithm_order=selected_perm.get('order', [])
                                 )
-                                
+
                                 arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
                                 st.session_state.arrangement_results.append(arr_name)
                                 st.session_state.arrangement_details[arr_name] = {
@@ -536,20 +853,20 @@ def main():
             else:
                 if st.session_state.show_arrangements:
                     st.info("ℹ️ 无符合条件的方案")
-        
+
         # 8. 分类测试参数
         with preprocess_cols[7]:
             st.subheader("操作4")
             st.subheader("📝 分类测试")
             k_value = st.number_input(
-                "k值", 
-                min_value=1, 
+                "k值",
+                min_value=1,
                 value=st.session_state.k_value,
                 step=1,
                 key="k_input",
                 label_visibility="collapsed"
             )
-            
+
             if st.button("确定k值", type="secondary", use_container_width=True, key="k_confirm_btn"):
                 st.session_state.k_value = k_value
                 st.success(f"k={k_value}")
@@ -572,24 +889,24 @@ def main():
                         processed_data = st.session_state.arrangement_details[selected_arr]['data']
                         train_idx = st.session_state.train_indices
                         test_idx = st.session_state.test_indices
-                        
+
                         train_data = processed_data[:, train_idx]
                         test_data = processed_data[:, test_idx]
                         train_labels = st.session_state.labels[train_idx]
                         test_labels = st.session_state.labels[test_idx]
-                        
+
                         with st.spinner("测试中..."):
                             predictions = knn_classify(
-                                train_data, 
-                                train_labels, 
-                                test_data, 
+                                train_data,
+                                train_labels,
+                                test_data,
                                 k=st.session_state.k_value
                             )
-                        
+
                         accuracy = accuracy_score(test_labels, predictions)
                         kappa = cohen_kappa_score(test_labels, predictions)
                         cm = confusion_matrix(test_labels, predictions)
-                        
+
                         st.session_state.test_results = {
                             'accuracy': accuracy,
                             'kappa': kappa,
@@ -597,9 +914,9 @@ def main():
                             'predictions': predictions,
                             'test_labels': test_labels
                         }
-                        
+
                         st.success("✅ 测试完成！结果在下方")
-                        
+
                     except Exception as e:
                         st.error(f"❌ 测试失败: {str(e)}")
 
@@ -618,12 +935,12 @@ def main():
 
         # ===== 光谱可视化与结果导出（在预处理设置下方）=====
         st.subheader("📈 光谱可视化", divider="gray")
-        
+
         # 1. 原始光谱区域
         st.subheader("原始光谱", divider="gray")
         # 将原始光谱展示放置到右侧
         spec_cols = st.columns([2, 2], gap="small")  # 通过调整列宽度，确保可以容纳两列内容
-        
+
         with spec_cols[0]:
             if st.session_state.get('raw_data'):
                 wavenumbers, y = st.session_state.raw_data
@@ -631,18 +948,24 @@ def main():
                 raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
                 st.line_chart(raw_data1, height=200)
             else:
-                st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>', unsafe_allow_html=True)
-        
+                st.markdown(
+                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
+                    unsafe_allow_html=True)
+
         with spec_cols[1]:
             if st.session_state.get('raw_data') and y.shape[1] > 1:
                 idx2 = 1
                 raw_data2 = pd.DataFrame({"原始光谱2": y[:, idx2]}, index=wavenumbers)
                 st.line_chart(raw_data2, height=200)
             elif st.session_state.get('raw_data'):
-                st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条原始光谱</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条原始光谱</div>',
+                    unsafe_allow_html=True)
             else:
-                st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>', unsafe_allow_html=True)
-        
+                st.markdown(
+                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
+                    unsafe_allow_html=True)
+
         # 显示更多原始光谱
         if st.session_state.get('raw_data') and y.shape[1] > 2:
             with st.expander("查看更多原始光谱", expanded=False):
@@ -650,13 +973,13 @@ def main():
                 for i in range(2, min(y.shape[1], 6), 2):
                     with more_spec[0]:
                         if i < y.shape[1]:
-                            data = pd.DataFrame({f"原始光谱{i+1}": y[:, i]}, index=wavenumbers)
+                            data = pd.DataFrame({f"原始光谱{i + 1}": y[:, i]}, index=wavenumbers)
                             st.line_chart(data, height=150)
                     with more_spec[1]:
                         if i + 1 < y.shape[1]:
-                            data = pd.DataFrame({f"原始光谱{i+2}": y[:, i+1]}, index=wavenumbers)
+                            data = pd.DataFrame({f"原始光谱{i + 2}": y[:, i + 1]}, index=wavenumbers)
                             st.line_chart(data, height=150)
-        
+
         # 2. 处理结果展示
         if st.session_state.get('selected_arrangement'):
             st.subheader("🔍 预处理结果", divider="gray")
@@ -664,9 +987,9 @@ def main():
             arr_data = st.session_state.arrangement_details[selected_arr]['data']
             arr_method = st.session_state.arrangement_details[selected_arr]['method']
             arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
-        
+
             st.caption(f"处理方法: {arr_method} | 执行顺序: {arr_order if arr_order else '无预处理'}")
-        
+
             # 预处理后光谱
             st.subheader("预处理后光谱", divider="gray")
             proc_cols = st.columns([2, 2], gap="small")  # 预处理后光谱同样放在右侧
@@ -680,8 +1003,10 @@ def main():
                     proc_data2 = pd.DataFrame({"预处理后2": arr_data[:, idx2]}, index=wavenumbers)
                     st.line_chart(proc_data2, height=200)
                 else:
-                    st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>', unsafe_allow_html=True)
-        
+                    st.markdown(
+                        '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>',
+                        unsafe_allow_html=True)
+
             # k值曲线
             if arr_order:
                 st.subheader("k值曲线", divider="gray")
@@ -696,10 +1021,12 @@ def main():
                         k_data2 = pd.DataFrame({"k值2": k_vals2}, index=wavenumbers)
                         st.line_chart(k_data2, height=200)
                     else:
-                        st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条k值曲线</div>', unsafe_allow_html=True)
+                        st.markdown(
+                            '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条k值曲线</div>',
+                            unsafe_allow_html=True)
             else:
                 st.info("ℹ️ 无预处理（原始光谱），不显示k值曲线")
-        
+
             # 原始与处理后对比
             st.subheader("原始vs预处理对比", divider="gray")
             comp_cols = st.columns([2, 2], gap="small")  # 同样调整对比图的列宽
@@ -718,24 +1045,27 @@ def main():
                     }, index=wavenumbers)
                     st.line_chart(comp_data2, height=200)
                 else:
-                    st.markdown('<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条对比曲线</div>', unsafe_allow_html=True)
-        
+                    st.markdown(
+                        '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条对比曲线</div>',
+                        unsafe_allow_html=True)
+
             # 测试结果
             if st.session_state.get('test_results') is not None:
                 st.subheader("📊 分类测试结果", divider="gray")
                 results = st.session_state.test_results
-        
+
                 # 指标
                 metrics_cols = st.columns([2, 2], gap="small")
                 with metrics_cols[0]:
                     st.metric("准确率", f"{results['accuracy']:.4f}", delta=None)
                 with metrics_cols[1]:
                     st.metric("卡帕系数", f"{results['kappa']:.4f}", delta=None)
-        
+
                 # 混淆矩阵
                 st.subheader("混淆矩阵", divider="gray")
                 fig, ax = plt.subplots(figsize=(5, 4))
-                sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax, annot_kws={"size": 8})
+                sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax,
+                            annot_kws={"size": 8})
                 ax.set_xlabel('预测标签', fontsize=8)
                 ax.set_ylabel('真实标签', fontsize=8)
                 ax.set_title('混淆矩阵', fontsize=10)
@@ -745,8 +1075,7 @@ def main():
         else:
             # 未选择排列时的提示
             st.info("ℹ️ 请在上方选择预处理方法并应用排列方案")
-               
-                    
+
         # 结果导出
         if st.session_state.arrangement_results or st.session_state.get('processed_data'):
             st.subheader("💾 结果导出", divider="gray")
@@ -758,7 +1087,8 @@ def main():
                 if st.button("导出", type="secondary", key="export_btn"):
                     try:
                         if st.session_state.selected_arrangement:
-                            arr_data = st.session_state.arrangement_details[st.session_state.selected_arrangement]['data']
+                            arr_data = st.session_state.arrangement_details[st.session_state.selected_arrangement][
+                                'data']
                             file_handler.export_data(export_name, arr_data)
                         else:
                             wavenumbers, y_processed = st.session_state.processed_data
@@ -767,10 +1097,10 @@ def main():
                     except Exception as e:
                         st.error(f"❌ 导出失败: {str(e)}")
         else:
-            st.markdown('<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>',
+                unsafe_allow_html=True)
 
 
-
-    
 if __name__ == "__main__":
     main()
