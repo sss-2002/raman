@@ -145,20 +145,7 @@ def main():
         "k": st.slider("ModPoly参数k", 1, 20, 10, key="modpoly_k_slider") if baseline_method == "ModPoly" else None,
         "lam": st.slider("PLS参数λ", 1e-5, 1e5, 1e-5, key="pls_lambda_slider") if baseline_method == "PLS" else 1e5
     }
-      if baseline_method != "无":
-        try:
-            wavenumbers, y = st.session_state.raw_data
-            
-            # 使用工厂模式应用基线校准方法
-            corrector = BaselineCorrectionFactory.get_baseline_corrector(baseline_method, baseline_params)
-            corrected_data = corrector.correct(wavenumbers, y)
-
-            # 更新处理后的数据
-            st.session_state.processed_data = (wavenumbers, corrected_data)
-            st.success("✅ 基线校准处理完成")
-        except Exception as e:
-            st.error(f"❌ 处理失败: {str(e)}")
-    # 应用处理按钮，修改了 key 确保唯一
+     
     
     st.title("🌌 排列预处理模型")
     
