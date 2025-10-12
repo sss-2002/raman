@@ -315,8 +315,8 @@ class Preprocessor:
             return spectra - np.percentile(spectra, 5, axis=0)
 
         # ===== 滤波算法实现 =====
-        def savitzky_golay(self, spectra, k, w):
-            return savgol_filter(spectra, w, k, axis=0)
+        def savitzky_golay(self, spectra, window_length, polyorder):
+            return savgol_filter(spectra, window_length, polyorder, axis=0)
 
         # 自定义sgolayfilt滤波器的封装
         def sgolay_filter_custom(self, spectra, point, degree):
@@ -1370,8 +1370,8 @@ def main():
                 if filtering_method in ["Savitzky-Golay", "sgolayfilt滤波器"]:
                     k = st.selectbox("多项式阶数", [3, 7], key="k_sg", label_visibility="collapsed")
                     w = st.selectbox("窗口大小", [11, 31, 51], key="w_sg", label_visibility="collapsed")
-                    filtering_params["point"] = w
-                    filtering_params["degree"] = k
+                    filtering_params["window_length"] = w
+                    filtering_params["polyorder"] = k
                     st.caption(f"阶数: {k}, 窗口: {w}")
                 elif filtering_method in ["中值滤波(MF)", "移动平均(MAF)"]:
                     k = st.selectbox("k", [1, 3], key="k_mf", label_visibility="collapsed")
