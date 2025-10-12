@@ -1024,7 +1024,7 @@ def squashing_legacy(x):
 
 
 # sgolayfilt滤波器实现
-def SGfilter(Intensity, point, degree):  # 输入均为行
+def SGfilter(Intensity, window_length,polyorder):  # 输入均为行
     """
     Savitzky-Golay滤波器实现
 
