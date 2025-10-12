@@ -1365,7 +1365,7 @@ def main():
             )
 
             # 滤波参数
-             def sgolay_filter_custom(self, spectra,window_length, polyorder):
+            def sgolay_filter_custom(self, spectra,window_length, polyorder):
             """使用自定义的SGfilter函数进行滤波"""
             # 确保输入数据形状与SGfilter要求一致
             if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
