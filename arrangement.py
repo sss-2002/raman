@@ -20,7 +20,7 @@ import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
     # ===== 预处理类 =====
-    class Preprocessor:
+class Preprocessor:
         def __init__(self):
             self.BASELINE_ALGORITHMS = {
                 "SD": self._sd_baseline,
@@ -324,8 +324,7 @@ import scipy.signal as signal  # 导入scipy.signal用于MWM函数
                 return D2(spectra)
 
     # ===== 文件处理类 =====
-
-    class FileHandler:
+class FileHandler:
         def load_data_from_zip(self, zip_file):
             """从压缩包中加载波数和光谱数据，自动识别数据维度"""
             with zipfile.ZipFile(zip_file, 'r') as zf:
