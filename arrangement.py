@@ -133,6 +133,35 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
+    # 基线校准选择框
+    baseline_method = st.selectbox("选择基线校准方法", 
+        ["无", "多项式拟合", "ModPoly", "airPLS", "PLS"], key="baseline_method")
+
+    # 获取参数（根据选择的基线校准方法）
+    baseline_params = {
+        "polyorder": st.slider("多项式阶数", 2, 10, 5) if baseline_method == "多项式拟合" else None,
+        "k": st.slider("ModPoly参数k", 1, 20, 10) if baseline_method == "ModPoly" else None,
+        "lam": st.slider("PLS参数λ", 1e-5, 1e5, 1e-5) if baseline_method == "PLS" else 1e5
+    }
+
+    # 应用处理按钮
+    if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
+        if st.session_state.raw_data is None:
+            st.warning("⚠️ 请先上传数据")
+        else:
+            try:
+                wavenumbers, y = st.session_state.raw_data
+                
+                # 使用工厂模式应用基线校准方法
+                corrector = BaselineCorrectionFactory.get_baseline_corrector(baseline_method, baseline_params)
+                corrected_data = corrector.correct(wavenumbers, y)
+
+                # 更新处理后的数据
+                st.session_state.processed_data = (wavenumbers, corrected_data)
+                st.success("✅ 基线校准处理完成")
+            except Exception as e:
+                st.error(f"❌ 处理失败: {str(e)}")
+
     st.title("🌌 排列预处理模型")
     
     # 页面整体布局：左侧数据管理，右侧主要内容区
