@@ -18,7 +18,8 @@ import copy
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 from baseline_correction import BaselineCorrectionFactory  # 导入基线校准工厂类
-
+ # 设置页面：紧凑布局
+st.set_page_config(layout="wide", page_icon="🔬", page_title="排列预处理模型")
 
 class FileHandler:
     def load_data_from_zip(self, zip_file):
@@ -115,8 +116,7 @@ def main():
             st.session_state[key] = value
     file_handler = FileHandler()
 
-    # 设置页面：紧凑布局
-    st.set_page_config(layout="wide", page_icon="🔬", page_title="排列预处理模型")
+   
     
     # 全局样式调整：更紧凑的字体和间距，确保预处理设置在一行显示
     st.markdown("""
