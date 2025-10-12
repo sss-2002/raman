@@ -72,7 +72,7 @@ class FileHandler:
         with open(filename, "w") as f:
             for line in data.T:  # 转置回原始格式
                 f.write("\t".join(map(str, line)) + "\n")
-  
+
 def main():
     # 最优先初始化session state
     if 'show_arrangements' not in st.session_state:
@@ -199,8 +199,8 @@ def main():
             6. 查看结果并导出
             """)
 
-    ===== 右侧：预处理设置和光谱可视化 =====
-        with col_right:
+    # ===== 右侧：预处理设置和光谱可视化 =====
+    with col_right:
         # ===== 预处理设置（横向排列在光谱可视化上方，与四种算法在同一行）=====
         st.subheader("⚙️ 预处理设置", divider="gray")
         
