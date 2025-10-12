@@ -20,25 +20,51 @@ import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
     # ===== 算法实现 =====
-def polynomial_fit(wavenumbers, spectra, polyorder):
-    """多项式拟合基线校正"""
-    # 打印数据的形状以便调试
-    print(f"wavenumbers shape: {wavenumbers.shape}")
-    print(f"spectra shape: {spectra.shape}")
+def IModPoly(wavenumbers, originalRaman, baseline_params):
+    """改进的多项式拟合基线校正"""
+    # 从baseline_params字典中提取参数
+    polyorder = baseline_params.get("polyorder", 5)
+    max_iter = baseline_params.get("max_iter", 100)
+    tolerance = baseline_params.get("tolerance", 0.005)
 
-    # 确保 wavenumbers 和 spectra 的长度一致
-    if len(wavenumbers) != spectra.shape[0]:
-        raise ValueError(f"波数数组的长度({len(wavenumbers)})与光谱数据的行数({spectra.shape[0]})不匹配。")
-    
-    baseline = np.zeros_like(spectra)
-    
-    # 对每一条光谱进行多项式拟合并计算基线
-    for i in range(spectra.shape[1]):
-        coeffs = np.polyfit(wavenumbers, spectra[:, i], deg=polyorder)
-        baseline[:, i] = np.polyval(coeffs, wavenumbers)
-    
-    # 返回校正后的光谱（扣除基线）
-    return spectra - baseline
+    row, col = originalRaman.shape
+    corrected = np.zeros((row, col))
+
+    for j in range(row):
+        prev_spectrum = originalRaman[j]
+        curr_spectrum = prev_spectrum.copy()
+        prev_std = 0
+        converged = False
+        iteration = 1
+
+        while not converged and iteration <= max_iter:
+            # 多项式拟合
+            coeffs = np.polyfit(wavenumbers, curr_spectrum, polyorder)
+            fitted = np.polyval(coeffs, wavenumbers)
+            residual = curr_spectrum - fitted
+            curr_std = np.std(residual)
+
+            # 光谱修正
+            if iteration == 1:
+                # 首次迭代：去除明显峰
+                mask = prev_spectrum > (fitted + curr_std)
+                curr_spectrum[mask] = fitted[mask] + curr_std
+            else:
+                # 后续迭代：重建模型
+                mask = prev_spectrum < (fitted + curr_std)
+                curr_spectrum = np.where(mask, prev_spectrum, fitted + curr_std)
+
+            # 检查收敛条件
+            relative_change = abs((curr_std - prev_std) / curr_std) if curr_std != 0 else 0
+            converged = relative_change < tolerance
+
+            prev_spectrum = curr_spectrum
+            prev_std = curr_std
+            iteration += 1
+
+        corrected[j] = originalRaman[j] - fitted
+
+    return corrected
 
 
 def modpoly(wavenumbers, spectra, k):
