@@ -67,6 +67,29 @@ class Preprocessor:
             "DTW挤压": dtw_squashing
         }
 
+   
+    def polynomial_fit(self, wavenumbers, spectra, polyorder):
+        """
+        执行多项式拟合来进行基线校正。
+
+        参数：
+        - wavenumbers: 波数数据（x轴）
+        - spectra: 光谱数据（y轴）
+        - polyorder: 多项式的阶数
+
+        返回：
+        - 校正后的光谱数据
+        """
+        # 使用给定阶数的多项式对光谱进行拟合
+        p = np.polyfit(wavenumbers, spectra, polyorder)
+        
+        # 在波数位置计算拟合的多项式值（基线）
+        baseline = np.polyval(p, wavenumbers)
+        
+        # 从光谱中减去基线以进行基线校正
+        corrected_spectra = spectra - baseline
+        
+        return corrected_spectra
     def process(self, wavenumbers, data,
                 baseline_method="无", baseline_params=None,
                 squashing_method="无", squashing_params=None,
