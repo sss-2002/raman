@@ -72,6 +72,310 @@ class FileHandler:
         with open(filename, "w") as f:
             for line in data.T:  # 转置回原始格式
                 f.write("\t".join(map(str, line)) + "\n")
+    class Preprocessor:
+        def __init__(self):
+            self.BASELINE_ALGORITHMS = {
+                "SD": self._sd_baseline,
+                "FD": self._fd_baseline,
+                "多项式拟合": polynomial_fit,
+                "ModPoly": modpoly,
+                "I-ModPoly": IModPoly,  # 集成IModPoly算法
+                "PLS": pls,
+                "AsLS": baseline_als,  # 使用改进的AsLS算法
+                "airPLS": airpls,
+                "二阶差分(D2)": self.d2  # 将二阶差分归类到基线校准中
+            }
+            self.FILTERING_ALGORITHMS = {
+                "Savitzky-Golay": self.savitzky_golay,
+                "sgolayfilt滤波器": self.sgolay_filter_custom,  # 添加自定义SG滤波器
+                "中值滤波(MF)": self.median_filter,
+                "移动平均(MAF)": self.moving_average,
+                "MWA（移动窗口平均）": self.mwa_filter,  # 添加MWA算法
+                "MWM（移动窗口中值）": self.mwm_filter,  # MWM滤波算法
+                "卡尔曼滤波": self.kalman_filter,  # 添加卡尔曼滤波算法
+                "Lowess": self.lowess_filter,
+                "FFT": self.fft_filter,
+                "Smfft傅里叶滤波": self.smfft_filter,  # 添加Smfft傅里叶滤波
+                "小波变换(DWT)": self.wavelet_filter,
+                "小波线性阈值去噪": self.wavelet_linear  # 新增：小波线性阈值去噪
+            }
+
+            self.SCALING_ALGORITHMS = {
+                "Peak-Norm": self.peak_norm,
+                "SNV": self.snv,
+                "MSC": self.msc,  # 使用新的MSC实现
+                "M-M-Norm": self.mm_norm,
+                "L-范数": self.l_norm,  # 使用LPnorm函数实现
+                "Ma-Minorm": self.ma_minorm,  # 添加Ma-Minorm归一化
+                "标准化(均值0，方差1)": self.standardize  # 添加标准化算法
+            }
+
+            self.SQUASHING_ALGORITHMS = {
+                "Sigmoid挤压": sigmoid,  # 使用sigmoid函数
+                "改进的Sigmoid挤压": i_sigmoid,  # 使用改进的i_sigmoid函数
+                "逻辑函数": squashing_legacy,  # 保留原逻辑函数以便对比
+                "余弦挤压(squashing)": squashing,  # 新增：基于余弦的挤压变换
+                "改进的逻辑函数": i_squashing,  # 使用i_squashing函数
+                "DTW挤压": dtw_squashing
+            }
+
+        def process(self, wavenumbers, data,
+                    baseline_method="无", baseline_params=None,
+                    squashing_method="无", squashing_params=None,
+                    filtering_method="无", filtering_params=None,
+                    scaling_method="无", scaling_params=None,
+                    algorithm_order=None):
+            """执行预处理流程，支持指定算法顺序，空顺序表示返回原始数据"""
+            if baseline_params is None: baseline_params = {}
+            if squashing_params is None: squashing_params = {}
+            if filtering_params is None: filtering_params = {}
+            if scaling_params is None: scaling_params = {}
+
+            # 如果算法顺序为空（无预处理），直接返回原始数据
+            if algorithm_order is not None and len(algorithm_order) == 0:
+                return data.copy(), ["无预处理（原始光谱）"]
+
+            y_processed = data.copy()
+            method_name = []
+
+            # 如果指定了算法顺序，则按顺序执行
+            if algorithm_order is not None and len(algorithm_order) > 0:
+                # 根据算法编号映射到对应的处理步骤
+                step_mapping = {
+                    1: ("baseline", baseline_method, baseline_params),
+                    2: ("scaling", scaling_method, scaling_params),
+                    3: ("filtering", filtering_method, filtering_params),
+                    4: ("squashing", squashing_method, squashing_params)
+                }
+                # 按指定顺序创建步骤列表
+                steps = [step_mapping[order] for order in algorithm_order]
+            else:
+                # 默认顺序：基线 → 挤压 → 滤波 → 缩放（只执行已选择的方法）
+                steps = []
+                if baseline_method != "无":
+                    steps.append(("baseline", baseline_method, baseline_params))
+                if squashing_method != "无":
+                    steps.append(("squashing", squashing_method, squashing_params))
+                if filtering_method != "无":
+                    steps.append(("filtering", filtering_method, filtering_params))
+                if scaling_method != "无":
+                    steps.append(("scaling", scaling_method, scaling_params))
+
+            # 按顺序执行预处理步骤
+            for step_type, method, params in steps:
+                if method == "无":
+                    continue
+
+                try:
+                    if step_type == "baseline":
+                        algorithm_func = self.BASELINE_ALGORITHMS[method]
+                        if method in ["多项式拟合", "ModPoly", "I-ModPoly"]:
+                            y_processed = algorithm_func(wavenumbers, y_processed, **params)
+                        elif method in ["PLS"]:
+                            y_processed = algorithm_func(y_processed, **params)
+                        elif method == "AsLS":
+                            # 适配改进的AsLS算法参数
+                            y_processed = algorithm_func(y_processed, **params)
+                        elif method == "airPLS":
+                            y_processed = algorithm_func(y_processed, **params)
+                        elif method == "二阶差分(D2)":  # 处理二阶差分
+                            y_processed = algorithm_func(y_processed)
+                        else:  # SD、FD 无额外参数
+                            y_processed = algorithm_func(y_processed)
+                        method_name.append(f"{method}({', '.join([f'{k}={v}' for k, v in params.items()])})")
+
+                    elif step_type == "squashing":
+                        algorithm_func = self.SQUASHING_ALGORITHMS[method]
+                        if method == "改进的Sigmoid挤压":
+                            # 使用改进的i_sigmoid函数，支持maxn参数
+                            maxn = params.get("maxn", 10)
+                            y_processed = algorithm_func(y_processed, maxn=maxn)
+                            method_name.append(f"{method}(maxn={maxn})")
+                        elif method == "改进的逻辑函数":
+                            # i_squashing函数不需要额外参数
+                            y_processed = algorithm_func(y_processed)
+                            method_name.append(f"{method}")
+                        elif method == "DTW挤压":
+                            l = params.get("l", 1)
+                            k1 = params.get("k1", "T")
+                            k2 = params.get("k2", "T")
+                            y_processed = algorithm_func(y_processed, l=l, k1=k1, k2=k2)
+                            method_name.append(f"DTW挤压(l={l}, k1={k1}, k2={k2})")
+                        elif method == "Sigmoid挤压":
+                            # 使用sigmoid函数
+                            y_processed = algorithm_func(y_processed)
+                            method_name.append(f"{method}")
+                        elif method == "余弦挤压(squashing)":
+                            # 使用新添加的squashing函数
+                            y_processed = algorithm_func(y_processed)
+                            method_name.append(f"{method}")
+                        else:
+                            y_processed = algorithm_func(y_processed)
+                            method_name.append(method)
+
+                    elif step_type == "filtering":
+                        algorithm_func = self.FILTERING_ALGORITHMS[method]
+                        y_processed = algorithm_func(y_processed, **params)
+                        params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
+                        method_name.append(f"{method}({params_str})")
+
+                        # 特殊处理小波线性阈值去噪的参数
+                        if method == "小波线性阈值去噪":
+                            threshold = params.get("threshold", 0.3)
+                            method_name[-1] = f"{method}(threshold={threshold})"
+
+                    elif step_type == "scaling":
+                        algorithm_func = self.SCALING_ALGORITHMS[method]
+                        y_processed = algorithm_func(y_processed, **params)
+                        params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
+                        method_name.append(f"{method}({params_str})")
+
+                except Exception as e:
+                    raise ValueError(f"{step_type}处理失败: {str(e)}")
+
+            return y_processed, method_name
+
+        def _sd_baseline(self, spectra):
+            return spectra - np.min(spectra, axis=0)
+
+        def _fd_baseline(self, spectra):
+            return spectra - np.percentile(spectra, 5, axis=0)
+
+        # ===== 滤波算法实现 =====
+        def savitzky_golay(self, spectra, k, w):
+            return savgol_filter(spectra, w, k, axis=0)
+
+        # 自定义sgolayfilt滤波器的封装
+        def sgolay_filter_custom(self, spectra, point, degree):
+            """使用自定义的SGfilter函数进行滤波"""
+            # 确保输入数据形状与SGfilter要求一致
+            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+                filtered = SGfilter(spectra.T, point, degree)
+                return filtered.T  # 转回原始形状
+            else:
+                return SGfilter(spectra, point, degree)
+
+        def median_filter(self, spectra, k, w):
+            return medfilt(spectra, kernel_size=(w, 1))
+
+        def moving_average(self, spectra, k, w):
+            kernel = np.ones(w) / w
+            return np.apply_along_axis(lambda x: np.convolve(x, kernel, mode='same'), 0, spectra)
+
+        # 添加MWA滤波方法的封装
+        def mwa_filter(self, spectra, n=6, it=1, mode="full"):
+            return MWA(spectra, n=n, it=it, mode=mode)
+
+        # MWM滤波方法的封装
+        def mwm_filter(self, spectra, n=7, it=1):
+            """使用MWM函数进行移动窗口中值滤波"""
+            # 确保输入数据形状与MWM要求一致
+            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+                filtered = MWM(spectra.T, n=n, it=it)
+                return filtered.T  # 转回原始形状
+            else:
+                return MWM(spectra, n=n, it=it)
+
+        # 添加卡尔曼滤波方法的封装
+        def kalman_filter(self, spectra, R=0.1):
+            return KalmanF(spectra, R)
+
+        def lowess_filter(self, spectra, frac):
+            result = np.zeros_like(spectra)
+            for i in range(spectra.shape[1]):
+                smoothed = lowess(spectra[:, i], np.arange(len(spectra)), frac=frac, it=0)
+                result[:, i] = smoothed[:, 1]
+            return result
+
+        def fft_filter(self, spectra, cutoff):
+            fft_result = fft(spectra, axis=0)
+            frequencies = np.fft.fftfreq(spectra.shape[0])
+            filter_mask = np.abs(frequencies) < cutoff
+            fft_result[~filter_mask, :] = 0
+            return np.real(ifft(fft_result, axis=0))
+
+        # 添加Smfft傅里叶滤波方法的封装
+        def smfft_filter(self, spectra, row_e=51):
+            """使用Smfft函数进行傅里叶滤波"""
+            # 确保输入数据形状与Smfft要求一致
+            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+                filtered = Smfft(spectra.T, row_e=row_e)
+                return filtered.T  # 转回原始形状
+            else:
+                return Smfft(spectra, row_e=row_e)
+
+        def wavelet_filter(self, spectra, threshold):
+            coeffs = pywt.wavedec(spectra, 'db4', axis=0)
+            coeffs[1:] = [pywt.threshold(c, threshold, mode='soft') for c in coeffs[1:]]
+            return pywt.waverec(coeffs, 'db4', axis=0)
+
+        # 新增：小波线性阈值去噪方法的封装
+        def wavelet_linear(self, spectra, threshold=0.3):
+            """使用新添加的waveletlinear函数进行小波线性阈值去噪"""
+            # 确保输入数据形状与waveletlinear要求一致
+            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+                filtered = waveletlinear(spectra.T, threshold=threshold)
+                return filtered.T  # 转回原始形状
+            else:
+                return waveletlinear(spectra, threshold=threshold)
+
+        # ===== 缩放算法实现 =====
+        def peak_norm(self, spectra):
+            return spectra / np.max(spectra, axis=0)
+
+        def snv(self, spectra):
+            mean = np.mean(spectra, axis=0)
+            std = np.std(spectra, axis=0)
+            return (spectra - mean) / std
+
+        def msc(self, spectra):
+            """使用新的MSC函数实现多元散射校正"""
+            # 注意：输入数据形状需要与MSC函数要求一致 (n_samples, n_features)
+            # 如果当前数据形状为(n_features, n_samples)，需要先转置
+            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，说明需要转置
+                corrected = MSC(spectra.T)  # 转置后处理
+                return corrected.T  # 转回原始形状
+            else:
+                return MSC(spectra)
+
+        def mm_norm(self, spectra):
+            min_vals = np.min(spectra, axis=0)
+            max_vals = np.max(spectra, axis=0)
+            return (spectra - min_vals) / (max_vals - min_vals)
+
+        def l_norm(self, spectra, p):
+            """使用LPnorm函数实现L-范数归一化"""
+            if p == "无穷大":
+                return LPnorm(spectra, np.inf)
+            else:
+                p_val = float(p)
+                return LPnorm(spectra, p_val)
+
+        def ma_minorm(self, spectra):
+            """使用MaMinorm函数实现归一化"""
+            return MaMinorm(spectra)
+
+        # 标准化算法实现（均值为0，方差为1）
+        def standardize(self, spectra):
+            """使用plotst函数实现标准化处理"""
+            # 处理数据形状适配
+            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+                standardized = plotst(spectra.T)  # 转置后处理
+                return standardized.T  # 转回原始形状
+            else:
+                return plotst(spectra)
+
+        # 二阶差分方法的封装（归类到基线校准）
+        def d2(self, spectra):
+            """使用D2函数实现二阶差分计算"""
+            # 处理数据形状适配
+            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+                diff_result = D2(spectra.T)  # 转置后处理
+                return diff_result.T  # 转回原始形状
+            else:
+                return D2(spectra)
+
+
 
 def main():
     # 最优先初始化session state
