@@ -22,14 +22,24 @@ import scipy.signal as signal  # 导入scipy.signal用于MWM函数
     # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
+    # 打印数据的形状以便调试
     print(f"wavenumbers shape: {wavenumbers.shape}")
     print(f"spectra shape: {spectra.shape}")
+
+    # 确保 wavenumbers 和 spectra 的长度一致
+    if len(wavenumbers) != spectra.shape[0]:
+        raise ValueError(f"波数数组的长度({len(wavenumbers)})与光谱数据的行数({spectra.shape[0]})不匹配。")
     
     baseline = np.zeros_like(spectra)
+    
+    # 对每一条光谱进行多项式拟合并计算基线
     for i in range(spectra.shape[1]):
         coeffs = np.polyfit(wavenumbers, spectra[:, i], deg=polyorder)
         baseline[:, i] = np.polyval(coeffs, wavenumbers)
-    return spectra - baseline  # 扣除基线
+    
+    # 返回校正后的光谱（扣除基线）
+    return spectra - baseline
+
 
 def modpoly(wavenumbers, spectra, k):
         """Modified Polynomial (ModPoly) 基线校正"""
