@@ -134,9 +134,129 @@ def main():
         .css-1544g2n {padding: 0.2rem 0.5rem !important;} 
         </style>
     """, unsafe_allow_html=True)
+    preprocessor = Preprocessor()
 
     
+    class Preprocessor:
+    def __init__(self):
+        pass
     
+    def process(self, wavenumbers, y, baseline_method=None, baseline_params=None, 
+                squashing_method=None, squashing_params=None, filtering_method=None, 
+                filtering_params=None, scaling_method=None, scaling_params=None):
+        """
+        预处理函数，根据传入的方法依次处理数据。
+        :param wavenumbers: 波数数据
+        :param y: 光谱数据
+        :param baseline_method: 基线校正方法
+        :param baseline_params: 基线校正方法的参数
+        :param squashing_method: 挤压方法
+        :param squashing_params: 挤压方法的参数
+        :param filtering_method: 滤波方法
+        :param filtering_params: 滤波方法的参数
+        :param scaling_method: 缩放方法
+        :param scaling_params: 缩放方法的参数
+        :return: 处理后的数据和方法名称
+        """
+        
+        # 1. 基线校正
+        if baseline_method and baseline_method != "无":
+            print(f"应用基线校正方法: {baseline_method}")
+            y = self.apply_baseline_correction(y, baseline_method, baseline_params)
+
+        # 2. 缩放处理
+        if scaling_method and scaling_method != "无":
+            print(f"应用缩放方法: {scaling_method}")
+            y = self.apply_scaling(y, scaling_method, scaling_params)
+
+        # 3. 滤波处理
+        if filtering_method and filtering_method != "无":
+            print(f"应用滤波方法: {filtering_method}")
+            y = self.apply_filtering(y, filtering_method, filtering_params)
+
+        # 4. 挤压处理
+        if squashing_method and squashing_method != "无":
+            print(f"应用挤压方法: {squashing_method}")
+            y = self.apply_squashing(y, squashing_method, squashing_params)
+        
+        return y, [baseline_method, scaling_method, filtering_method, squashing_method]
+
+    def apply_baseline_correction(self, y, method, params):
+        """
+        应用基线校正方法。
+        :param y: 光谱数据
+        :param method: 基线校正方法
+        :param params: 基线校正方法的参数
+        :return: 校正后的光谱数据
+        """
+        if method == "多项式拟合":
+            return self.polynomial_baseline_correction(y, params["polyorder"])
+        elif method == "ModPoly":
+            return self.modpoly_baseline_correction(y, params["k"])
+        # 添加其他的基线校正方法，如 PLS 等
+        return y
+    
+    def polynomial_baseline_correction(self, y, polyorder):
+        """
+        多项式拟合基线校正
+        :param y: 光谱数据
+        :param polyorder: 多项式的阶数
+        :return: 校正后的光谱数据
+        """
+        from scipy.signal import savgol_filter
+        # 使用 Savitzky-Golay 滤波器进行多项式拟合校正
+        return savgol_filter(y, window_length=polyorder*2+1, polyorder=polyorder, axis=0)
+
+    def modpoly_baseline_correction(self, y, k):
+        """
+        ModPoly基线校正
+        :param y: 光谱数据
+        :param k: ModPoly的参数
+        :return: 校正后的光谱数据
+        """
+        # 假设你有一个ModPoly算法的实现
+        # 这里可以是你自己定义的基线校正方法
+        return y - np.mean(y, axis=0)  # 一个简化的例子：减去平均值
+    
+    def apply_scaling(self, y, method, params):
+        """
+        应用缩放方法。
+        :param y: 光谱数据
+        :param method: 缩放方法
+        :param params: 缩放参数
+        :return: 缩放后的光谱数据
+        """
+        if method == "标准化(均值0，方差1)":
+            return (y - np.mean(y, axis=0)) / np.std(y, axis=0)
+        # 其他缩放方法可以添加在这里
+        return y
+
+    def apply_filtering(self, y, method, params):
+        """
+        应用滤波方法。
+        :param y: 光谱数据
+        :param method: 滤波方法
+        :param params: 滤波方法的参数
+        :return: 滤波后的光谱数据
+        """
+        if method == "Savitzky-Golay":
+            return savgol_filter(y, window_length=params["point"], polyorder=params["degree"], axis=0)
+        # 其他滤波方法可以添加在这里
+        return y
+    
+    def apply_squashing(self, y, method, params):
+        """
+        应用挤压方法。
+        :param y: 光谱数据
+        :param method: 挤压方法
+        :param params: 挤压方法的参数
+        :return: 挤压后的光谱数据
+        """
+        if method == "Sigmoid挤压":
+            return 1 / (1 + np.exp(-y))  # Sigmoid 挤压
+        # 其他挤压方法可以添加在这里
+        return y
+
     st.title("🌌 排列预处理模型")
     
     # 页面整体布局：左侧数据管理，右侧主要内容区
