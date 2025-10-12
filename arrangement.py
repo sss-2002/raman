@@ -1131,6 +1131,20 @@ def main():
     }
     file_handler = FileHandler()
     preprocessor = Preprocessor()
+     # 初始化 current_algorithms 字典
+    current_algorithms = {
+        'baseline': '无',  # 默认基线校正方法
+        'baseline_params': {},
+        'scaling': '无',  # 默认缩放方法
+        'scaling_params': {},
+        'filtering': '无',  # 默认滤波方法
+        'filtering_params': {},
+        'squashing': '无',  # 默认挤压方法
+        'squashing_params': {}
+    }
+
+    # 将 current_algorithms 存储到 session_state 中，以便全局访问
+    st.session_state['current_algorithms'] = current_algorithms
     # 初始化其他必要的session状态变量
     other_states = {
         'raw_data': None,
