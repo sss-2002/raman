@@ -323,7 +323,7 @@ class Preprocessor:
             """使用自定义的SGfilter函数进行滤波"""
             # 确保输入数据形状与SGfilter要求一致
             if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
-                filtered = SGfilter(spectra.T, point, degree)
+                filtered = SGfilter(spectra.T, window_length, polyorder)
                 return filtered.T  # 转回原始形状
             else:
                 return SGfilter(spectra, point, degree)
