@@ -19,6 +19,23 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
+def pls(spectra, lam):
+    """Penalized Least Squares (PLS) 基线校正"""
+    n_points = spectra.shape[0]
+    baseline = np.zeros_like(spectra)
+    
+    # Create a second derivative matrix for regularization
+    D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(n_points, n_points - 2))
+    D = lam * D.dot(D.transpose())  # Apply the penalty
+
+    for i in range(spectra.shape[1]):
+        y = spectra[:, i]
+        
+        # Solve the regularized least squares problem
+        A = sparse.eye(n_points) + D
+        baseline[:, i] = spsolve(A, y)
+    
+    return spectra - baseline  # Subtract the baseline
 def modpoly(wavenumbers, spectra, k):
     """Modified Polynomial (ModPoly) 基线校正"""
     baseline = np.zeros_like(spectra)
