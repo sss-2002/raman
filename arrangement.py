@@ -19,6 +19,21 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
+def modpoly(wavenumbers, spectra, k):
+    """Modified Polynomial (ModPoly) 基线校正"""
+    baseline = np.zeros_like(spectra)
+    n_points = len(wavenumbers)
+    for i in range(spectra.shape[1]):
+        y = spectra[:, i].copy()
+        for _ in range(k):
+            # Fit polynomial of degree 5
+            coeffs = np.polyfit(wavenumbers, y, deg=5)
+            fitted = np.polyval(coeffs, wavenumbers)
+            # Apply modification (only keep values below the fitted baseline)
+            mask = y < fitted
+            y[~mask] = fitted[~mask]
+        baseline[:, i] = y
+    return spectra - baseline  # Subtract baseline from spectra
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
     baseline = np.zeros_like(spectra)
