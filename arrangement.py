@@ -635,7 +635,8 @@ def main():
         'train_indices': None,  # 训练集索引
         'test_indices': None  # 测试集索引
     }
-
+    file_handler = FileHandler()
+    preprocessor = Preprocessor()
     # 初始化其他必要的session状态变量
     other_states = {
         'raw_data': None,
