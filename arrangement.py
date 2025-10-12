@@ -200,7 +200,7 @@ def main():
             """)
 
     ===== 右侧：预处理设置和光谱可视化 =====
-    with col_right:
+        with col_right:
         # ===== 预处理设置（横向排列在光谱可视化上方，与四种算法在同一行）=====
         st.subheader("⚙️ 预处理设置", divider="gray")
         
