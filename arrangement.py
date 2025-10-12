@@ -111,7 +111,9 @@ def main():
     for key, value in all_states.items():
         if key not in st.session_state:
             st.session_state[key] = value
+    preprocessor = Preprocessor()
     file_handler = FileHandler()
+
 
     # 设置页面：紧凑布局
     st.set_page_config(layout="wide", page_icon="🔬", page_title="排列预处理模型")
