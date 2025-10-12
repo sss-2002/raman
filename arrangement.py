@@ -135,17 +135,7 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
-    # 基线校准选择框，修改了 key 确保唯一
-    baseline_method = st.selectbox("选择基线校准方法", 
-        ["无", "多项式拟合", "ModPoly", "airPLS", "PLS"], key="baseline_method_1")
-
-    # 获取参数（根据选择的基线校准方法）
-    baseline_params = {
-        "polyorder": st.slider("多项式阶数", 2, 10, 5, key="polyorder_slider") if baseline_method == "多项式拟合" else None,
-        "k": st.slider("ModPoly参数k", 1, 20, 10, key="modpoly_k_slider") if baseline_method == "ModPoly" else None,
-        "lam": st.slider("PLS参数λ", 1e-5, 1e5, 1e-5, key="pls_lambda_slider") if baseline_method == "PLS" else 1e5
-    }
-     
+    
     
     st.title("🌌 排列预处理模型")
     
