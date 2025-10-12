@@ -17,6 +17,8 @@ from scipy.fftpack import fft as fftpack_fft, ifft as fftpack_ifft
 import copy
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
+from baseline_correction import BaselineCorrectionFactory  # 导入基线校准工厂类
+
 
 class FileHandler:
     def load_data_from_zip(self, zip_file):
@@ -143,24 +145,20 @@ def main():
         "k": st.slider("ModPoly参数k", 1, 20, 10, key="modpoly_k_slider") if baseline_method == "ModPoly" else None,
         "lam": st.slider("PLS参数λ", 1e-5, 1e5, 1e-5, key="pls_lambda_slider") if baseline_method == "PLS" else 1e5
     }
+      if baseline_method != "无":
+        try:
+            wavenumbers, y = st.session_state.raw_data
+            
+            # 使用工厂模式应用基线校准方法
+            corrector = BaselineCorrectionFactory.get_baseline_corrector(baseline_method, baseline_params)
+            corrected_data = corrector.correct(wavenumbers, y)
 
+            # 更新处理后的数据
+            st.session_state.processed_data = (wavenumbers, corrected_data)
+            st.success("✅ 基线校准处理完成")
+        except Exception as e:
+            st.error(f"❌ 处理失败: {str(e)}")
     # 应用处理按钮，修改了 key 确保唯一
-    if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn_1"):
-        if st.session_state.raw_data is None:
-            st.warning("⚠️ 请先上传数据")
-        else:
-            try:
-                wavenumbers, y = st.session_state.raw_data
-                
-                # 使用工厂模式应用基线校准方法
-                corrector = BaselineCorrectionFactory.get_baseline_corrector(baseline_method, baseline_params)
-                corrected_data = corrector.correct(wavenumbers, y)
-
-                # 更新处理后的数据
-                st.session_state.processed_data = (wavenumbers, corrected_data)
-                st.success("✅ 基线校准处理完成")
-            except Exception as e:
-                st.error(f"❌ 处理失败: {str(e)}")
     
     st.title("🌌 排列预处理模型")
     
