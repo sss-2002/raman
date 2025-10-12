@@ -323,10 +323,10 @@ class Preprocessor:
             """使用自定义的SGfilter函数进行滤波"""
             # 确保输入数据形状与SGfilter要求一致
             if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
-                filtered = SGfilter(spectra.T, window_length, polyorder)
+                filtered = SGfilter(spectra.T, point, degree)
                 return filtered.T  # 转回原始形状
             else:
-                return SGfilter(spectra, window_length, polyorder)
+                return SGfilter(spectra, point, degree)
 
         def median_filter(self, spectra, k, w):
             return medfilt(spectra, kernel_size=(w, 1))
@@ -1365,14 +1365,14 @@ def main():
             )
 
             # 滤波参数
-            def sgolay_filter_custom(self, spectra,window_length, polyorder):
-           
-            # 确保输入数据形状与SGfilter要求一致
-            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
-                filtered = SGfilter(spectra.T, window_length, polyorder)
-                return filtered.T  # 转回原始形状
-            else:
-                return SGfilter(spectra, window_length, polyorder)
+            filtering_params = {}
+            if filtering_method != "无":
+                if filtering_method in ["Savitzky-Golay", "sgolayfilt滤波器"]:
+                    k = st.selectbox("多项式阶数", [3, 7], key="k_sg", label_visibility="collapsed")
+                    w = st.selectbox("窗口大小", [11, 31, 51], key="w_sg", label_visibility="collapsed")
+                    filtering_params["window_length"] = w
+                    filtering_params["polyorder"] = k
+                    st.caption(f"阶数: {k}, 窗口: {w}")
                 elif filtering_method in ["中值滤波(MF)", "移动平均(MAF)"]:
                     k = st.selectbox("k", [1, 3], key="k_mf", label_visibility="collapsed")
                     w = st.selectbox("w", [7, 11], key="w_mf", label_visibility="collapsed")
