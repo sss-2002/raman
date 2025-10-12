@@ -321,11 +321,11 @@ class Preprocessor:
         # 自定义sgolayfilt滤波器的封装
         def sgolay_filter_custom(self, spectra, window_length, polyorder):
         # 确保输入数据形状与SGfilter要求一致
-        if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
-            filtered = savgol_filter(spectra.T, window_length, polyorder, axis=0)
-            return filtered.T  # 转回原始形状
-        else:
-            return savgol_filter(spectra, window_length, polyorder, axis=0)
+            if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，需要转置
+                filtered = savgol_filter(spectra.T, window_length, polyorder, axis=0)
+                return filtered.T  # 转回原始形状
+            else:
+                return savgol_filter(spectra, window_length, polyorder, axis=0)
 
         def median_filter(self, spectra, k, w):
             return medfilt(spectra, kernel_size=(w, 1))
