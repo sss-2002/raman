@@ -1511,7 +1511,7 @@ def main():
                         }
 
                         processed_data, method_name = preprocessor.process(
-                            wavenumbers, y, **recommended_params
+                            wavenumbers, y,** recommended_params
                         )
 
                         arr_name = f"推荐排列_{len(st.session_state.arrangement_results) + 1}"
@@ -1740,14 +1740,14 @@ def main():
                 raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
                 st.line_chart(raw_data1, height=250)
                 
-                # 显示更多原始光谱
+                # 显示更多原始光谱（不使用嵌套列）
                 if y.shape[1] > 1:
                     with st.expander("查看更多原始光谱", expanded=False):
-                        more_spec = st.columns(2, gap="small")
+                        # 不使用嵌套列，而是使用简单的循环
                         for i in range(1, min(y.shape[1], 5)):
-                            with more_spec[i % 2]:
-                                data = pd.DataFrame({f"原始光谱{i + 1}": y[:, i]}, index=wavenumbers)
-                                st.line_chart(data, height=150)
+                            st.subheader(f"原始光谱{i + 1}", divider="gray")
+                            data = pd.DataFrame({f"原始光谱{i + 1}": y[:, i]}, index=wavenumbers)
+                            st.line_chart(data, height=150)
             else:
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
@@ -1766,14 +1766,13 @@ def main():
                 proc_data1 = pd.DataFrame({"预处理后1": arr_data[:, idx1]}, index=wavenumbers)
                 st.line_chart(proc_data1, height=250)
                 
-                # 显示更多预处理后光谱
+                # 显示更多预处理后光谱（不使用嵌套列）
                 if arr_data.shape[1] > 1:
                     with st.expander("查看更多预处理后光谱", expanded=False):
-                        more_spec = st.columns(2, gap="small")
                         for i in range(1, min(arr_data.shape[1], 5)):
-                            with more_spec[i % 2]:
-                                data = pd.DataFrame({f"预处理后{i + 1}": arr_data[:, i]}, index=wavenumbers)
-                                st.line_chart(data, height=150)
+                            st.subheader(f"预处理后{i + 1}", divider="gray")
+                            data = pd.DataFrame({f"预处理后{i + 1}": arr_data[:, i]}, index=wavenumbers)
+                            st.line_chart(data, height=150)
             else:
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
@@ -1794,15 +1793,14 @@ def main():
                     k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
                     st.line_chart(k_data1, height=250)
                     
-                    # 显示更多k值曲线
+                    # 显示更多k值曲线（不使用嵌套列）
                     if y.shape[1] > 1:
                         with st.expander("查看更多k值曲线", expanded=False):
-                            more_k = st.columns(2, gap="small")
                             for i in range(1, min(y.shape[1], 5)):
-                                with more_k[i % 2]:
-                                    k_vals = np.abs(arr_data[:, i] / (y[:, i] + 1e-8))
-                                    data = pd.DataFrame({f"k值{i + 1}": k_vals}, index=wavenumbers)
-                                    st.line_chart(data, height=150)
+                                st.subheader(f"k值{i + 1}", divider="gray")
+                                k_vals = np.abs(arr_data[:, i] / (y[:, i] + 1e-8))
+                                data = pd.DataFrame({f"k值{i + 1}": k_vals}, index=wavenumbers)
+                                st.line_chart(data, height=150)
                 else:
                     st.info("ℹ️ 无预处理（原始光谱），不显示k值曲线")
             else:
@@ -1816,12 +1814,10 @@ def main():
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
                 
-                # 显示分类指标
-                metrics_cols = st.columns(2, gap="small")
-                with metrics_cols[0]:
-                    st.metric("准确率", f"{results['accuracy']:.4f}", delta=None)
-                with metrics_cols[1]:
-                    st.metric("卡帕系数", f"{results['kappa']:.4f}", delta=None)
+                # 显示分类指标（不使用嵌套列）
+                st.markdown("**分类指标**")
+                st.text(f"准确率: {results['accuracy']:.4f}")
+                st.text(f"卡帕系数: {results['kappa']:.4f}")
                 
                 # 显示混淆矩阵
                 fig, ax = plt.subplots(figsize=(5, 4))
