@@ -1098,9 +1098,8 @@ def main():
     if 'show_arrangements' not in st.session_state:
         st.session_state.show_arrangements = False
 
-    # 初始化测试相关的session状态变量
+    # 初始化测试相关的session状态变量（移除k_value的初始化，由slider组件管理）
     test_states = {
-        'k_value': 5,  # 默认k值
         'test_results': None,  # 存储测试结果
         'labels': None,  # 存储样本标签
         'train_indices': None,  # 训练集索引
@@ -1427,8 +1426,9 @@ def main():
 
         # KNN分类参数
         with st.expander("🔍 KNN分类参数", expanded=True):
-            k_value = st.slider("K值（近邻数量）", 1, 20, 5, key="k_value")
-            st.session_state.k_value = k_value
+            # 关键修复：创建slider时设置默认值，不手动修改session_state
+            # 使用key="k_value"创建slider，Streamlit会自动管理对应的session_state
+            st.slider("K值（近邻数量）", 1, 20, 5, key="k_value")
             
             if st.button("运行KNN分类", key="run_knn") and st.session_state.raw_data is not None:
                 if st.session_state.labels is None:
@@ -1460,8 +1460,8 @@ def main():
                         train_labels = st.session_state.labels[st.session_state.train_indices]
                         test_labels = st.session_state.labels[st.session_state.test_indices]
                         
-                        # 执行KNN分类
-                        predictions = knn_classify(train_data, train_labels, test_data, k=k_value)
+                        # 直接使用session_state中的k_value
+                        predictions = knn_classify(train_data, train_labels, test_data, k=st.session_state.k_value)
                         
                         # 计算评估指标
                         accuracy = accuracy_score(test_labels, predictions)
