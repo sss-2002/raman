@@ -19,7 +19,8 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
-    # ===== 算法实现 =====
+
+# ===== 算法实现 =====
 
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
@@ -247,12 +248,12 @@ class Preprocessor:
                         if method in ["多项式拟合", "ModPoly", "I-ModPoly"]:
                             y_processed = algorithm_func(wavenumbers, y_processed, **params)
                         elif method in ["PLS"]:
-                            y_processed = algorithm_func(y_processed, **params)
+                            y_processed = algorithm_func(y_processed,** params)
                         elif method == "AsLS":
                             # 适配改进的AsLS算法参数
                             y_processed = algorithm_func(y_processed, **params)
                         elif method == "airPLS":
-                            y_processed = algorithm_func(y_processed, **params)
+                            y_processed = algorithm_func(y_processed,** params)
                         elif method == "二阶差分(D2)":  # 处理二阶差分
                             y_processed = algorithm_func(y_processed)
                         else:  # SD、FD 无额外参数
@@ -301,7 +302,7 @@ class Preprocessor:
 
                     elif step_type == "scaling":
                         algorithm_func = self.SCALING_ALGORITHMS[method]
-                        y_processed = algorithm_func(y_processed, **params)
+                        y_processed = algorithm_func(y_processed,** params)
                         params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
                         method_name.append(f"{method}({params_str})")
 
@@ -1041,7 +1042,7 @@ def SGfilter(Intensity, window_length,polyorder):  # 输入均为行
     col = Intensity.shape[1]
     sgsmooth = np.zeros((Row, col))
     for i in range(Row):
-        sgsmooth[i] = savgol_filter(Intensity[i], point, degree)
+        sgsmooth[i] = savgol_filter(Intensity[i], window_length, polyorder)
     return sgsmooth
 
 
@@ -1449,450 +1450,330 @@ def main():
                     squashing_params["k1"] = k1
                     squashing_params["k2"] = k2
                     st.caption(f"l: {l}, k1: {k1}, k2: {k2}")
-                elif squashing_method == "Sigmoid挤压":
-                    st.caption("使用标准Sigmoid函数，无额外参数")
-                elif squashing_method == "余弦挤压(squashing)":
-                    st.caption("使用基于余弦的挤压变换，无额外参数")
-                elif squashing_method == "逻辑函数":
+                elif squashing_method in ["Sigmoid挤压", "余弦挤压(squashing)"]:
                     st.caption("无额外参数")
 
-        # 5-9列：操作相关内容（横向排列在四个预处理算法后面）
-        # 5. 应用处理按钮
+        # 5. 算法顺序和排列显示（第五列）
         with preprocess_cols[4]:
-            st.subheader("操作1")
-            # 应用处理与推荐应用按钮
-            if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
-                if st.session_state.raw_data is None:
-                    st.warning("⚠️ 请先上传数据")
-                else:
-                    try:
-                        wavenumbers, y = st.session_state.raw_data
-                        processed_data, method_name = preprocessor.process(
-                            wavenumbers, y,
-                            baseline_method=baseline_method,
-                            baseline_params=baseline_params,
-                            squashing_method=squashing_method,
-                            squashing_params=squashing_params,
-                            filtering_method=filtering_method,
-                            filtering_params=filtering_params,
-                            scaling_method=scaling_method,
-                            scaling_params=scaling_params
-                        )
-
-                        arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
-                        st.session_state.arrangement_results.append(arr_name)
-                        st.session_state.arrangement_details[arr_name] = {
-                            'data': processed_data,
-                            'method': " → ".join(method_name),
-                            'params': current_algorithms
-                        }
-                        st.session_state.selected_arrangement = arr_name
-                        st.session_state.processed_data = (wavenumbers, processed_data)
-                        st.session_state.process_method = " → ".join(method_name)
-                        st.success(f"✅ 处理完成")
-                    except Exception as e:
-                        st.error(f"❌ 处理失败: {str(e)}")
-
-            if st.button("🌟 推荐应用", type="primary", use_container_width=True, key="recommend_btn"):
-                if st.session_state.raw_data is None:
-                    st.warning("⚠️ 请先上传数据")
-                else:
-                    try:
-                        wavenumbers, y = st.session_state.raw_data
-                        recommended_params = {
-                            'baseline_method': "二阶差分(D2)",
-                            'baseline_params': {},
-                            'scaling_method': "标准化(均值0，方差1)",
-                            'scaling_params': {},
-                            'filtering_method': "小波线性阈值去噪",
-                            'filtering_params': {'threshold': 0.3},
-                            'squashing_method': "余弦挤压(squashing)",
-                            'squashing_params': {}
-                        }
-
-                        processed_data, method_name = preprocessor.process(
-                            wavenumbers, y, **recommended_params
-                        )
-
-                        arr_name = f"推荐排列_{len(st.session_state.arrangement_results) + 1}"
-                        st.session_state.arrangement_results.append(arr_name)
-                        st.session_state.arrangement_details[arr_name] = {
-                            'data': processed_data,
-                            'method': " → ".join(method_name),
-                            'params': recommended_params
-                        }
-                        st.session_state.selected_arrangement = arr_name
-                        st.session_state.processed_data = (wavenumbers, processed_data)
-                        st.session_state.process_method = " → ".join(method_name)
-                        st.success(f"✅ 推荐处理完成")
-                    except Exception as e:
-                        st.error(f"❌ 推荐失败: {str(e)}")
-
-        # 6. 显示排列与筛选
-        with preprocess_cols[5]:
-            st.subheader("操作2")
-            # 显示排列按钮
-            if st.button("🔍 显示排列", type="secondary", use_container_width=True, key="show_perm_btn"):
-                st.session_state.show_arrangements = not st.session_state.show_arrangements
-
-                if st.session_state.show_arrangements:
-                    selected_algorithms = {
-                        'baseline': baseline_method,
-                        'scaling': scaling_method,
-                        'filtering': filtering_method,
-                        'squashing': squashing_method
-                    }
-                    st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
-                    st.session_state.filtered_perms = st.session_state.algorithm_permutations
-                    st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
-                else:
-                    st.session_state.filtered_perms = []
-
-                st.rerun()
-
-            # 排列方案选择（紧凑显示）
-            if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
-                # 第一步类型筛选
-                try:
-                    all_first_step_types = list({
-                        perm.get("first_step_type", "未知")
-                        for perm in st.session_state.algorithm_permutations
-                    })
-                    all_first_step_types.sort()
-                except Exception as e:
-                    st.error(f"❌ 筛选错误: {str(e)}")
-                    all_first_step_types = ["全部", "无预处理", "基线校准", "缩放", "滤波", "挤压"]
-
-                selected_first_step = st.selectbox(
-                    "第一步类型",
-                    ["全部"] + all_first_step_types,
-                    key="first_step_filter",
-                    label_visibility="collapsed"
-                )
-
-                # 筛选排列
-                if selected_first_step == "全部":
-                    st.session_state.filtered_perms = st.session_state.algorithm_permutations
-                else:
-                    st.session_state.filtered_perms = [
-                        p for p in st.session_state.algorithm_permutations
-                        if p.get("first_step_type") == selected_first_step
-                    ]
-
-        # 7. 排列选择与应用
-        with preprocess_cols[6]:
-            st.subheader("操作3")
-            # 排列下拉框
-            if st.session_state.show_arrangements and st.session_state.filtered_perms:
-                st.session_state.selected_perm_idx = st.selectbox(
-                    f"选择方案（共{len(st.session_state.filtered_perms)}种）",
-                    range(len(st.session_state.filtered_perms)),
-                    format_func=lambda x: st.session_state.filtered_perms[x].get("name", f"方案{x + 1}"),
-                    key="perm_select",
-                    label_visibility="collapsed",
-                    help="选择预处理算法顺序"
-                )
-
-                # 应用排列按钮
-                try:
-                    selected_perm = st.session_state.filtered_perms[st.session_state.selected_perm_idx]
-                    st.caption(f"当前: {selected_perm.get('name', '未知')}")
-
-                    if st.button("✅ 应用方案", type="primary", use_container_width=True, key="apply_perm_btn"):
-                        if st.session_state.raw_data is None:
-                            st.warning("⚠️ 请先上传数据")
-                        else:
-                            try:
-                                wavenumbers, y = st.session_state.raw_data
-                                algos = st.session_state.current_algorithms
-
-                                processed_data, method_name = preprocessor.process(
-                                    wavenumbers, y,
-                                    baseline_method=algos['baseline'],
-                                    baseline_params=algos['baseline_params'],
-                                    squashing_method=algos['squashing'],
-                                    squashing_params=algos['squashing_params'],
-                                    filtering_method=algos['filtering'],
-                                    filtering_params=algos['filtering_params'],
-                                    scaling_method=algos['scaling'],
-                                    scaling_params=algos['scaling_params'],
-                                    algorithm_order=selected_perm.get('order', [])
-                                )
-
-                                arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
-                                st.session_state.arrangement_results.append(arr_name)
-                                st.session_state.arrangement_details[arr_name] = {
-                                    'data': processed_data,
-                                    'method': " → ".join(method_name),
-                                    'order': selected_perm.get('order', []),
-                                    'params': algos
-                                }
-                                st.session_state.selected_arrangement = arr_name
-                                st.session_state.processed_data = (wavenumbers, processed_data)
-                                st.session_state.process_method = " → ".join(method_name)
-                                st.success(f"✅ 方案应用完成")
-                            except Exception as e:
-                                st.error(f"❌ 应用失败: {str(e)}")
-                except Exception as e:
-                    st.error(f"❌ 方案处理错误: {str(e)}")
-            else:
-                if st.session_state.show_arrangements:
-                    st.info("ℹ️ 无符合条件的方案")
-
-        # 8. 分类测试参数
-        with preprocess_cols[7]:
-            st.subheader("操作4")
-            # 分类测试（紧凑显示）
-            st.subheader("📝 分类测试")
-            # k值设置
-            k_value = st.number_input(
-                "k值",
-                min_value=1,
-                value=st.session_state.k_value,
-                step=1,
-                key="k_input",
+            st.subheader("🔄 算法顺序")
+            # 算法顺序选择
+            order_options = {
+                1: "基线校准",
+                2: "缩放",
+                3: "滤波",
+                4: "挤压"
+            }
+            
+            # 初始化算法顺序
+            if 'algorithm_order' not in st.session_state:
+                st.session_state.algorithm_order = []
+            
+            # 选择要添加的算法
+            selected_step = st.selectbox(
+                "选择步骤",
+                [0] + list(order_options.keys()),
+                format_func=lambda x: "添加步骤..." if x == 0 else order_options[x],
+                key="select_step",
                 label_visibility="collapsed"
             )
+            
+            # 添加算法步骤
+            if selected_step != 0 and selected_step not in st.session_state.algorithm_order:
+                st.session_state.algorithm_order.append(selected_step)
+            
+            # 显示当前顺序
+            if st.session_state.algorithm_order:
+                order_text = " → ".join([order_options[step] for step in st.session_state.algorithm_order])
+                st.text(f"当前顺序: {order_text}")
+                
+                # 清除顺序按钮
+                if st.button("清除顺序", key="clear_order", use_container_width=True):
+                    st.session_state.algorithm_order = []
+                    st.experimental_rerun()
+            else:
+                st.text("请选择算法顺序")
+            
+            # 显示排列按钮
+            if st.button("显示排列", key="show_perm_btn", use_container_width=True):
+                # 更新当前算法选择
+                current_algorithms = {
+                    'baseline': baseline_method,
+                    'baseline_params': baseline_params,
+                    'scaling': scaling_method,
+                    'scaling_params': scaling_params,
+                    'filtering': filtering_method,
+                    'filtering_params': filtering_params,
+                    'squashing': squashing_method,
+                    'squashing_params': squashing_params
+                }
+                st.session_state.current_algorithms = current_algorithms
+                
+                # 生成排列组合
+                st.session_state.algorithm_permutations = generate_permutations(current_algorithms)
+                st.session_state.show_arrangements = True
+                st.success(f"生成了 {len(st.session_state.algorithm_permutations)} 种排列方案")
 
-            if st.button("确定k值", type="secondary", use_container_width=True, key="k_confirm_btn"):
-                st.session_state.k_value = k_value
-                st.success(f"k={k_value}")
+        # 6. 排列选择（第六列）
+        with preprocess_cols[5]:
+            st.subheader("📋 排列选择")
+            if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
+                # 按步骤数筛选
+                step_counts = sorted(list(set(len(p["order"]) for p in st.session_state.algorithm_permutations)))
+                selected_steps = st.selectbox(
+                    "步骤数",
+                    step_counts,
+                    key="step_count_sel",
+                    label_visibility="collapsed"
+                )
+                
+                # 筛选排列
+                st.session_state.filtered_perms = [
+                    p for p in st.session_state.algorithm_permutations
+                    if len(p["order"]) == selected_steps
+                ]
+                
+                # 显示筛选结果数量
+                st.text(f"共 {len(st.session_state.filtered_perms)} 种方案")
+                
+                # 选择排列索引
+                perm_indices = list(range(len(st.session_state.filtered_perms)))
+                selected_idx = st.selectbox(
+                    "选择方案",
+                    perm_indices,
+                    format_func=lambda i: st.session_state.filtered_perms[i]["name"],
+                    key="perm_idx_sel",
+                    label_visibility="collapsed"
+                )
+                
+                st.session_state.selected_perm_idx = selected_idx
+                st.session_state.selected_arrangement = st.session_state.filtered_perms[selected_idx]
+                
+                # 显示选中的排列
+                st.text(f"选中: {st.session_state.selected_arrangement['name']}")
+            else:
+                st.text("请先点击'显示排列'")
 
-        # 9. 测试按钮
-        with preprocess_cols[8]:
-            st.subheader("操作5")
-            # 测试按钮
-            if st.button("测试", type="primary", use_container_width=True, key="test_btn"):
-                if st.session_state.raw_data is None:
-                    st.warning("⚠️ 请先上传数据")
-                elif st.session_state.selected_arrangement is None:
-                    st.warning("⚠️ 请先应用排列方案")
-                elif st.session_state.labels is None:
-                    st.warning("⚠️ 请先输入标签")
-                elif st.session_state.train_indices is None:
-                    st.warning("⚠️ 无法划分训练集")
-                else:
+        # 7. 预处理执行（第七列）
+        with preprocess_cols[6]:
+            st.subheader("▶️ 预处理执行")
+            if st.session_state.get('raw_data') and st.session_state.show_arrangements:
+                if st.button("执行预处理", key="run_preprocess", use_container_width=True):
+                    wavenumbers, y = st.session_state.raw_data
+                    current_algos = st.session_state.current_algorithms
+                    selected_perm = st.session_state.selected_arrangement
+                    
                     try:
-                        selected_arr = st.session_state.selected_arrangement
-                        processed_data = st.session_state.arrangement_details[selected_arr]['data']
+                        # 执行预处理
+                        processed_data, method_name = preprocessor.process(
+                            wavenumbers, y,
+                            baseline_method=current_algos['baseline'],
+                            baseline_params=current_algos['baseline_params'],
+                            squashing_method=current_algos['squashing'],
+                            squashing_params=current_algos['squashing_params'],
+                            filtering_method=current_algos['filtering'],
+                            filtering_params=current_algos['filtering_params'],
+                            scaling_method=current_algos['scaling'],
+                            scaling_params=current_algos['scaling_params'],
+                            algorithm_order=selected_perm['order']
+                        )
+                        
+                        st.session_state.processed_data = processed_data
+                        st.session_state.process_method = " → ".join(method_name)
+                        st.success("预处理完成!")
+                    except Exception as e:
+                        st.error(f"预处理失败: {str(e)}")
+            else:
+                st.text("请先加载数据并选择排列方案")
+
+        # 8. 分类测试（第八列）
+        with preprocess_cols[7]:
+            st.subheader("🧪 分类测试")
+            if st.session_state.get('processed_data') and st.session_state.get('labels') is not None:
+                # 设置k值
+                k_value = st.slider(
+                    "k值",
+                    min_value=1,
+                    max_value=15,
+                    value=5,
+                    step=1,
+                    key="k_value_slider",
+                    label_visibility="collapsed"
+                )
+                st.session_state.k_value = k_value
+                
+                # 测试按钮
+                if st.button("执行KNN测试", key="run_test", use_container_width=True):
+                    try:
+                        # 准备数据
+                        processed_data = st.session_state.processed_data
+                        labels = st.session_state.labels
                         train_idx = st.session_state.train_indices
                         test_idx = st.session_state.test_indices
-
+                        
+                        # 划分训练集和测试集
                         train_data = processed_data[:, train_idx]
                         test_data = processed_data[:, test_idx]
-                        train_labels = st.session_state.labels[train_idx]
-                        test_labels = st.session_state.labels[test_idx]
-
-                        with st.spinner("测试中..."):
-                            predictions = knn_classify(
-                                train_data,
-                                train_labels,
-                                test_data,
-                                k=st.session_state.k_value
-                            )
-
+                        train_labels = labels[train_idx]
+                        test_labels = labels[test_idx]
+                        
+                        # 执行KNN分类
+                        predictions = knn_classify(train_data, train_labels, test_data, k=k_value)
+                        
+                        # 计算评估指标
                         accuracy = accuracy_score(test_labels, predictions)
                         kappa = cohen_kappa_score(test_labels, predictions)
                         cm = confusion_matrix(test_labels, predictions)
-
+                        
+                        # 保存结果
                         st.session_state.test_results = {
+                            'predictions': predictions,
+                            'test_labels': test_labels,
                             'accuracy': accuracy,
                             'kappa': kappa,
-                            'confusion_matrix': cm,
-                            'predictions': predictions,
-                            'test_labels': test_labels
+                            'confusion_matrix': cm
                         }
-
-                        st.success("✅ 测试完成！结果在下方")
-
+                        
+                        st.success(f"测试完成! 准确率: {accuracy:.4f}, Kappa: {kappa:.4f}")
                     except Exception as e:
-                        st.error(f"❌ 测试失败: {str(e)}")
-
-        # 保存当前选择的算法
-        current_algorithms = {
-            'baseline': baseline_method,
-            'baseline_params': baseline_params,
-            'scaling': scaling_method,
-            'scaling_params': scaling_params,
-            'filtering': filtering_method,
-            'filtering_params': filtering_params,
-            'squashing': squashing_method,
-            'squashing_params': squashing_params
-        }
-        st.session_state.current_algorithms = current_algorithms
-
-        # ===== 光谱可视化与结果导出（在预处理设置下方）=====
-        st.subheader("📈 光谱可视化", divider="gray")
-
-        # 1. 原始光谱区域
-        st.subheader("原始光谱", divider="gray")
-        # 将原始光谱展示放置到右侧
-        spec_cols = st.columns([2, 2], gap="small")  # 通过调整列宽度，确保可以容纳两列内容
-
-        with spec_cols[0]:
-            if st.session_state.get('raw_data'):
-                wavenumbers, y = st.session_state.raw_data
-                idx1 = 0 if y.shape[1] > 0 else 0
-                raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
-                st.line_chart(raw_data1, height=200)
+                        st.error(f"测试失败: {str(e)}")
             else:
-                st.markdown(
-                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
-                    unsafe_allow_html=True)
+                st.text("请先完成预处理并设置标签")
 
-        with spec_cols[1]:
-            if st.session_state.get('raw_data') and y.shape[1] > 1:
-                idx2 = 1
-                raw_data2 = pd.DataFrame({"原始光谱2": y[:, idx2]}, index=wavenumbers)
-                st.line_chart(raw_data2, height=200)
-            elif st.session_state.get('raw_data'):
-                st.markdown(
-                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条原始光谱</div>',
-                    unsafe_allow_html=True)
-            else:
-                st.markdown(
-                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
-                    unsafe_allow_html=True)
-
-        # 显示更多原始光谱
-        if st.session_state.get('raw_data') and y.shape[1] > 2:
-            with st.expander("查看更多原始光谱", expanded=False):
-                more_spec = st.columns([2, 2], gap="small")  # 同样调整更多光谱的展示列宽
-                for i in range(2, min(y.shape[1], 6), 2):
-                    with more_spec[0]:
-                        if i < y.shape[1]:
-                            data = pd.DataFrame({f"原始光谱{i + 1}": y[:, i]}, index=wavenumbers)
-                            st.line_chart(data, height=150)
-                    with more_spec[1]:
-                        if i + 1 < y.shape[1]:
-                            data = pd.DataFrame({f"原始光谱{i + 2}": y[:, i + 1]}, index=wavenumbers)
-                            st.line_chart(data, height=150)
-
-        # 2. 处理结果展示
-        if st.session_state.get('selected_arrangement'):
-            st.subheader("🔍 预处理结果", divider="gray")
-            selected_arr = st.session_state.selected_arrangement
-            arr_data = st.session_state.arrangement_details[selected_arr]['data']
-            arr_method = st.session_state.arrangement_details[selected_arr]['method']
-            arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
-
-            st.caption(f"处理方法: {arr_method} | 执行顺序: {arr_order if arr_order else '无预处理'}")
-
-            # 预处理后光谱
-            st.subheader("预处理后光谱", divider="gray")
-            proc_cols = st.columns([2, 2], gap="small")  # 预处理后光谱同样放在右侧
-            with proc_cols[0]:
-                idx1 = 0 if arr_data.shape[1] > 0 else 0
-                proc_data1 = pd.DataFrame({"预处理后1": arr_data[:, idx1]}, index=wavenumbers)
-                st.line_chart(proc_data1, height=200)
-            with proc_cols[1]:
-                if arr_data.shape[1] > 1:
-                    idx2 = 1
-                    proc_data2 = pd.DataFrame({"预处理后2": arr_data[:, idx2]}, index=wavenumbers)
-                    st.line_chart(proc_data2, height=200)
-                else:
-                    st.markdown(
-                        '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条预处理光谱</div>',
-                        unsafe_allow_html=True)
-
-            # k值曲线
-            if arr_order:
-                st.subheader("k值曲线", divider="gray")
-                k_cols = st.columns([2, 2], gap="small")  # 调整k值曲线的布局
-                with k_cols[0]:
-                    k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
-                    k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
-                    st.line_chart(k_data1, height=200)
-                with k_cols[1]:
-                    if y.shape[1] > 1:
-                        k_vals2 = np.abs(arr_data[:, 1] / (y[:, 1] + 1e-8))
-                        k_data2 = pd.DataFrame({"k值2": k_vals2}, index=wavenumbers)
-                        st.line_chart(k_data2, height=200)
-                    else:
-                        st.markdown(
-                            '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条k值曲线</div>',
-                            unsafe_allow_html=True)
-            else:
-                st.info("ℹ️ 无预处理（原始光谱），不显示k值曲线")
-
-            # 原始与处理后对比
-            st.subheader("原始vs预处理对比", divider="gray")
-            comp_cols = st.columns([2, 2], gap="small")  # 同样调整对比图的列宽
-            with comp_cols[0]:
-                if y.shape[1] > 0:
-                    comp_data1 = pd.DataFrame({
-                        "原始": y[:, 0],
-                        "预处理后": arr_data[:, 0]
-                    }, index=wavenumbers)
-                    st.line_chart(comp_data1, height=200)
-            with comp_cols[1]:
-                if y.shape[1] > 1:
-                    comp_data2 = pd.DataFrame({
-                        "原始": y[:, 1],
-                        "预处理后": arr_data[:, 1]
-                    }, index=wavenumbers)
-                    st.line_chart(comp_data2, height=200)
-                else:
-                    st.markdown(
-                        '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">仅1条对比曲线</div>',
-                        unsafe_allow_html=True)
-
-            # 测试结果
-            if st.session_state.get('test_results') is not None:
-                st.subheader("📊 分类测试结果", divider="gray")
-                results = st.session_state.test_results
-
-                # 指标
-                metrics_cols = st.columns([2, 2], gap="small")
-                with metrics_cols[0]:
-                    st.metric("准确率", f"{results['accuracy']:.4f}", delta=None)
-                with metrics_cols[1]:
-                    st.metric("卡帕系数", f"{results['kappa']:.4f}", delta=None)
-
-                # 混淆矩阵
-                st.subheader("混淆矩阵", divider="gray")
-                fig, ax = plt.subplots(figsize=(5, 4))
-                sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax,
-                            annot_kws={"size": 8})
-                ax.set_xlabel('预测标签', fontsize=8)
-                ax.set_ylabel('真实标签', fontsize=8)
-                ax.set_title('混淆矩阵', fontsize=10)
-                plt.xticks(fontsize=7)
-                plt.yticks(fontsize=7)
-                st.pyplot(fig, use_container_width=True)
-        else:
-            # 未选择排列时的提示
-            st.info("ℹ️ 请在上方选择预处理方法并应用排列方案")
-
-        # 结果导出
-        if st.session_state.arrangement_results or st.session_state.get('processed_data'):
-            st.subheader("💾 结果导出", divider="gray")
-            export_cols = st.columns([3, 1], gap="small")
-            with export_cols[0]:
-                export_name = st.text_input("导出文件名", "processed_spectra.txt", key="export_name")
-            with export_cols[1]:
-                st.markdown("<br>", unsafe_allow_html=True)  # 垂直对齐
-                if st.button("导出", type="secondary", key="export_btn"):
+        # 9. 结果导出（第九列）
+        with preprocess_cols[8]:
+            st.subheader("💾 结果导出")
+            if st.session_state.get('processed_data'):
+                # 导出预处理数据
+                if st.button("导出预处理数据", key="export_data", use_container_width=True):
                     try:
-                        if st.session_state.selected_arrangement:
-                            arr_data = st.session_state.arrangement_details[st.session_state.selected_arrangement][
-                                'data']
-                            file_handler.export_data(export_name, arr_data)
-                        else:
-                            wavenumbers, y_processed = st.session_state.processed_data
-                            file_handler.export_data(export_name, y_processed)
-                        st.success(f"✅ 已导出到 {export_name}")
+                        data = st.session_state.processed_data
+                        file_handler.export_data("processed_spectra.txt", data)
+                        st.success("预处理数据已导出!")
                     except Exception as e:
-                        st.error(f"❌ 导出失败: {str(e)}")
-        else:
-            st.markdown(
-                '<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>',
-                unsafe_allow_html=True)
+                        st.error(f"导出失败: {str(e)}")
+                
+                # 导出结果
+                if st.session_state.get('test_results'):
+                    if st.button("导出测试结果", key="export_results", use_container_width=True):
+                        try:
+                            results = st.session_state.test_results
+                            with open("test_results.txt", "w") as f:
+                                f.write(f"准确率: {results['accuracy']:.4f}\n")
+                                f.write(f"Kappa系数: {results['kappa']:.4f}\n\n")
+                                f.write("混淆矩阵:\n")
+                                np.savetxt(f, results['confusion_matrix'], fmt='%d')
+                            st.success("测试结果已导出!")
+                        except Exception as e:
+                            st.error(f"导出失败: {str(e)}")
+            else:
+                st.text("无数据可导出")
 
-
-
-
-
+        # ===== 光谱可视化与结果导出（使用2×2网格布局）=====
+        st.subheader("📊 光谱可视化与结果展示", divider="gray")
+        
+        # 创建2×2网格布局
+        vis_cols = st.columns(2)
+        vis_rows = [st.container() for _ in range(2)]
+        
+        # 获取数据
+        raw_data = st.session_state.get('raw_data')
+        processed_data = st.session_state.get('processed_data')
+        test_results = st.session_state.get('test_results')
+        
+        # 第一行第一列：原始光谱
+        with vis_cols[0], vis_rows[0]:
+            st.subheader("原始光谱")
+            if raw_data:
+                wavenumbers, y = raw_data
+                fig, ax = plt.subplots(figsize=(6, 4))
+                ax.plot(wavenumbers, y[:, :5])  # 显示前5条光谱
+                ax.set_xlabel('波数')
+                ax.set_ylabel('强度')
+                ax.set_title('原始光谱')
+                plt.tight_layout()
+                st.pyplot(fig)
+            else:
+                # 空状态显示
+                fig, ax = plt.subplots(figsize=(6, 4))
+                ax.text(0.5, 0.5, '请导入数据', ha='center', va='center', transform=ax.transAxes, fontsize=12)
+                ax.set_axis_off()
+                st.pyplot(fig)
+        
+        # 第一行第二列：预处理后的光谱
+        with vis_cols[1], vis_rows[0]:
+            st.subheader("预处理后的光谱")
+            if processed_data is not None:
+                wavenumbers, _ = raw_data if raw_data else (np.arange(processed_data.shape[0]), None)
+                fig, ax = plt.subplots(figsize=(6, 4))
+                ax.plot(wavenumbers, processed_data[:, :5])  # 显示前5条光谱
+                ax.set_xlabel('波数')
+                ax.set_ylabel('强度')
+                ax.set_title('预处理后的光谱')
+                plt.tight_layout()
+                st.pyplot(fig)
+            else:
+                # 空状态显示
+                fig, ax = plt.subplots(figsize=(6, 4))
+                ax.text(0.5, 0.5, '请执行预处理', ha='center', va='center', transform=ax.transAxes, fontsize=12)
+                ax.set_axis_off()
+                st.pyplot(fig)
+        
+        # 第二行第一列：k值曲线
+        with vis_cols[0], vis_rows[1]:
+            st.subheader("k值曲线")
+            if processed_data is not None and st.session_state.get('labels') is not None:
+                # 计算不同k值下的准确率
+                k_values = range(1, 16)
+                accuracies = []
+                
+                wavenumbers, y = raw_data
+                labels = st.session_state.labels
+                train_idx = st.session_state.train_indices
+                test_idx = st.session_state.test_indices
+                
+                train_data = processed_data[:, train_idx]
+                test_data = processed_data[:, test_idx]
+                train_labels = labels[train_idx]
+                test_labels = labels[test_idx]
+                
+                for k in k_values:
+                    predictions = knn_classify(train_data, train_labels, test_data, k=k)
+                    accuracies.append(accuracy_score(test_labels, predictions))
+                
+                # 绘制k值曲线
+                fig, ax = plt.subplots(figsize=(6, 4))
+                ax.plot(k_values, accuracies, 'bo-')
+                ax.set_xlabel('k值')
+                ax.set_ylabel('准确率')
+                ax.set_title('不同k值的准确率')
+                ax.grid(True, linestyle='--', alpha=0.7)
+                plt.tight_layout()
+                st.pyplot(fig)
+            else:
+                # 空状态显示
+                fig, ax = plt.subplots(figsize=(6, 4))
+                ax.text(0.5, 0.5, '请执行分类测试', ha='center', va='center', transform=ax.transAxes, fontsize=12)
+                ax.set_axis_off()
+                st.pyplot(fig)
+        
+        # 第二行第二列：混淆矩阵
+        with vis_cols[1], vis_rows[1]:
+            st.subheader("混淆矩阵")
+            if test_results is not None:
+                cm = test_results['confusion_matrix']
+                fig, ax = plt.subplots(figsize=(6, 4))
+                sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
+                ax.set_xlabel('预测标签')
+                ax.set_ylabel('真实标签')
+                ax.set_title('混淆矩阵')
+                plt.tight_layout()
+                st.pyplot(fig)
+            else:
+                # 空状态显示
+                fig, ax = plt.subplots(figsize=(6, 4))
+                ax.text(0.5, 0.5, '请执行分类测试', ha='center', va='center', transform=ax.transAxes, fontsize=12)
+                ax.set_axis_off()
+                st.pyplot(fig)
 
 if __name__ == "__main__":
     main()
