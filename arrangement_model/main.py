@@ -1,7 +1,8 @@
 import streamlit as st
 import numpy as np
-from algorithms.preprocessing import Preprocessor
-from utils.file_handler import FileHandler
+# 正确：从当前文件夹（arrangement_model）导入子模块
+from .algorithms.preprocessing import Preprocessor
+from .utils.file_handler import FileHandler
 from algorithms.classification import knn_classify
 import matplotlib.pyplot as plt
 import seaborn as sns
