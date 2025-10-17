@@ -10,18 +10,34 @@ def navigate_to(page):
     st.session_state.current_page = page
     st.experimental_rerun()
 
-# 自定义CSS样式（保留其他样式，移除导航栏相关样式）
+# 自定义CSS样式（核心修改：新增全屏布局相关样式，覆盖默认限制）
 def set_custom_style():
     st.markdown(
         """
         <style>
-        /* 页面整体样式 */
+        /* 1. 解除页面主体宽度限制，确保铺满 */
         .main {
             background-color: #f5f7fa;
             padding: 0px 10px;
+            max-width: 100% !important; /* 覆盖默认最大宽度（约800px） */
+            width: 100% !important;     /* 强制占满浏览器宽度 */
+            margin: 0 auto !important;  /* 居中且无额外边距 */
         }
-        
-        /* 按钮样式 */
+
+        /* 2. 移除顶部/侧边默认空白，优化全屏效果 */
+        .css-18e3th9 { /* Streamlit顶部容器类名（需根据版本确认，多数版本通用） */
+            padding-top: 0rem !important;  /* 移除顶部空白 */
+            padding-left: 2rem !important;  /* 调整左右内边距，避免内容贴边 */
+            padding-right: 2rem !important;
+            max-width: 100% !important;
+        }
+
+        .css-1d391kg { /* Streamlit主内容容器类名 */
+            padding: 0rem !important;
+            max-width: 100% !important;
+        }
+
+        /* 3. 保留原有按钮、标题、卡片样式 */
         .stButton > button {
             width: 100%;
             border-radius: 6px;
@@ -38,7 +54,6 @@ def set_custom_style():
             box-shadow: 0 4px 8px rgba(22, 93, 255, 0.2);
         }
         
-        /* 标题样式 */
         .title-text {
             font-size: 28px;
             font-weight: 700;
@@ -51,7 +66,6 @@ def set_custom_style():
             margin: 0 0 30px 0;
         }
         
-        /* 卡片样式 */
         .card {
             background-color: white;
             border-radius: 10px;
@@ -90,7 +104,7 @@ def set_custom_style():
         unsafe_allow_html=True,
     )
 
-# 主页内容（移除了导航栏调用）
+# 主页内容（无修改，样式通过CSS生效）
 def show_home_page():
     set_custom_style()
     
@@ -126,7 +140,7 @@ def show_home_page():
         },
     ]
 
-    # 创建2列布局
+    # 创建2列布局（自适应铺满后的宽度）
     cols = st.columns(2)
     for idx, module in enumerate(modules):
         with cols[idx % 2]:
@@ -144,7 +158,7 @@ def show_home_page():
             if st.button(f"进入 {module['name']}", key=f"btn_{module['target_page']}"):
                 navigate_to(module['target_page'])
 
-# 其他页面内容（均移除了导航栏调用）
+# 其他页面内容（均移除了导航栏调用，样式统一通过set_custom_style()生效）
 def show_about_page():
     set_custom_style()
     st.title("关于我们")
