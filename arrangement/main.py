@@ -9,7 +9,7 @@ from .utils.file_handler import FileHandler
 from .utils.permutations import generate_permutations
 from .utils.classifier import knn_classify, evaluate_classification
 
-#def main():
+def main():
     # 初始化状态
     init_state()
     
