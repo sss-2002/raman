@@ -18,9 +18,20 @@ def main():
     file_handler = FileHandler()  # 文件处理工具
     preprocessor = Preprocessor()  # 预处理算法控制器
 
-    # 页面样式（与主文件保持一致）
+    # 页面样式（优化为全屏显示，与主文件保持一致）
     st.markdown("""
         <style>
+        /* 清除Streamlit默认根容器的边距和宽度限制 */
+        .css-18e3th9 {
+            padding: 0 !important;
+            max-width: 100% !important;
+        }
+        .block-container {
+            padding: 0 10px !important;
+            max-width: 100% !important;
+        }
+        
+        /* 原有页面和按钮样式 */
         .main {
             background-color: #f5f7fa;
             padding: 0px 10px;
