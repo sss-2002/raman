@@ -1,5 +1,6 @@
 import streamlit as st
 import importlib
+import pandas as pd  # 新增：确保arrangement模块能使用pandas
 
 # 初始化会话状态
 if "current_page" not in st.session_state:
@@ -10,7 +11,7 @@ def navigate_to(page):
     st.session_state.current_page = page
     st.experimental_rerun()
 
-# 自定义CSS样式（保留其他样式，移除导航栏相关样式）
+# 自定义CSS样式
 def set_custom_style():
     st.markdown(
         """
@@ -90,7 +91,7 @@ def set_custom_style():
         unsafe_allow_html=True,
     )
 
-# 主页内容（移除了导航栏调用）
+# 主页内容
 def show_home_page():
     set_custom_style()
     
@@ -98,7 +99,7 @@ def show_home_page():
     st.markdown('<h1 class="title-text">🔬 光谱分析系统</h1>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle-text">欢迎使用专业的光谱预处理与分析平台</p>', unsafe_allow_html=True)
 
-    # 功能模块
+    # 功能模块（保持不变）
     modules = [
         {
             "name": "拉曼光谱预处理分析",
@@ -109,7 +110,7 @@ def show_home_page():
         {
             "name": "排列预处理模型",
             "description": "针对单一干扰类型的系统化预处理方案，按“干扰识别→算法匹配→参数优化”流程排列预处理步骤。例如：噪声主导场景排列“SG平滑→基线校正”，背景干扰主导场景排列“基线校正→归一化”，支持一键执行预设排列逻辑，降低操作复杂度，确保同类型数据处理的一致性与可重复性。",
-            "target_page": "arrangement",
+            "target_page": "arrangement",  # 对应arrangement模块
             "icon": "🔄",
         },
         {
@@ -144,7 +145,7 @@ def show_home_page():
             if st.button(f"进入 {module['name']}", key=f"btn_{module['target_page']}"):
                 navigate_to(module['target_page'])
 
-# 其他页面内容（均移除了导航栏调用）
+# 其他页面内容（保持不变）
 def show_about_page():
     set_custom_style()
     st.title("关于我们")
@@ -154,7 +155,6 @@ def show_about_page():
     
     我们的使命是：用创新科技推动生物医学领域的发展，为人类健康事业贡献力量。
     """)
-    # 返回首页按钮
     if st.button("返回首页"):
         navigate_to("home")
 
@@ -195,7 +195,7 @@ def show_login_page():
     if st.button("返回首页"):
         navigate_to("home")
 
-# 动态加载目标页面
+# 动态加载目标页面（核心修改：适配arrangement模块）
 def show_target_page(page_name):
     try:
         if page_name == "home":
@@ -209,10 +209,13 @@ def show_target_page(page_name):
         elif page_name == "login":
             show_login_page()
         else:
-            # 导入文件夹下的模块，格式为"文件夹.文件"
+            # 导入模块（支持arrangement等文件夹模块）
+            # 关键修改：确保能正确导入arrangement模块的main函数
             module = importlib.import_module(page_name)
             if hasattr(module, "main"):
+                # 调用模块的main函数，并传递样式设置
                 module.main()
+                # 统一的返回首页按钮（与模块内的返回按钮功能一致）
                 if st.button("返回首页"):
                     navigate_to("home")
             else:
