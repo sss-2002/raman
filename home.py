@@ -1,6 +1,6 @@
 import streamlit as st
 import importlib
-import pandas as pd  # 新增：确保arrangement模块能使用pandas
+import pandas as pd  # 确保arrangement模块能使用pandas
 
 # 初始化会话状态
 if "current_page" not in st.session_state:
@@ -11,15 +11,26 @@ def navigate_to(page):
     st.session_state.current_page = page
     st.experimental_rerun()
 
-# 自定义CSS样式
+# 自定义CSS样式（优化为全屏显示）
 def set_custom_style():
     st.markdown(
         """
         <style>
+        /* 清除Streamlit默认容器边距和宽度限制 */
+        .css-18e3th9 {
+            padding: 0 !important;
+            max-width: 100% !important;
+        }
+        .block-container {
+            padding: 0 10px !important;  /* 保留极小内边距避免内容贴边 */
+            max-width: 100% !important;
+        }
+        
         /* 页面整体样式 */
         .main {
             background-color: #f5f7fa;
             padding: 0px 10px;
+            width: 100%;
         }
         
         /* 按钮样式 */
@@ -99,7 +110,7 @@ def show_home_page():
     st.markdown('<h1 class="title-text">🔬 光谱分析系统</h1>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle-text">欢迎使用专业的光谱预处理与分析平台</p>', unsafe_allow_html=True)
 
-    # 功能模块（保持不变）
+    # 功能模块
     modules = [
         {
             "name": "拉曼光谱预处理分析",
@@ -127,7 +138,7 @@ def show_home_page():
         },
     ]
 
-    # 创建2列布局
+    # 创建2列布局（会自动适应全屏宽度）
     cols = st.columns(2)
     for idx, module in enumerate(modules):
         with cols[idx % 2]:
@@ -145,7 +156,7 @@ def show_home_page():
             if st.button(f"进入 {module['name']}", key=f"btn_{module['target_page']}"):
                 navigate_to(module['target_page'])
 
-# 其他页面内容（保持不变）
+# 其他页面内容
 def show_about_page():
     set_custom_style()
     st.title("关于我们")
@@ -195,7 +206,7 @@ def show_login_page():
     if st.button("返回首页"):
         navigate_to("home")
 
-# 动态加载目标页面（核心修改：适配arrangement模块）
+# 动态加载目标页面
 def show_target_page(page_name):
     try:
         if page_name == "home":
@@ -210,12 +221,11 @@ def show_target_page(page_name):
             show_login_page()
         else:
             # 导入模块（支持arrangement等文件夹模块）
-            # 关键修改：确保能正确导入arrangement模块的main函数
             module = importlib.import_module(page_name)
             if hasattr(module, "main"):
                 # 调用模块的main函数，并传递样式设置
                 module.main()
-                # 统一的返回首页按钮（与模块内的返回按钮功能一致）
+                # 统一的返回首页按钮
                 if st.button("返回首页"):
                     navigate_to("home")
             else:
