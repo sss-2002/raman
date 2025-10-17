@@ -1,6 +1,13 @@
 import streamlit as st
 import importlib
 
+# 关键设置：宽屏布局，解决页面铺满问题
+st.set_page_config(
+    layout="wide",
+    page_title="光谱分析系统",
+    page_icon="🔬"
+)
+
 # 初始化会话状态
 if "current_page" not in st.session_state:
     st.session_state.current_page = "home"
@@ -10,15 +17,25 @@ def navigate_to(page):
     st.session_state.current_page = page
     st.experimental_rerun()
 
-# 自定义CSS样式（保留其他样式，移除导航栏相关样式）
+# 自定义CSS样式（优化页面布局和宽度）
 def set_custom_style():
     st.markdown(
         """
         <style>
-        /* 页面整体样式 */
+        /* 页面整体样式 - 确保铺满宽度 */
         .main {
             background-color: #f5f7fa;
             padding: 0px 10px;
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+        
+        /* 顶部空白区域调整 */
+        .css-18e3th9 {
+            padding-top: 0rem;
+            padding-bottom: 1rem;
+            padding-left: 5rem;
+            padding-right: 5rem;
         }
         
         /* 按钮样式 */
@@ -57,7 +74,7 @@ def set_custom_style():
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             padding: 25px;
-            height: 285px;
+            min-height: 285px;  /* 改为最小高度，适应内容 */
             display: flex;
             flex-direction: column;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -90,7 +107,7 @@ def set_custom_style():
         unsafe_allow_html=True,
     )
 
-# 主页内容（移除了导航栏调用）
+# 主页内容
 def show_home_page():
     set_custom_style()
     
@@ -126,7 +143,7 @@ def show_home_page():
         },
     ]
 
-    # 创建2列布局
+    # 创建2列布局（响应式宽屏）
     cols = st.columns(2)
     for idx, module in enumerate(modules):
         with cols[idx % 2]:
@@ -144,7 +161,7 @@ def show_home_page():
             if st.button(f"进入 {module['name']}", key=f"btn_{module['target_page']}"):
                 navigate_to(module['target_page'])
 
-# 其他页面内容（均移除了导航栏调用）
+# 其他页面内容
 def show_about_page():
     set_custom_style()
     st.title("关于我们")
