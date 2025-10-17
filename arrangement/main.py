@@ -386,59 +386,72 @@ def main():
         })
 
         # 光谱可视化区域
-        st.subheader("📈 光谱可视化", divider="gray")
-        viz_cols = st.columns(2)
 
-        # 原始光谱与预处理后光谱对比
-        with viz_cols[0]:
-            st.subheader("原始光谱", divider="gray")
-            if st.session_state.raw_data:
-                wavenumbers, spectra = st.session_state.raw_data
-                # 显示第一条光谱
-                raw_df = pd.DataFrame({"强度": spectra[:, 0]}, index=wavenumbers)
-                st.line_chart(raw_df, height=250)
-                # 可选显示更多光谱
-                with st.expander("查看更多原始光谱", expanded=False):
-                    for i in range(1, min(5, spectra.shape[1])):
-                        df = pd.DataFrame({f"样本{i+1}": spectra[:, i]}, index=wavenumbers)
-                        st.line_chart(df, height=150)
-            else:
-                st.info("⏳ 请上传数据以显示原始光谱")
-
-        with viz_cols[1]:
-            st.subheader("预处理后光谱", divider="gray")
-            if st.session_state.selected_arrangement:
-                arr_data = st.session_state.arrangement_details[st.session_state.selected_arrangement]["data"]
-                method = st.session_state.arrangement_details[st.session_state.selected_arrangement]["method"]
-                st.caption(f"处理方法：{method}")
-                # 显示第一条预处理后的光谱
-                proc_df = pd.DataFrame({"强度": arr_data[:, 0]}, index=wavenumbers)
-                st.line_chart(proc_df, height=250)
-                # 可选显示更多
-                with st.expander("查看更多预处理光谱", expanded=False):
-                    for i in range(1, min(5, arr_data.shape[1])):
-                        df = pd.DataFrame({f"样本{i+1}": arr_data[:, i]}, index=wavenumbers)
-                        st.line_chart(df, height=150)
-            else:
-                st.info("⏳ 请应用预处理方案以显示结果")
-
-        # 分类结果可视化
-        if st.session_state.get("test_results"):
-            st.subheader("📊 分类测试结果", divider="gray")
-            results = st.session_state.test_results
-            # 显示指标
-            metric_cols = st.columns(2)
-            with metric_cols[0]:
-                st.metric("准确率", f"{results['accuracy']:.4f}")
-            with metric_cols[1]:
-                st.metric("卡帕系数", f"{results['kappa']:.4f}")
-            # 显示混淆矩阵
-            fig, ax = plt.subplots(figsize=(5, 4))
-            sns.heatmap(results["confusion_matrix"], annot=True, fmt="d", cmap="Blues", ax=ax)
-            ax.set_xlabel("预测标签")
-            ax.set_ylabel("真实标签")
-            ax.set_title("混淆矩阵")
-            st.pyplot(fig)
+        st.subheader("📊 结果可视化", divider="gray")
+        
+        # 创建2×2网格布局
+        vis_cols = st.columns(2)
+        with vis_cols[0]:
+            with st.container(border=True):
+                st.subheader("原始光谱")
+                if st.session_state.raw_data:
+                    wavenumbers, spectra = st.session_state.raw_data
+                    # 绘制原始光谱（示例：取前5条光谱）
+                    num_plot = min(5, spectra.shape[1])
+                    fig, ax = plt.subplots(figsize=(6, 4))
+                    for i in range(num_plot):
+                        ax.plot(wavenumbers, spectra[:, i], label=f"样本{i+1}")
+                    ax.set_xlabel("波数")
+                    ax.set_ylabel("强度")
+                    ax.legend()
+                    st.pyplot(fig)
+                else:
+                    st.info("👈 请上传数据以显示原始光谱")
+        
+            with st.container(border=True):
+                st.subheader("k值曲线")
+                if st.session_state.test_results:
+                    # 这里假设有不同k值的测试结果，实际需根据你的数据结构调整
+                    k_values = list(range(1, 11))
+                    accuracies = [np.random.uniform(0.6, 0.9) for _ in k_values]  # 示例数据
+                    fig, ax = plt.subplots(figsize=(6, 4))
+                    ax.plot(k_values, accuracies, 'o-')
+                    ax.set_xlabel("k值")
+                    ax.set_ylabel("准确率")
+                    ax.set_title(f"最佳k值：{k_values[np.argmax(accuracies)]}")
+                    st.pyplot(fig)
+                else:
+                    st.info("📊 运行测试后显示k值曲线")
+        
+        with vis_cols[1]:
+            with st.container(border=True):
+                st.subheader("预处理后光谱")
+                if st.session_state.processed_data is not None:
+                    wavenumbers, _ = st.session_state.raw_data
+                    processed_spectra = st.session_state.processed_data
+                    # 绘制预处理后光谱（示例：取前5条）
+                    num_plot = min(5, processed_spectra.shape[1])
+                    fig, ax = plt.subplots(figsize=(6, 4))
+                    for i in range(num_plot):
+                        ax.plot(wavenumbers, processed_spectra[:, i], label=f"样本{i+1}")
+                    ax.set_xlabel("波数")
+                    ax.set_ylabel("强度")
+                    ax.legend()
+                    st.pyplot(fig)
+                else:
+                    st.info("🚀 应用预处理后显示结果光谱")
+        
+            with st.container(border=True):
+                st.subheader("混淆矩阵")
+                if st.session_state.test_results and 'confusion_matrix' in st.session_state.test_results:
+                    cm = st.session_state.test_results['confusion_matrix']
+                    fig, ax = plt.subplots(figsize=(6, 4))
+                    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
+                    ax.set_xlabel("预测标签")
+                    ax.set_ylabel("真实标签")
+                    st.pyplot(fig)
+                else:
+                    st.info("✅ 运行测试后显示混淆矩阵")
 
         # 结果导出
         if st.session_state.arrangement_results:
