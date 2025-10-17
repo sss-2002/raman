@@ -5,7 +5,7 @@ import importlib
 if "current_page" not in st.session_state:
     st.session_state.current_page = "home"
 
-# 全局共享状态初始化
+# 全局共享状态
 if "raw_spectra" not in st.session_state:
     st.session_state.raw_spectra = None  # 原始光谱数据
 if "processed_spectra" not in st.session_state:
@@ -17,7 +17,7 @@ if "train_indices" not in st.session_state:
 if "test_indices" not in st.session_state:
     st.session_state.test_indices = None  # 测试集索引
 
-# 页面跳转函数
+# 页面跳转函数（主页面内部使用）
 def navigate_to(page):
     st.session_state.current_page = page
     st.experimental_rerun()
@@ -103,29 +103,29 @@ def show_home_page():
     st.markdown('<h1 class="title-text">🔬 光谱分析系统</h1>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle-text">欢迎使用专业的光谱预处理与分析平台</p>', unsafe_allow_html=True)
 
-    # 功能模块
+    # 功能模块（关键：排列预处理模型的target_page）
     modules = [
         {
             "name": "拉曼光谱预处理分析",
-            "description": "提供一站式拉曼光谱预处理解决方案，支持噪声去除（SG平滑、小波去噪）、基线校正（airPLS、ALS）、归一化等核心功能。",
+            "description": "提供一站式拉曼光谱预处理解决方案，支持噪声去除、基线校正、归一化等核心功能。",
             "target_page": "main",
             "icon": "📊",
         },
         {
             "name": "排列预处理模型",
-            "description": "针对单一干扰类型的系统化预处理方案，按“干扰识别→算法匹配→参数优化”流程排列预处理步骤。",
-            "target_page": "arrangement_model.main",  # 关键：指向排列模型
+            "description": "针对单一干扰类型的系统化预处理方案，按流程排列预处理步骤。",
+            "target_page": "arrangement_model.main",  # 指向排列模型
             "icon": "🔄",
         },
         {
             "name": "组合预处理模型",
-            "description": "面向复杂干扰场景的多算法协同处理模型，支持自由组合2-4种预处理算法。",
+            "description": "面向复杂干扰场景的多算法协同处理模型。",
             "target_page": "combination",
             "icon": "🧩",
         },
         {
             "name": "排列组合预处理模型",
-            "description": "融合“步骤排列”与“算法组合”的高阶预处理模型，兼顾流程规范性与算法灵活性。",
+            "description": "融合步骤排列与算法组合的高阶预处理模型。",
             "target_page": "arrangement_combination",
             "icon": "🔀",
         },
@@ -145,7 +145,7 @@ def show_home_page():
                 """,
                 unsafe_allow_html=True,
             )
-            # 跳转按钮
+            # 跳转按钮（使用主页面的navigate_to函数）
             if st.button(f"进入 {module['name']}", key=f"btn_{module['target_page']}"):
                 navigate_to(module['target_page'])
 
@@ -218,6 +218,7 @@ def show_target_page(page_name):
         if st.button("返回首页"):
             navigate_to("home")
 
-# 显示当前页面
-current_page = st.session_state.get("current_page", "home")
-show_target_page(current_page)
+# 主程序执行
+if __name__ == "__main__":
+    current_page = st.session_state.get("current_page", "home")
+    show_target_page(current_page)
