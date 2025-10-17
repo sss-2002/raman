@@ -10,34 +10,29 @@ def navigate_to(page):
     st.session_state.current_page = page
     st.experimental_rerun()
 
-# 自定义CSS样式（核心修改：新增全屏布局相关样式，覆盖默认限制）
+# 自定义CSS样式（核心修改：精准覆盖Streamlit容器的默认布局）
 def set_custom_style():
     st.markdown(
         """
         <style>
-        /* 1. 解除页面主体宽度限制，确保铺满 */
+        /* 1. 全局页面背景与宽度 */
+        .reportview-container .main .block-container {
+            max-width: 100% !important;
+            width: 100% !important;
+            padding: 0rem 2rem !important; /* 保留少量内边距，避免内容贴边 */
+        }
+
+        /* 2. 顶部标题区域 */
+        .reportview-container .main .header {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        /* 3. 原有样式保留 */
         .main {
             background-color: #f5f7fa;
-            padding: 0px 10px;
-            max-width: 100% !important; /* 覆盖默认最大宽度（约800px） */
-            width: 100% !important;     /* 强制占满浏览器宽度 */
-            margin: 0 auto !important;  /* 居中且无额外边距 */
         }
-
-        /* 2. 移除顶部/侧边默认空白，优化全屏效果 */
-        .css-18e3th9 { /* Streamlit顶部容器类名（需根据版本确认，多数版本通用） */
-            padding-top: 0rem !important;  /* 移除顶部空白 */
-            padding-left: 2rem !important;  /* 调整左右内边距，避免内容贴边 */
-            padding-right: 2rem !important;
-            max-width: 100% !important;
-        }
-
-        .css-1d391kg { /* Streamlit主内容容器类名 */
-            padding: 0rem !important;
-            max-width: 100% !important;
-        }
-
-        /* 3. 保留原有按钮、标题、卡片样式 */
+        
         .stButton > button {
             width: 100%;
             border-radius: 6px;
