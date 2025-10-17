@@ -4,10 +4,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import accuracy_score, cohen_kappa_score, confusion_matrix
 import itertools
-# 从主页面导入跳转函数
-from ..main import navigate_to
+import sys
+from pathlib import Path
 
-# 导入本地模块
+# 关键：将项目根目录添加到Python路径，确保能导入main.py
+sys.path.append(str(Path(__file__).parent.parent))
+from main import navigate_to  # 从主页面导入跳转函数
+
+# 导入本地模块（使用相对导入，因为在同一子包内）
 from .algorithms.preprocessing import Preprocessor
 from .utils.file_handler import FileHandler
 from .algorithms.classification import knn_classify
