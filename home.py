@@ -58,6 +58,9 @@ def set_custom_style():
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             padding: 25px;
             height: 285px;
+            width: 300px; /* 固定宽度 */
+            max-width: 100%; /* 响应式兼容：在窄屏时不超过父容器宽度 */
+            margin: 0 auto; /* 水平居中，避免在列布局中贴边 */
             display: flex;
             flex-direction: column;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
