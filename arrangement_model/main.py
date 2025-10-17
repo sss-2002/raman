@@ -4,14 +4,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import accuracy_score, cohen_kappa_score, confusion_matrix
 import itertools
-import sys
-from pathlib import Path
 
-# 关键：将项目根目录添加到Python路径，确保能导入main.py
-sys.path.append(str(Path(__file__).parent.parent))
-from main import navigate_to  # 从主页面导入跳转函数
-
-# 导入本地模块（使用相对导入，因为在同一子包内）
+# 导入本地模块（同一包内相对导入）
 from .algorithms.preprocessing import Preprocessor
 from .utils.file_handler import FileHandler
 from .algorithms.classification import knn_classify
@@ -180,9 +174,10 @@ def main():
             5. 查看结果并导出
             """)
 
-        # 返回主页按钮（关键）
+        # 返回主页按钮（核心修改：直接操作会话状态）
         if st.button("返回主页", key="back_to_home_btn", use_container_width=True):
-            navigate_to("home")
+            st.session_state.current_page = "home"  # 直接修改页面状态
+            st.experimental_rerun()  # 刷新页面
 
     # 右侧：预处理设置和可视化
     with col_right:
