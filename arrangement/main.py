@@ -1,8 +1,8 @@
-# arrangement/main.py
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd  # 新增：与主文件统一依赖
 from .state import init_state
 from .algorithms import Preprocessor
 from .utils.file_handler import FileHandler
@@ -17,29 +17,29 @@ def main():
     file_handler = FileHandler()
     preprocessor = Preprocessor()
 
-    # 设置页面
-    st.set_page_config(layout="wide", page_icon="🔬", page_title="排列预处理模型")
-    
-    # 全局样式
+    # 继承主文件的样式（关键：保持UI一致性）
     st.markdown("""
         <style>
-        body {font-size: 0.75rem !important;}
-        .css-1v0mbdj {padding: 0.3rem 0.5rem !important;}
-        .css-1d391kg {padding: 0.2rem 0 !important;}
-        .css-1x8cf1d {line-height: 1.1 !important;}
-        .css-12ttj6m {margin-bottom: 0.3rem !important;}
-        .css-16huue1 {padding: 0.2rem 0.5rem !important; font-size: 0.7rem !important;}
-        h3 {font-size: 1rem !important; margin: 0.3rem 0 !important;}
-        .css-1b3298e {gap: 0.3rem !important;}
-        .stSlider, .stSelectbox, .stTextInput {margin-bottom: 0.3rem !important;}
-        .stCaption {font-size: 0.65rem !important; margin-top: -0.2rem !important;}
-        .css-1544g2n {padding: 0.2rem 0.5rem !important;}
+        .main {
+            background-color: #f5f7fa;
+            padding: 0px 10px;
+        }
+        .stButton > button {
+            border-radius: 6px;
+            background-color: #165DFF;
+            color: white;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .stButton > button:hover {
+            background-color: #0E42D2;
+        }
         </style>
     """, unsafe_allow_html=True)
 
     st.title("🌌 排列预处理模型")
 
-    # 布局
+    # 布局（左侧数据管理，右侧预处理与可视化）
     col_left, col_right = st.columns([1.2, 3.9])
 
     # 左侧：数据管理
@@ -270,7 +270,7 @@ def main():
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
                 else:
                     st.session_state.filtered_perms = []
-                st.rerun()
+                st.experimental_rerun()  # 适配主文件的跳转机制
 
             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
                 all_first_step_types = list({p.get("first_step_type", "未知") for p in st.session_state.algorithm_permutations})
@@ -520,6 +520,3 @@ def main():
             st.markdown(
                 '<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>',
                 unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    main()
