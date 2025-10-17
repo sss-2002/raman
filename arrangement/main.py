@@ -389,12 +389,12 @@ def main():
 
         st.subheader("📊 结果可视化", divider="gray")
 
-        # 创建2×2网格布局并固定高度
-        vis_cols = st.columns(2)
+        # 2×2网格布局（左两区域、右两区域）
+        vis_rows = [st.columns(2, gap="large") for _ in range(2)]
         
-        # 左侧第一行：原始光谱
-        with vis_cols[0]:
-            with st.container(border=True, height=350):  # 固定高度
+        # 第一行左：原始光谱
+        with vis_rows[0][0]:
+            with st.container(border=False):
                 st.subheader("原始光谱")
                 if ("raw_data" in st.session_state and 
                     st.session_state.raw_data is not None and 
@@ -403,22 +403,18 @@ def main():
                     wavenumbers, spectra = st.session_state.raw_data
                     if hasattr(spectra, 'shape') and len(spectra.shape) >= 2:
                         total_samples = spectra.shape[1]
-                        
-                        # 添加样本选择器（默认显示第一条）
-                        sample_idx = st.select_slider(
-                            "选择样本",
-                            options=range(1, total_samples + 1),
-                            value=1,
-                            key="raw_spectrum_selector"
+                        # 下拉选择器
+                        sample_idx = st.selectbox(
+                            "查看更多原始光谱",
+                            range(1, total_samples + 1),
+                            index=0,
+                            key="raw_spectrum_selector_new"
                         )
-                        
-                        # 只显示选中的单条光谱
-                        fig, ax = plt.subplots(figsize=(5, 3))
-                        ax.plot(wavenumbers, spectra[:, sample_idx - 1], 
-                                color='#1f77b4', linewidth=1.5)
+                        # 绘制单条光谱
+                        fig, ax = plt.subplots(figsize=(6, 3))
+                        ax.plot(wavenumbers, spectra[:, sample_idx - 1], color='#4682B4', linewidth=1.2)
                         ax.set_xlabel("波数")
                         ax.set_ylabel("强度")
-                        ax.set_title(f"样本 {sample_idx}/{total_samples}")
                         plt.tight_layout()
                         st.pyplot(fig)
                     else:
@@ -426,8 +422,38 @@ def main():
                 else:
                     st.info("👈 请上传数据以显示原始光谱")
         
-            # 左侧第二行：k值曲线
-            with st.container(border=True, height=350):  # 固定高度
+        # 第一行右：预处理后光谱
+        with vis_rows[0][1]:
+            with st.container(border=False):
+                st.subheader("预处理后的光谱")
+                if ("selected_arrangement" in st.session_state and 
+                    st.session_state.selected_arrangement and 
+                    "arrangement_details" in st.session_state and 
+                    st.session_state.arrangement_details.get(st.session_state.selected_arrangement)):
+                    
+                    wavenumbers, _ = st.session_state.raw_data
+                    processed_spectra = st.session_state.arrangement_details[st.session_state.selected_arrangement]["data"]
+                    if hasattr(processed_spectra, 'shape') and len(processed_spectra.shape) >= 2:
+                        total_samples = processed_spectra.shape[1]
+                        # 与原始光谱选择器同步
+                        sample_idx = st.session_state.raw_spectrum_selector_new
+                        if sample_idx > total_samples:
+                            sample_idx = 1
+                        # 绘制预处理后光谱
+                        fig, ax = plt.subplots(figsize=(6, 3))
+                        ax.plot(wavenumbers, processed_spectra[:, sample_idx - 1], color='#2E8B57', linewidth=1.2)
+                        ax.set_xlabel("波数")
+                        ax.set_ylabel("预处理后强度")
+                        plt.tight_layout()
+                        st.pyplot(fig)
+                    else:
+                        st.warning("预处理光谱数据格式不正确")
+                else:
+                    st.info("请先应用预处理方案")
+        
+        # 第二行左：k值曲线
+        with vis_rows[1][0]:
+            with st.container(border=False):
                 st.subheader("k值曲线")
                 if ("test_results" in st.session_state and 
                     st.session_state.test_results is not None and 
@@ -435,73 +461,39 @@ def main():
                     
                     k_values = st.session_state.test_results.get('k_values', list(range(1, 11)))
                     accuracies = st.session_state.test_results['k_accuracies']
-                    
-                    fig, ax = plt.subplots(figsize=(5, 3))
-                    ax.plot(k_values, accuracies, 'o-', color='#ff7f0e')
+                    fig, ax = plt.subplots(figsize=(6, 3))
+                    ax.plot(k_values, accuracies, 'o-', color='#FF6347')
                     ax.set_xlabel("k值")
                     ax.set_ylabel("准确率")
                     ax.set_ylim(0, 1.05)
                     best_k = k_values[np.argmax(accuracies)]
-                    ax.set_title(f"最佳k值：{best_k}")
+                    ax.set_title(f"最佳k值：{best_k}", fontsize=9)
                     plt.tight_layout()
                     st.pyplot(fig)
                 else:
-                    st.info("📊 运行测试后显示k值曲线")
+                    st.info("请先应用预处理方案")
         
-        # 右侧第一行：预处理后光谱
-        with vis_cols[1]:
-            with st.container(border=True, height=350):  # 固定高度
-                st.subheader("预处理后光谱")
-                if ("processed_data" in st.session_state and 
-                    st.session_state.processed_data is not None and 
-                    "raw_data" in st.session_state and 
-                    st.session_state.raw_data is not None):
-                    
-                    wavenumbers, _ = st.session_state.raw_data
-                    processed_spectra = st.session_state.processed_data
-                    
-                    if hasattr(processed_spectra, 'shape') and len(processed_spectra.shape) >= 2:
-                        total_samples = processed_spectra.shape[1]
-                        
-                        # 样本选择器（与原始光谱保持同步）
-                        sample_idx = st.select_slider(
-                            "选择样本",
-                            options=range(1, total_samples + 1),
-                            value=1,
-                            key="processed_spectrum_selector"
-                        )
-                        
-                        # 只显示选中的单条光谱
-                        fig, ax = plt.subplots(figsize=(5, 3))
-                        ax.plot(wavenumbers, processed_spectra[:, sample_idx - 1], 
-                                color='#2ca02c', linewidth=1.5)
-                        ax.set_xlabel("波数")
-                        ax.set_ylabel("预处理后强度")
-                        ax.set_title(f"样本 {sample_idx}/{total_samples}")
-                        plt.tight_layout()
-                        st.pyplot(fig)
-                    else:
-                        st.warning("预处理光谱数据格式不正确")
-                else:
-                    st.info("🚀 应用预处理后显示结果光谱")
-        
-            # 右侧第二行：混淆矩阵
-            with st.container(border=True, height=350):  # 固定高度
+        # 第二行右：混淆矩阵
+        with vis_rows[1][1]:
+            with st.container(border=False):
                 st.subheader("混淆矩阵")
                 if ("test_results" in st.session_state and 
                     st.session_state.test_results is not None and 
                     'confusion_matrix' in st.session_state.test_results):
                     
                     cm = st.session_state.test_results['confusion_matrix']
-                    fig, ax = plt.subplots(figsize=(5, 3))
+                    fig, ax = plt.subplots(figsize=(6, 3))
                     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                                ax=ax, cbar=False, annot_kws={"size": 9})
+                                ax=ax, cbar=False, annot_kws={"size": 8})
                     ax.set_xlabel("预测标签")
                     ax.set_ylabel("真实标签")
                     plt.tight_layout()
                     st.pyplot(fig)
                 else:
-                    st.info("✅ 运行测试后显示混淆矩阵")
+                    st.info("请先进行分类测试")
+        
+        # 底部导出提示
+        st.markdown("<p style='text-align: center; color: #999; font-size: 12px;'>处理完成后可导出结果</p>", unsafe_allow_html=True)
 
         # 结果导出
         if st.session_state.arrangement_results:
