@@ -109,7 +109,7 @@ def show_home_page():
         {
             "name": "排列预处理模型",
             "description": "针对单一干扰类型的系统化预处理方案，按“干扰识别→算法匹配→参数优化”流程排列预处理步骤。例如：噪声主导场景排列“SG平滑→基线校正”，背景干扰主导场景排列“基线校正→归一化”，支持一键执行预设排列逻辑，降低操作复杂度，确保同类型数据处理的一致性与可重复性。",
-            "target_page": "arrangement_model.main",
+            "target_page": "arrangement",
             "icon": "🔄",
         },
         {
