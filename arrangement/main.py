@@ -389,28 +389,36 @@ def main():
 
         st.subheader("📊 结果可视化", divider="gray")
 
-        # 创建2×2网格布局（确保始终显示四个框）
+        # 创建2×2网格布局并固定高度
         vis_cols = st.columns(2)
         
         # 左侧第一行：原始光谱
         with vis_cols[0]:
-            with st.container(border=True):
+            with st.container(border=True, height=350):  # 固定高度
                 st.subheader("原始光谱")
-                # 严格检查原始数据是否有效
                 if ("raw_data" in st.session_state and 
                     st.session_state.raw_data is not None and 
                     len(st.session_state.raw_data) == 2):
                     
                     wavenumbers, spectra = st.session_state.raw_data
-                    # 验证数据格式有效性
                     if hasattr(spectra, 'shape') and len(spectra.shape) >= 2:
-                        num_plot = min(5, spectra.shape[1])
-                        fig, ax = plt.subplots(figsize=(6, 4))
-                        for i in range(num_plot):
-                            ax.plot(wavenumbers, spectra[:, i], label=f"样本{i+1}")
+                        total_samples = spectra.shape[1]
+                        
+                        # 添加样本选择器（默认显示第一条）
+                        sample_idx = st.select_slider(
+                            "选择样本",
+                            options=range(1, total_samples + 1),
+                            value=1,
+                            key="raw_spectrum_selector"
+                        )
+                        
+                        # 只显示选中的单条光谱
+                        fig, ax = plt.subplots(figsize=(5, 3))
+                        ax.plot(wavenumbers, spectra[:, sample_idx - 1], 
+                                color='#1f77b4', linewidth=1.5)
                         ax.set_xlabel("波数")
                         ax.set_ylabel("强度")
-                        ax.legend(fontsize=8)
+                        ax.set_title(f"样本 {sample_idx}/{total_samples}")
                         plt.tight_layout()
                         st.pyplot(fig)
                     else:
@@ -419,23 +427,22 @@ def main():
                     st.info("👈 请上传数据以显示原始光谱")
         
             # 左侧第二行：k值曲线
-            with st.container(border=True):
+            with st.container(border=True, height=350):  # 固定高度
                 st.subheader("k值曲线")
                 if ("test_results" in st.session_state and 
                     st.session_state.test_results is not None and 
                     "k_accuracies" in st.session_state.test_results):
                     
-                    # 使用实际计算的k值结果（替换示例数据）
                     k_values = st.session_state.test_results.get('k_values', list(range(1, 11)))
                     accuracies = st.session_state.test_results['k_accuracies']
                     
-                    fig, ax = plt.subplots(figsize=(6, 4))
-                    ax.plot(k_values, accuracies, 'o-', color='#1f77b4')
+                    fig, ax = plt.subplots(figsize=(5, 3))
+                    ax.plot(k_values, accuracies, 'o-', color='#ff7f0e')
                     ax.set_xlabel("k值")
                     ax.set_ylabel("准确率")
-                    ax.set_ylim(0, 1.05)  # 固定y轴范围，便于比较
+                    ax.set_ylim(0, 1.05)
                     best_k = k_values[np.argmax(accuracies)]
-                    ax.set_title(f"最佳k值：{best_k}", fontsize=10)
+                    ax.set_title(f"最佳k值：{best_k}")
                     plt.tight_layout()
                     st.pyplot(fig)
                 else:
@@ -443,9 +450,8 @@ def main():
         
         # 右侧第一行：预处理后光谱
         with vis_cols[1]:
-            with st.container(border=True):
+            with st.container(border=True, height=350):  # 固定高度
                 st.subheader("预处理后光谱")
-                # 检查原始数据和处理后数据是否都存在
                 if ("processed_data" in st.session_state and 
                     st.session_state.processed_data is not None and 
                     "raw_data" in st.session_state and 
@@ -455,13 +461,23 @@ def main():
                     processed_spectra = st.session_state.processed_data
                     
                     if hasattr(processed_spectra, 'shape') and len(processed_spectra.shape) >= 2:
-                        num_plot = min(5, processed_spectra.shape[1])
-                        fig, ax = plt.subplots(figsize=(6, 4))
-                        for i in range(num_plot):
-                            ax.plot(wavenumbers, processed_spectra[:, i], label=f"样本{i+1}")
+                        total_samples = processed_spectra.shape[1]
+                        
+                        # 样本选择器（与原始光谱保持同步）
+                        sample_idx = st.select_slider(
+                            "选择样本",
+                            options=range(1, total_samples + 1),
+                            value=1,
+                            key="processed_spectrum_selector"
+                        )
+                        
+                        # 只显示选中的单条光谱
+                        fig, ax = plt.subplots(figsize=(5, 3))
+                        ax.plot(wavenumbers, processed_spectra[:, sample_idx - 1], 
+                                color='#2ca02c', linewidth=1.5)
                         ax.set_xlabel("波数")
                         ax.set_ylabel("预处理后强度")
-                        ax.legend(fontsize=8)
+                        ax.set_title(f"样本 {sample_idx}/{total_samples}")
                         plt.tight_layout()
                         st.pyplot(fig)
                     else:
@@ -470,17 +486,16 @@ def main():
                     st.info("🚀 应用预处理后显示结果光谱")
         
             # 右侧第二行：混淆矩阵
-            with st.container(border=True):
+            with st.container(border=True, height=350):  # 固定高度
                 st.subheader("混淆矩阵")
                 if ("test_results" in st.session_state and 
                     st.session_state.test_results is not None and 
                     'confusion_matrix' in st.session_state.test_results):
                     
                     cm = st.session_state.test_results['confusion_matrix']
-                    fig, ax = plt.subplots(figsize=(6, 4))
-                    # 优化热图显示
+                    fig, ax = plt.subplots(figsize=(5, 3))
                     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                                ax=ax, cbar=False, annot_kws={"size": 10})
+                                ax=ax, cbar=False, annot_kws={"size": 9})
                     ax.set_xlabel("预测标签")
                     ax.set_ylabel("真实标签")
                     plt.tight_layout()
