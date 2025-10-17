@@ -9,19 +9,14 @@ from .utils.file_handler import FileHandler
 from .utils.permutations import generate_permutations
 from .utils.classifier import knn_classify, evaluate_classification
 
-# 定义main()函数，作为arrangement模块的入口
 def main():
-    # 初始化会话状态（确保所有必要变量已创建）
     init_state()
-    
-    # 初始化工具类
-    file_handler = FileHandler()  # 文件处理工具
-    preprocessor = Preprocessor()  # 预处理算法控制器
+    file_handler = FileHandler()
+    preprocessor = Preprocessor()
 
-    # 页面样式（优化为全屏显示，与主文件保持一致）
+    # 页面样式
     st.markdown("""
         <style>
-        /* 清除Streamlit默认根容器的边距和宽度限制 */
         .css-18e3th9 {
             padding: 0 !important;
             max-width: 100% !important;
@@ -30,8 +25,6 @@ def main():
             padding: 0 10px !important;
             max-width: 100% !important;
         }
-        
-        /* 原有页面和按钮样式 */
         .main {
             background-color: #f5f7fa;
             padding: 0px 10px;
@@ -49,20 +42,15 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
-    # 页面标题
     st.title("🌌 排列预处理模型")
 
-    # 布局：左侧数据管理，右侧预处理与可视化
     col_left, col_right = st.columns([1.2, 3.9])
 
-    # 左侧：数据管理区域
     with col_left:
         with st.expander("📁 数据管理", expanded=True):
-            # 上传ZIP文件
             zip_file = st.file_uploader("上传压缩包（含波数和光谱文件）", type=['zip'], key="zip_file")
             st.caption("支持格式：ZIP（内含波数文件+光谱数据文件）")
 
-            # 样本标签输入
             st.subheader("样本标签")
             num_classes = st.number_input("类别数量", min_value=1, value=2, step=1, key="num_cls")
             labels_input = st.text_input(
@@ -71,7 +59,6 @@ def main():
                 key="labels_in"
             )
 
-            # 训练/测试集划分比例
             st.subheader("训练测试划分")
             train_test_ratio = st.slider(
                 "训练集占比",
@@ -81,20 +68,16 @@ def main():
             )
             st.session_state.train_test_split_ratio = train_test_ratio
 
-            # 加载数据逻辑
             if zip_file:
                 try:
-                    # 从ZIP中加载波数和光谱数据
                     st.session_state.raw_data = file_handler.load_data_from_zip(zip_file)
                     wavenumbers, spectra = st.session_state.raw_data
 
-                    # 处理标签
                     if labels_input:
                         try:
                             labels = np.array([int(l.strip()) for l in labels_input.split(',')])
-                            if len(labels) == spectra.shape[1]:  # 标签数需与样本数一致
+                            if len(labels) == spectra.shape[1]:
                                 st.session_state.labels = labels
-                                # 划分训练/测试索引
                                 n_samples = len(labels)
                                 train_size = int(n_samples * train_test_ratio)
                                 indices = np.random.permutation(n_samples)
@@ -110,7 +93,6 @@ def main():
                 except Exception as e:
                     st.error(f"❌ 数据加载失败：{str(e)}")
 
-        # 显示系统信息
         if st.session_state.get('raw_data'):
             wavenumbers, spectra = st.session_state.raw_data
             st.info(f"📊 数据维度：{spectra.shape[1]}条光谱 × {spectra.shape[0]}个波数点")
@@ -119,7 +101,6 @@ def main():
                 class_counts = np.bincount(st.session_state.labels)
                 st.info(f"🏷️ 类别分布：{', '.join([f'类{i}: {count}个' for i, count in enumerate(class_counts) if count > 0])}")
 
-        # 使用指南
         with st.expander("ℹ️ 使用指南", expanded=False):
             st.markdown("""
             1. 上传包含波数文件（含"wave"/"wn"/"波数"）和光谱文件（含"spec"/"data"/"光谱"）的ZIP包  
@@ -131,7 +112,6 @@ def main():
             7. 查看结果并导出预处理后的数据
             """)
 
-    # 右侧：预处理与可视化区域
     with col_right:
         st.subheader("⚙️ 预处理算法设置", divider="gray")
         preprocess_cols = st.columns([1, 1, 1, 1, 1.2, 1.2, 1.2, 1.2, 1.2], gap="small")
@@ -146,7 +126,6 @@ def main():
                 label_visibility="collapsed"
             )
             baseline_params = {}
-            # 根据算法类型设置参数
             if baseline_method == "多项式拟合":
                 polyorder = st.slider("阶数", 3, 6, 5, key="polyorder", label_visibility="collapsed")
                 baseline_params["polyorder"] = polyorder
@@ -160,7 +139,6 @@ def main():
                 max_iter = st.slider("迭代次数", 50, 200, 100, key="imod_iter", label_visibility="collapsed")
                 baseline_params = {"polyorder": polyorder, "max_iter": max_iter}
                 st.caption(f"阶数: {polyorder}, 迭代: {max_iter}")
-            # 其他算法参数设置（省略部分重复代码，保持与之前一致）
 
         # 2. 缩放算法选择
         with preprocess_cols[1]:
@@ -217,7 +195,6 @@ def main():
                 else:
                     try:
                         wavenumbers, spectra = st.session_state.raw_data
-                        # 执行预处理
                         processed_data, method_names = preprocessor.process(
                             wavenumbers, spectra,
                             baseline_method=baseline_method,
@@ -229,7 +206,6 @@ def main():
                             squashing_method=squashing_method,
                             squashing_params=squashing_params
                         )
-                        # 保存结果到会话状态
                         arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
                         st.session_state.arrangement_results.append(arr_name)
                         st.session_state.arrangement_details[arr_name] = {
@@ -248,7 +224,6 @@ def main():
             if st.button("🔍 显示排列", type="secondary", use_container_width=True, key="show_perm_btn"):
                 st.session_state.show_arrangements = not st.session_state.show_arrangements
                 if st.session_state.show_arrangements:
-                    # 生成所有可能的算法排列
                     selected_algos = {
                         "baseline": baseline_method,
                         "scaling": scaling_method,
@@ -262,7 +237,6 @@ def main():
                     st.session_state.filtered_perms = []
                 st.experimental_rerun()
 
-            # 筛选排列方案（按第一步类型）
             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
                 first_steps = list({p["first_step_type"] for p in st.session_state.algorithm_permutations})
                 selected_step = st.selectbox(
@@ -281,7 +255,6 @@ def main():
         with preprocess_cols[6]:
             st.subheader("操作3")
             if st.session_state.show_arrangements and st.session_state.filtered_perms:
-                # 选择排列方案
                 selected_idx = st.selectbox(
                     f"共{len(st.session_state.filtered_perms)}种方案",
                     range(len(st.session_state.filtered_perms)),
@@ -292,14 +265,12 @@ def main():
                 selected_perm = st.session_state.filtered_perms[selected_idx]
                 st.caption(f"当前方案：{selected_perm['name']}")
 
-                # 应用选中的排列方案
                 if st.button("✅ 应用方案", type="primary", use_container_width=True, key="apply_perm_btn"):
                     if not st.session_state.raw_data:
                         st.warning("⚠️ 请先上传数据")
                     else:
                         try:
                             wavenumbers, spectra = st.session_state.raw_data
-                            # 执行排列好的预处理步骤
                             processed_data, method_names = preprocessor.process(
                                 wavenumbers, spectra,
                                 baseline_method=st.session_state.current_algorithms["baseline"],
@@ -310,9 +281,8 @@ def main():
                                 filtering_params=st.session_state.current_algorithms["filtering_params"],
                                 squashing_method=st.session_state.current_algorithms["squashing"],
                                 squashing_params=st.session_state.current_algorithms["squashing_params"],
-                                algorithm_order=selected_perm["order"]  # 排列顺序
+                                algorithm_order=selected_perm["order"]
                             )
-                            # 保存结果
                             arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
                             st.session_state.arrangement_results.append(arr_name)
                             st.session_state.arrangement_details[arr_name] = {
@@ -352,7 +322,6 @@ def main():
                     st.warning("⚠️ 请先输入样本标签")
                 else:
                     try:
-                        # 获取预处理后的数据和标签
                         arr_data = st.session_state.arrangement_details[st.session_state.selected_arrangement]["data"]
                         train_idx = st.session_state.train_indices
                         test_idx = st.session_state.test_indices
@@ -361,10 +330,8 @@ def main():
                         train_labels = st.session_state.labels[train_idx]
                         test_labels = st.session_state.labels[test_idx]
 
-                        # KNN分类
                         with st.spinner("测试中..."):
                             predictions = knn_classify(train_data, train_labels, test_data, k=st.session_state.k_value)
-                        # 评估结果
                         results = evaluate_classification(test_labels, predictions)
                         results["predictions"] = predictions
                         results["test_labels"] = test_labels
@@ -373,7 +340,6 @@ def main():
                     except Exception as e:
                         st.error(f"❌ 测试失败：{str(e)}")
 
-        # 保存当前算法参数到会话状态
         st.session_state.current_algorithms.update({
             "baseline": baseline_method,
             "baseline_params": baseline_params,
@@ -385,110 +351,119 @@ def main():
             "squashing_params": squashing_params
         })
 
-        # 光谱可视化区域
+        # ===== 光谱可视化与结果导出（在预处理设置下方）=====
+        st.subheader("📈 光谱可视化", divider="gray")
 
-        st.subheader("📊 结果可视化", divider="gray")
+        # 创建四个固定区域的布局：原始光谱、预处理后光谱、k值曲线、混淆矩阵
+        # 第一行：原始光谱和预处理后光谱
+        viz_row1 = st.columns(2, gap="medium")
+        
+        # 第二行：k值曲线和混淆矩阵
+        viz_row2 = st.columns(2, gap="medium")
 
-        # 2×2网格布局（左两区域、右两区域）
-        vis_cols = st.columns(2, gap="large")
-        vis_cols2 = st.columns(2, gap="large")
-        
-        # 第一列上：原始光谱
-        with vis_cols[0]:
-            st.markdown("**原始光谱**")
-            if ("raw_data" in st.session_state and 
-                st.session_state.raw_data is not None and 
-                len(st.session_state.raw_data) == 2):
+        # 1. 原始光谱区域（第一行第一列）
+        with viz_row1[0]:
+            st.subheader("原始光谱", divider="gray")
+            if st.session_state.get('raw_data'):
+                wavenumbers, y = st.session_state.raw_data
+                idx1 = 0 if y.shape[1] > 0 else 0
+                raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
+                st.line_chart(raw_data1, height=250)
                 
-                wavenumbers, spectra = st.session_state.raw_data
-                if hasattr(spectra, 'shape') and len(spectra.shape) >= 2:
-                    total_samples = spectra.shape[1]
-                    # 下拉选择器
-                    sample_idx = st.selectbox(
-                        "查看更多原始光谱",
-                        range(1, total_samples + 1),
-                        index=0,
-                        key="raw_spectrum_selector_new"
-                    )
-                    # 绘制单条光谱
-                    fig, ax = plt.subplots(figsize=(6, 3))
-                    ax.plot(wavenumbers, spectra[:, sample_idx - 1], color='#4682B4', linewidth=1.2)
-                    ax.set_xlabel("波数")
-                    ax.set_ylabel("强度")
-                    plt.tight_layout()
-                    st.pyplot(fig)
+                # 显示更多原始光谱（不使用嵌套列）
+                if y.shape[1] > 1:
+                    with st.expander("查看更多原始光谱", expanded=False):
+                        # 不使用嵌套列，而是使用简单的循环
+                        for i in range(1, min(y.shape[1], 5)):
+                            st.subheader(f"原始光谱{i + 1}", divider="gray")
+                            data = pd.DataFrame({f"原始光谱{i + 1}": y[:, i]}, index=wavenumbers)
+                            st.line_chart(data, height=150)
+            else:
+                st.markdown(
+                    '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
+                    unsafe_allow_html=True)
+
+        # 2. 预处理后光谱区域（第一行第二列）
+        with viz_row1[1]:
+            st.subheader("预处理后的光谱", divider="gray")
+            if st.session_state.get('selected_arrangement'):
+                selected_arr = st.session_state.selected_arrangement
+                arr_data = st.session_state.arrangement_details[selected_arr]['data']
+                arr_method = st.session_state.arrangement_details[selected_arr]['method']
+                st.caption(f"处理方法: {arr_method}")
+                
+                idx1 = 0 if arr_data.shape[1] > 0 else 0
+                proc_data1 = pd.DataFrame({"预处理后1": arr_data[:, idx1]}, index=wavenumbers)
+                st.line_chart(proc_data1, height=250)
+                
+                # 显示更多预处理后光谱（不使用嵌套列）
+                if arr_data.shape[1] > 1:
+                    with st.expander("查看更多预处理后光谱", expanded=False):
+                        for i in range(1, min(arr_data.shape[1], 5)):
+                            st.subheader(f"预处理后{i + 1}", divider="gray")
+                            data = pd.DataFrame({f"预处理后{i + 1}": arr_data[:, i]}, index=wavenumbers)
+                            st.line_chart(data, height=150)
+            else:
+                st.markdown(
+                    '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
+                    unsafe_allow_html=True)
+
+        # 3. k值曲线区域（第二行第一列）
+        with viz_row2[0]:
+            st.subheader("k值曲线", divider="gray")
+            if st.session_state.get('selected_arrangement'):
+                selected_arr = st.session_state.selected_arrangement
+                arr_data = st.session_state.arrangement_details[selected_arr]['data']
+                wavenumbers, y = st.session_state.raw_data
+                arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
+                
+                if arr_order:  # 只有应用了预处理才有k值曲线
+                    idx1 = 0 if arr_data.shape[1] > 0 else 0
+                    k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
+                    k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
+                    st.line_chart(k_data1, height=250)
+                    
+                    # 显示更多k值曲线（不使用嵌套列）
+                    if y.shape[1] > 1:
+                        with st.expander("查看更多k值曲线", expanded=False):
+                            for i in range(1, min(y.shape[1], 5)):
+                                st.subheader(f"k值{i + 1}", divider="gray")
+                                k_vals = np.abs(arr_data[:, i] / (y[:, i] + 1e-8))
+                                data = pd.DataFrame({f"k值{i + 1}": k_vals}, index=wavenumbers)
+                                st.line_chart(data, height=150)
                 else:
-                    st.warning("原始光谱数据格式不正确")
+                    st.info("ℹ️ 无预处理（原始光谱），不显示k值曲线")
             else:
-                st.info("👈 请上传数据以显示原始光谱")
-        
-        # 第一列右：预处理后的光谱
-        with vis_cols[1]:
-            st.markdown("**预处理后的光谱**")
-            if ("selected_arrangement" in st.session_state and 
-                st.session_state.selected_arrangement and 
-                "arrangement_details" in st.session_state and 
-                st.session_state.arrangement_details.get(st.session_state.selected_arrangement)):
+                st.markdown(
+                    '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
+                    unsafe_allow_html=True)
+
+        # 4. 混淆矩阵区域（第二行第二列）
+        with viz_row2[1]:
+            st.subheader("混淆矩阵", divider="gray")
+            if st.session_state.get('test_results') is not None:
+                results = st.session_state.test_results
                 
-                wavenumbers, _ = st.session_state.raw_data
-                processed_spectra = st.session_state.arrangement_details[st.session_state.selected_arrangement]["data"]
-                if hasattr(processed_spectra, 'shape') and len(processed_spectra.shape) >= 2:
-                    total_samples = processed_spectra.shape[1]
-                    # 与原始光谱选择器同步
-                    sample_idx = st.session_state.raw_spectrum_selector_new
-                    if sample_idx > total_samples:
-                        sample_idx = 1
-                    # 绘制预处理后光谱
-                    fig, ax = plt.subplots(figsize=(6, 3))
-                    ax.plot(wavenumbers, processed_spectra[:, sample_idx - 1], color='#2E8B57', linewidth=1.2)
-                    ax.set_xlabel("波数")
-                    ax.set_ylabel("预处理后强度")
-                    plt.tight_layout()
-                    st.pyplot(fig)
-                else:
-                    st.info("请先应用预处理方案")
-            else:
-                st.info("请先应用预处理方案")
-        
-        # 第二列左：k值曲线
-        with vis_cols2[0]:
-            st.markdown("**k值曲线**")
-            if ("test_results" in st.session_state and 
-                st.session_state.test_results is not None and 
-                "k_accuracies" in st.session_state.test_results):
+                # 显示分类指标（不使用嵌套列）
+                st.markdown("**分类指标**")
+                st.text(f"准确率: {results['accuracy']:.4f}")
+                st.text(f"卡帕系数: {results['kappa']:.4f}")
                 
-                k_values = st.session_state.test_results.get('k_values', list(range(1, 11)))
-                accuracies = st.session_state.test_results['k_accuracies']
-                fig, ax = plt.subplots(figsize=(6, 3))
-                ax.plot(k_values, accuracies, 'o-', color='#FF6347')
-                ax.set_xlabel("k值")
-                ax.set_ylabel("准确率")
-                ax.set_ylim(0, 1.05)
-                best_k = k_values[np.argmax(accuracies)]
-                ax.set_title(f"最佳k值：{best_k}", fontsize=9)
-                plt.tight_layout()
-                st.pyplot(fig)
+                # 显示混淆矩阵
+                fig, ax = plt.subplots(figsize=(5, 4))
+                sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax,
+                            annot_kws={"size": 8})
+                ax.set_xlabel('预测标签', fontsize=8)
+                ax.set_ylabel('真实标签', fontsize=8)
+                ax.set_title('混淆矩阵', fontsize=10)
+                plt.xticks(fontsize=7)
+                plt.yticks(fontsize=7)
+                st.pyplot(fig, use_container_width=True)
             else:
-                st.info("请先应用预处理方案")
-        
-        # 第二列右：混淆矩阵
-        with vis_cols2[1]:
-            st.markdown("**混淆矩阵**")
-            if ("test_results" in st.session_state and 
-                st.session_state.test_results is not None and 
-                'confusion_matrix' in st.session_state.test_results):
-                
-                cm = st.session_state.test_results['confusion_matrix']
-                fig, ax = plt.subplots(figsize=(6, 3))
-                sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                            ax=ax, cbar=False, annot_kws={"size": 8})
-                ax.set_xlabel("预测标签")
-                ax.set_ylabel("真实标签")
-                plt.tight_layout()
-                st.pyplot(fig)
-            else:
-                st.info("请先进行分类测试")
-        
+                st.markdown(
+                    '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先进行分类测试</div>',
+                    unsafe_allow_html=True)
+
         # 底部导出提示
         st.markdown("<p style='text-align: center; color: #999; font-size: 12px;'>处理完成后可导出结果</p>", unsafe_allow_html=True)
 
