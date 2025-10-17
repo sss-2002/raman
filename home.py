@@ -109,7 +109,7 @@ def show_home_page():
         {
             "name": "排列预处理模型",
             "description": "针对单一干扰类型的系统化预处理方案，按“干扰识别→算法匹配→参数优化”流程排列预处理步骤。例如：噪声主导场景排列“SG平滑→基线校正”，背景干扰主导场景排列“基线校正→归一化”，支持一键执行预设排列逻辑，降低操作复杂度，确保同类型数据处理的一致性与可重复性。",
-            "target_page": "arrangement",
+            "target_page": "arrangement_model.main",
             "icon": "🔄",
         },
         {
@@ -209,15 +209,14 @@ def show_target_page(page_name):
         elif page_name == "login":
             show_login_page()
         else:
-            # 尝试导入外部模块
+            # 导入文件夹下的模块，格式为"文件夹.文件"
             module = importlib.import_module(page_name)
             if hasattr(module, "main"):
                 module.main()
-                # 外部页面添加返回首页按钮
                 if st.button("返回首页"):
                     navigate_to("home")
             else:
-                st.write(f"请在 {page_name}.py 中定义 main() 函数")
+                st.write(f"请在 {page_name} 模块中定义 main() 函数")
                 if st.button("返回首页"):
                     navigate_to("home")
     except Exception as e:
