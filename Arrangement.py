@@ -1779,31 +1779,64 @@ def main():
                     '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
                     unsafe_allow_html=True)
 
-        # 4. 混淆矩阵区域（第二行第二列）
+            # 4. 混淆矩阵区域（第二行第二列）——固定大小版
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
+            # 定义统一的容器样式：无数据时虚线框，有数据时实线框，高度均为250px
+            container_style = """
+                <div style="border:1px {} #ccc; height:250px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0.5rem;">
+                    {}
+                </div>
+            """
+            
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
-
-                # 显示分类指标（不使用嵌套列）
-                st.markdown("**分类指标**")
-                st.text(f"准确率: {results['accuracy']:.4f}")
-                st.text(f"卡帕系数: {results['kappa']:.4f}")
-
-                # 显示混淆矩阵
-                fig, ax = plt.subplots(figsize=(5, 4))
-                sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax,
-                            annot_kws={"size": 8})
-                ax.set_xlabel('预测标签', fontsize=8)
-                ax.set_ylabel('真实标签', fontsize=8)
-                ax.set_title('混淆矩阵', fontsize=10)
-                plt.xticks(fontsize=7)
-                plt.yticks(fontsize=7)
-                st.pyplot(fig, use_container_width=True)
+        
+                # 1. 生成分类指标的HTML（避免Streamlit组件高度不可控）
+                metrics_html = f"""
+                    <div style="text-align:center; margin-bottom:0.5rem; width:100%;">
+                        <div style="font-weight:bold; margin-bottom:0.2rem;">分类指标</div>
+                        <div style="font-size:0.75rem; line-height:1.2;">
+                            准确率: {results['accuracy']:.4f}<br>
+                            卡帕系数: {results['kappa']:.4f}
+                        </div>
+                    </div>
+                """
+        
+                # 2. 生成混淆矩阵图表（调整figsize使图表适配250px高度）
+                # 关键：缩小figsize，确保图表+指标总高度≤250px
+                fig, ax = plt.subplots(figsize=(3.5, 2.5))  # 缩小图表尺寸，适配容器高度
+                sns.heatmap(
+                    results['confusion_matrix'], 
+                    annot=True, 
+                    fmt='d', 
+                    cmap='Blues', 
+                    ax=ax,
+                    annot_kws={"size": 7},  # 适配小尺寸图表，缩小标注字体
+                    cbar=False  # 可选：移除颜色条进一步节省空间（若矩阵小，颜色条意义不大）
+                )
+                # 调整图表标签字体，适配小尺寸
+                ax.set_xlabel('预测标签', fontsize=7)
+                ax.set_ylabel('真实标签', fontsize=7)
+                ax.set_title('混淆矩阵', fontsize=8, pad=8)  # pad控制标题与图表间距
+                plt.xticks(fontsize=6, rotation=0)  # 旋转角度设为0，避免标签换行
+                plt.yticks(fontsize=6, rotation=0)
+                
+                # 3. 将图表转为临时HTML容器（用Streamlit的容器包裹后嵌入）
+                chart_container = st.container()
+                with chart_container:
+                    st.pyplot(fig, use_container_width=True)
+                # 提取图表容器的HTML（简化：直接用占位符，实际依赖Streamlit渲染）
+                chart_html = chart_container._get_report_string()
+        
+                # 4. 组装有数据时的内容（指标+图表），用实线框包裹
+                content = f"{metrics_html}{chart_html}"
+                st.markdown(container_style.format("solid", content), unsafe_allow_html=True)
+            
             else:
-                st.markdown(
-                    '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先进行分类测试</div>',
-                    unsafe_allow_html=True)
+                # 无数据时：保持原有虚线框，高度250px
+                empty_content = "请先进行分类测试"
+                st.markdown(container_style.format("dashed", empty_content), unsafe_allow_html=True)
 
         # 结果导出
         if st.session_state.arrangement_results or st.session_state.get('processed_data'):
