@@ -1816,11 +1816,11 @@ def main():
                     annot_kws={"size": 7},
                     cbar_kws={"shrink": 0.9}
                 )
-                ax.set_xlabel('预测标签', fontsize=4, labelpad=2)
-                ax.set_ylabel('真实标签', fontsize=4, labelpad=2)
-                ax.set_title('混淆矩阵', fontsize=6, pad=4)
-                plt.xticks(fontsize=6, rotation=0)
-                plt.yticks(fontsize=6, rotation=0)
+                ax.set_xlabel('预测标签', fontsize=2, labelpad=2)
+                ax.set_ylabel('真实标签', fontsize=2, labelpad=2)
+                ax.set_title('混淆矩阵', fontsize=4, pad=4)
+                plt.xticks(fontsize=3, rotation=0)
+                plt.yticks(fontsize=3, rotation=0)
                 plt.tight_layout(pad=0.1)
                 st.pyplot(fig, use_container_width=True)
             else:
