@@ -1780,42 +1780,31 @@ def main():
                     unsafe_allow_html=True)
 
 
-            # 4. 混淆矩阵区域（第二行第二列）——仅显示极小化矩阵
+            
+            # 4. 混淆矩阵区域（第二行第二列）
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
-            
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
-                
-                # 核心：仅显示混淆矩阵，彻底删除指标
-                # 进一步缩小图表尺寸（宽度保持与k值曲线一致，高度最小化）
-                fig, ax = plt.subplots(figsize=(1.5, 1.5))  # 极致缩小尺寸
-                sns.heatmap(
-                    results['confusion_matrix'], 
-                    annot=True, 
-                    fmt='d', 
-                    cmap='Blues', 
-                    ax=ax,
-                    annot_kws={"size": 4},  # 超小标注字体
-                    cbar=False,  # 无颜色条
-                    linewidths=0.2,  # 超细格子线
-                    square=True,  # 强制正方形
-                    xticklabels=False,  # 可选：删除x轴标签进一步缩小（若矩阵简单）
-                    yticklabels=False   # 可选：删除y轴标签（根据需求保留）
-                )
-                # 最小化标题和标签（或完全删除）
-                ax.set_title('', fontsize=0)  # 隐藏标题
-                ax.set_xlabel('', fontsize=0)  # 隐藏x轴标签
-                ax.set_ylabel('', fontsize=0)  # 隐藏y轴标签
-                plt.tight_layout(pad=0)  # 无内边距
-                
-                # 保持宽度与k值曲线一致
+
+                # 显示分类指标（不使用嵌套列）
+                st.markdown("**分类指标**")
+                st.text(f"准确率: {results['accuracy']:.4f}")
+                st.text(f"卡帕系数: {results['kappa']:.4f}")
+
+                # 显示混淆矩阵
+                fig, ax = plt.subplots(figsize=(5, 4))
+                sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax,
+                            annot_kws={"size": 8})
+                ax.set_xlabel('预测标签', fontsize=8)
+                ax.set_ylabel('真实标签', fontsize=8)
+                ax.set_title('混淆矩阵', fontsize=10)
+                plt.xticks(fontsize=7)
+                plt.yticks(fontsize=7)
                 st.pyplot(fig, use_container_width=True)
-                
             else:
-                # 无数据时的虚线框（与k值曲线空状态尺寸匹配）
                 st.markdown(
-                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">请先进行分类测试</div>',
+                    '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先进行分类测试</div>',
                     unsafe_allow_html=True)
         # 结果导出
         if st.session_state.arrangement_results or st.session_state.get('processed_data'):
