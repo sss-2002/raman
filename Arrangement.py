@@ -1780,7 +1780,7 @@ def main():
                     unsafe_allow_html=True)
 
 
-            # 4. 混淆矩阵区域（第二行第二列）——固定大小修正版
+            # 4. 混淆矩阵区域（第二行第二列）——修复列嵌套错误版
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
             
@@ -1790,18 +1790,22 @@ def main():
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
                 
-                # 用st.container()固定高度
+                # 用st.container()固定高度，不使用嵌套列
                 with st.container():
                     # 强制设置容器高度
                     st.markdown(f'<div style="height:{container_height}; overflow:auto;">', unsafe_allow_html=True)
                     
-                    # 显示分类指标
+                    # 显示分类指标（用HTML换行代替列，避免嵌套）
                     st.markdown("**分类指标**")
-                    col_metrics1, col_metrics2 = st.columns(2)
-                    with col_metrics1:
-                        st.text(f"准确率: {results['accuracy']:.4f}")
-                    with col_metrics2:
-                        st.text(f"卡帕系数: {results['kappa']:.4f}")
+                    st.markdown(
+                        f"""
+                        <div style="display: flex; gap: 2rem; margin-bottom: 0.5rem;">
+                            <div>准确率: {results['accuracy']:.4f}</div>
+                            <div>卡帕系数: {results['kappa']:.4f}</div>
+                        </div>
+                        """, 
+                        unsafe_allow_html=True
+                    )
                     
                     # 调整图表大小以适配容器
                     fig, ax = plt.subplots(figsize=(4, 3))  # 缩小图表尺寸
