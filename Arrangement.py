@@ -1750,10 +1750,10 @@ def main():
 
         # 3. k值曲线区域（第二行第一列）
         # 3. k值曲线区域（第二行第一列）——改为“Top-k 投票准确率曲线”
+        # 3. k值曲线区域（第二行第一列）——Top-k 投票准确率曲线（无列嵌套、安全版）
         with viz_row2[0]:
             st.subheader("k值曲线（Top-k 投票准确率）", divider="gray")
 
-            # 生成 Top-k 曲线所需的前置条件
             have_details = bool(st.session_state.get('arrangement_details'))
             have_split = st.session_state.get('train_indices') is not None and st.session_state.get(
                 'test_indices') is not None
@@ -1763,73 +1763,81 @@ def main():
                 st.caption("需要：① 至少“应用一个排列方案”；② 已完成训练/测试划分；③ 已有标签。")
             else:
                 try:
-                    # 取测试集标签
-                    test_idx = st.session_state.test_indices
-                    train_idx = st.session_state.train_indices
-                    test_labels = st.session_state.labels[test_idx]
+                    import numpy as _np
+                    import pandas as _pd
 
-                    # —— 关键：为“每个已应用的排列方案”在测试集上生成一列预测，拼成 N_test × M 的预测矩阵
+                    # 取训练/测试索引与标签（确保是整型向量）
+                    train_idx = st.session_state.train_indices
+                    test_idx = st.session_state.test_indices
+                    test_labels = _np.asarray(st.session_state.labels[test_idx], dtype=int)
+
+                    # 为每个“已应用的排列方案”在测试集上生成一列预测
                     preds_cols = []
                     pipe_names = []
-                    for arr_name, detail in st.session_state.arrangement_details.items():
-                        processed = detail['data']  # 预处理后的全量数据: (n_points, n_samples)
-                        train_data = processed[:, train_idx]  # 别动你的数据形状约定
-                        test_data = processed[:, test_idx]
-                        train_y = st.session_state.labels[train_idx]
+                    details = st.session_state.arrangement_details or {}
 
-                        pred_col = knn_classify(
-                            train_data, train_y, test_data,
-                            k=st.session_state.k_value  # 你右上角“操作4”设置的 KNN k
-                        )
+                    for arr_name, detail in details.items():
+                        if 'data' not in detail:
+                            continue
+                        processed = detail['data']  # (n_points, n_samples)
+                        # 基于你全局的形状约定：列是样本
+                        if processed.ndim != 2 or processed.shape[1] <= 0:
+                            continue
+                        if processed.shape[1] <= max(train_idx.max(initial=0), test_idx.max(initial=0)):
+                            # 数据列数不够索引
+                            continue
+
+                        train_data = processed[:, train_idx]
+                        test_data = processed[:, test_idx]
+                        train_y = _np.asarray(st.session_state.labels[train_idx], dtype=int)
+
+                        # 复用你已有的 KNN 实现；k 用你“操作4”里设置的 k_value
+                        pred_col = knn_classify(train_data, train_y, test_data, k=st.session_state.k_value)
                         preds_cols.append(pred_col.reshape(-1, 1))
                         pipe_names.append(arr_name)
 
                     if len(preds_cols) == 0:
                         st.info("尚无可用的排列方案。请先“应用方案”，并进行一次测试以产生预测。")
                     else:
-                        import numpy as _np
-                        import pandas as _pd
-
                         pred_matrix = _np.hstack(preds_cols)  # (n_test, m_pipelines)
                         N_test, M = pred_matrix.shape
+                        if M == 0:
+                            st.info("没有有效的管线预测可用于投票。")
+                        else:
+                            # 单管线准确率 & 排序（降序）
+                            acc_per_pipe = _np.array([(pred_matrix[:, j] == test_labels).mean() for j in range(M)])
+                            order = _np.argsort(-acc_per_pipe)
 
-                        # 单管线准确率 & 排序（降序）
-                        acc_per_pipe = _np.array([(pred_matrix[:, j] == test_labels).mean() for j in range(M)])
-                        order = _np.argsort(-acc_per_pipe)
+                            # 多数投票（并列取标签最小者，等价于固定优先级 0>1>2…）
+                            def _vote_row(row_preds, topk_idx):
+                                counts = {}
+                                for j in topk_idx:
+                                    cls = int(row_preds[j])
+                                    counts[cls] = counts.get(cls, 0) + 1
+                                max_votes = max(counts.values())
+                                winners = [c for c, v in counts.items() if v == max_votes]
+                                return min(winners)
 
-                        # —— 多数投票（并列按“标签最小值优先”打平；等价于你们常用的 0>1>2>…）
-                        def _vote_row(row_preds, topk_idx):
-                            counts = {}
-                            for j in topk_idx:
-                                cls = int(row_preds[j])
-                                counts[cls] = counts.get(cls, 0) + 1
-                            max_votes = max(counts.values())
-                            # 并列取标签最小者（稳定、无需额外配置）
-                            winners = [c for c, v in counts.items() if v == max_votes]
-                            return min(winners)
+                            # 逐 k 计算集成预测准确率
+                            ks, accs = [], []
+                            for k in range(1, M + 1):
+                                topk = order[:k]
+                                voted = _np.array([_vote_row(pred_matrix[i], topk) for i in range(N_test)], dtype=int)
+                                ks.append(k)
+                                accs.append((voted == test_labels).mean())
+                            ks = _np.array(ks)
+                            accs = _np.array(accs)
+                            best_k = int(ks[_np.argmax(accs)])
+                            best_acc = float(accs.max())
 
-                        # 逐 k 计算集成预测准确率
-                        ks, accs = [], []
-                        for k in range(1, M + 1):
-                            topk = order[:k]
-                            voted = _np.array([_vote_row(pred_matrix[i], topk) for i in range(N_test)])
-                            ks.append(k)
-                            accs.append((voted == test_labels).mean())
-                        ks = _np.array(ks)
-                        accs = _np.array(accs)
-                        best_k = int(ks[_np.argmax(accs)])
-                        best_acc = float(accs.max())
+                            # 曲线
+                            chart_df = _pd.DataFrame({"k": ks, "accuracy": accs}).set_index("k")
+                            st.line_chart(chart_df, height=260)
 
-                        # 画曲线（k -> accuracy）
-                        chart_df = _pd.DataFrame({"k": ks, "accuracy": accs}).set_index("k")
-                        st.line_chart(chart_df, height=260)
+                            # 关键信息
+                            st.markdown(f"**最佳 k：** {best_k}　｜　**最佳准确率：** {best_acc * 100:.2f}%")
 
-                        # 关键信息 & Top10 管线
-                        c3, c4 = st.columns([1, 2])
-                        with c3:
-                            st.metric("最佳 k", best_k)
-                            st.metric("最佳准确率", f"{best_acc * 100:.2f}%")
-                        with c4:
+                            # Top10 管线
                             take = min(10, M)
                             top_df = _pd.DataFrame({
                                 "Rank": _np.arange(1, take + 1),
@@ -1838,18 +1846,18 @@ def main():
                             })
                             st.dataframe(top_df, use_container_width=True, height=260)
 
-                        # 导出
-                        st.download_button(
-                            "下载 k 曲线 CSV",
-                            data=chart_df.to_csv().encode("utf-8"),
-                            file_name="k_curve_topk.csv",
-                            mime="text/csv"
-                        )
+                            # 导出
+                            st.download_button(
+                                "下载 k 曲线 CSV",
+                                data=chart_df.to_csv().encode("utf-8"),
+                                file_name="k_curve_topk.csv",
+                                mime="text/csv"
+                            )
 
                 except Exception as e:
                     st.warning(f"Top-k 曲线计算出现问题：{e}")
 
-        
+
         # 4. 混淆矩阵区域（第二行第二列）
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
