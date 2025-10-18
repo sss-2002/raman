@@ -1780,55 +1780,54 @@ def main():
                     unsafe_allow_html=True)
 
 
-            # 4. 混淆矩阵区域（第二行第二列）——修复列嵌套错误版
+            # 4. 混淆矩阵区域（第二行第二列）——与k值曲线大小对齐版
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
             
-            # 定义统一的容器高度（与无数据时的虚线框一致）
-            container_height = "250px"
+            # 与k值曲线统一高度（约260px，含标题和内容）
+            container_height = "260px"
             
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
                 
-                # 用st.container()固定高度，不使用嵌套列
                 with st.container():
-                    # 强制设置容器高度
+                    # 强制容器高度，内容超出时自动滚动
                     st.markdown(f'<div style="height:{container_height}; overflow:auto;">', unsafe_allow_html=True)
                     
-                    # 显示分类指标（用HTML换行代替列，避免嵌套）
+                    # 分类指标：简化布局，与k值曲线的信息密度对齐
                     st.markdown("**分类指标**")
                     st.markdown(
                         f"""
-                        <div style="display: flex; gap: 2rem; margin-bottom: 0.5rem;">
-                            <div>准确率: {results['accuracy']:.4f}</div>
-                            <div>卡帕系数: {results['kappa']:.4f}</div>
+                        <div style="font-size:0.75rem; margin-bottom:0.3rem;">
+                            准确率: {results['accuracy']:.4f}　｜　卡帕系数: {results['kappa']:.4f}
                         </div>
                         """, 
                         unsafe_allow_html=True
                     )
                     
-                    # 调整图表大小以适配容器
-                    fig, ax = plt.subplots(figsize=(4, 3))  # 缩小图表尺寸
+                    # 调整图表尺寸：与k值曲线的图表区域比例对齐
+                    fig, ax = plt.subplots(figsize=(3.5, 2.5))
                     sns.heatmap(
                         results['confusion_matrix'], 
                         annot=True, 
                         fmt='d', 
                         cmap='Blues', 
                         ax=ax,
-                        annot_kws={"size": 7},  # 减小标注字体
-                        cbar=False  # 移除颜色条节省空间
+                        annot_kws={"size": 6},  # 极小字体适配小图表
+                        cbar=False,  # 移除颜色条，节省垂直空间
+                        linewidths=0.5  # 缩小格子线宽度
                     )
-                    ax.set_xlabel('预测标签', fontsize=7)
-                    ax.set_ylabel('真实标签', fontsize=7)
-                    ax.set_title('混淆矩阵', fontsize=8)
-                    plt.xticks(fontsize=6, rotation=0)
-                    plt.yticks(fontsize=6, rotation=0)
-                    plt.tight_layout()  # 自动调整布局
+                    ax.set_xlabel('预测标签', fontsize=6)
+                    ax.set_ylabel('真实标签', fontsize=6)
+                    ax.set_title('混淆矩阵', fontsize=7, pad=5)
+                    plt.xticks(fontsize=5, rotation=0)
+                    plt.yticks(fontsize=5, rotation=0)
+                    plt.tight_layout(pad=0.5)  # 最小化内边距
                     st.pyplot(fig, use_container_width=True)
                     
                     st.markdown('</div>', unsafe_allow_html=True)
             else:
-                # 无数据时的虚线框（保持原高度）
+                # 无数据时的虚线框，与k值曲线的空状态高度对齐
                 st.markdown(
                     f'<div style="border:1px dashed #ccc; height:{container_height}; display:flex; align-items:center; justify-content:center;">请先进行分类测试</div>',
                     unsafe_allow_html=True)
