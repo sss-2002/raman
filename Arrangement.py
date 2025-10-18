@@ -1789,7 +1789,7 @@ def main():
                 
                 # 核心：仅显示混淆矩阵，彻底删除指标
                 # 进一步缩小图表尺寸（宽度保持与k值曲线一致，高度最小化）
-                fig, ax = plt.subplots(figsize=(3.2, 2.0))  # 极致缩小尺寸
+                fig, ax = plt.subplots(figsize=(1.5, 1.5))  # 极致缩小尺寸
                 sns.heatmap(
                     results['confusion_matrix'], 
                     annot=True, 
