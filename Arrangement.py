@@ -1781,28 +1781,44 @@ def main():
 
 
             
+
             # 4. 混淆矩阵区域（第二行第二列）
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
-
-                # 显示分类指标（不使用嵌套列）
-                st.markdown("**分类指标**")
-                st.text(f"准确率: {results['accuracy']:.4f}")
-                st.text(f"卡帕系数: {results['kappa']:.4f}")
-
-                # 显示混淆矩阵
-                fig, ax = plt.subplots(figsize=(5, 4))
-                sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax,
-                            annot_kws={"size": 8})
-                ax.set_xlabel('预测标签', fontsize=8)
-                ax.set_ylabel('真实标签', fontsize=8)
-                ax.set_title('混淆矩阵', fontsize=10)
-                plt.xticks(fontsize=7)
-                plt.yticks(fontsize=7)
-                st.pyplot(fig, use_container_width=True)
+        
+                # 显示分类指标（紧凑排版，避免占用额外高度）
+                st.markdown("**分类指标**", help="测试集分类性能")
+                # 用紧凑的两列显示指标，减少垂直空间占用
+                metric_cols = st.columns(2, gap="small")
+                with metric_cols[0]:
+                    st.text(f"准确率: {results['accuracy']:.4f}")
+                with metric_cols[1]:
+                    st.text(f"卡帕系数: {results['kappa']:.4f}")
+        
+                # 核心修改：固定figsize高度为4.2（与k值曲线高度一致），删除多余间距
+                fig, ax = plt.subplots(figsize=(5, 4.2))  # 宽度5，高度4.2（关键固定值）
+                # 绘制混淆矩阵，控制标注字体大小避免溢出
+                sns.heatmap(
+                    results['confusion_matrix'], 
+                    annot=True, 
+                    fmt='d', 
+                    cmap='Blues', 
+                    ax=ax,
+                    annot_kws={"size": 8},  # 标注文字大小
+                    cbar_kws={"shrink": 0.8}  # 颜色条缩放，避免占用过多高度
+                )
+                # 统一坐标轴字体大小，确保排版紧凑
+                ax.set_xlabel('预测标签', fontsize=8, labelpad=5)
+                ax.set_ylabel('真实标签', fontsize=8, labelpad=5)
+                ax.set_title('混淆矩阵', fontsize=10, pad=8)
+                plt.xticks(fontsize=7, rotation=0)  # 标签不旋转，节省宽度
+                plt.yticks(fontsize=7, rotation=0)
+                plt.tight_layout(pad=0.5)  # 删除图表内外多余间距（关键）
+                st.pyplot(fig, use_container_width=True)  # 自适应宽度，固定高度
             else:
+                # 空状态占位框：固定高度为250px（与k值曲线空状态一致）
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先进行分类测试</div>',
                     unsafe_allow_html=True)
