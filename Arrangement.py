@@ -1749,25 +1749,24 @@ def main():
                     unsafe_allow_html=True)
 
 
-            # 3. k值曲线区域（基准高度）
+            # 3. k值曲线区域（第二行第一列）
         with viz_row2[0]:
             st.subheader("k值曲线", divider="gray")
-            # 移除height=None，使用默认容器（Streamlit不允许height为None）
-            with st.container():  # 正确的容器语法，不指定height则使用默认高度
+            # 关键：不设置固定高度，以其默认高度为基准
+            with st.container():
                 if st.session_state.get('selected_arrangement'):
                     selected_arr = st.session_state.selected_arrangement
                     arr_data = st.session_state.arrangement_details[selected_arr]['data']
                     wavenumbers, y = st.session_state.raw_data
                     arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
                     
-                    if arr_order:  # 应用了预处理才显示k值曲线
+                    if arr_order:  # 只有应用了预处理才有k值曲线
                         idx1 = 0 if arr_data.shape[1] > 0 else 0
                         k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
                         k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
-                        # 绘制k值曲线（不指定height，使用Streamlit默认高度作为基准）
-                        st.line_chart(k_data1)
+                        st.line_chart(k_data1, height=None)  # 不指定高度，用默认值作为基准
                         
-                        # 显示更多k值曲线（折叠面板）
+                        # 显示更多k值曲线（折叠面板不影响基准高度）
                         if y.shape[1] > 1:
                             with st.expander("查看更多k值曲线", expanded=False):
                                 for i in range(1, min(y.shape[1], 5)):
@@ -1778,25 +1777,26 @@ def main():
                     else:
                         st.info("ℹ️ 无预处理（原始光谱），不显示k值曲线")
                 else:
-                    # 空状态占位（固定高度250px，作为基准）
+                    # 空状态占位（固定高度200px，作为基准）
                     st.markdown(
-                        '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
+                        '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
                         unsafe_allow_html=True)
         
-        # 4. 混淆矩阵区域（匹配k值曲线高度）
+            # 4. 混淆矩阵区域（第二行第二列）
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
-            # 关键：通过CSS强制混淆矩阵容器与k值曲线容器高度一致
+            # 核心：通过CSS强制与k值曲线高度一致
             st.markdown("""
                 <style>
-                /* 定位第二行第二列的容器，强制高度与第一列相同 */
+                /* 强制两列容器高度完全相同 */
+                .stColumns > div:nth-child(1) > div,
                 .stColumns > div:nth-child(2) > div {
                     height: 100% !important;
                 }
-                /* 确保图表区域无额外内边距 */
-                .stPlotlyChart, .stMatplotlibChart {
-                    margin-top: 0 !important;
-                    margin-bottom: 0 !important;
+                /* 消除图表内外冗余间距 */
+                .stMatplotlibChart {
+                    margin: 0 !important;
+                    padding: 0 !important;
                 }
                 </style>
             """, unsafe_allow_html=True)
@@ -1808,30 +1808,29 @@ def main():
                 st.markdown("**分类指标**")
                 st.text(f"准确率: {results['accuracy']:.4f}  |  卡帕系数: {results['kappa']:.4f}")
         
-                # 核心：混淆矩阵高度严格匹配k值曲线（约250px）
-                # 计算Matplotlib图表尺寸：250px ≈ 4.2英寸（1英寸≈60px）
-                fig, ax = plt.subplots(figsize=(5, 4.2))  # 高度4.2与k值曲线匹配
+                # 关键：调整图表尺寸，严格匹配k值曲线高度
+                fig, ax = plt.subplots(figsize=(5, 3.5))  # 高度3.5对应约200px，与k值曲线匹配
                 sns.heatmap(
                     results['confusion_matrix'], 
                     annot=True, 
                     fmt='d', 
                     cmap='Blues', 
                     ax=ax,
-                    annot_kws={"size": 8},
-                    cbar_kws={"shrink": 0.85}  # 压缩颜色条，避免增加高度
+                    annot_kws={"size": 7},  # 缩小字体避免高度溢出
+                    cbar_kws={"shrink": 0.9, "aspect": 15}  # 压缩颜色条
                 )
-                # 精简标签，减少冗余高度
-                ax.set_xlabel('预测标签', fontsize=8, labelpad=3)
-                ax.set_ylabel('真实标签', fontsize=8, labelpad=3)
-                ax.set_title('混淆矩阵', fontsize=10, pad=5)
-                plt.xticks(fontsize=7, rotation=0)
-                plt.yticks(fontsize=7, rotation=0)
-                plt.tight_layout(pad=0.3)  # 最小化内边距
+                # 精简标签减少高度占用
+                ax.set_xlabel('预测标签', fontsize=7, labelpad=2)
+                ax.set_ylabel('真实标签', fontsize=7, labelpad=2)
+                ax.set_title('混淆矩阵', fontsize=9, pad=4)
+                plt.xticks(fontsize=6, rotation=0)
+                plt.yticks(fontsize=6, rotation=0)
+                plt.tight_layout(pad=0.1)  # 最小化内边距
                 st.pyplot(fig, use_container_width=True)
             else:
                 # 空状态占位（与k值曲线空状态高度一致）
                 st.markdown(
-                    '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先进行分类测试</div>',
+                    '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">请先进行分类测试</div>',
                     unsafe_allow_html=True)
         # 结果导出
         if st.session_state.arrangement_results or st.session_state.get('processed_data'):
