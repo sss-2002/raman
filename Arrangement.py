@@ -1813,7 +1813,7 @@ def main():
                     fmt='d', 
                     cmap='Blues', 
                     ax=ax,
-                    annot_kws={"size": 7},
+                    annot_kws={"size": 4},
                     cbar_kws={"shrink": 0.9}
                 )
                 ax.set_xlabel('预测标签', fontsize=2, labelpad=2)
