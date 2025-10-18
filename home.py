@@ -121,7 +121,7 @@ def show_home_page():
         {
             "name": "排列预处理模型",
             "description": "针对单一干扰类型的系统化预处理方案，按“干扰识别→算法匹配→参数优化”流程排列预处理步骤。例如：噪声主导场景排列“SG平滑→基线校正”，背景干扰主导场景排列“基线校正→归一化”，支持一键执行预设排列逻辑，降低操作复杂度，确保同类型数据处理的一致性与可重复性。",
-            "target_page": "arrangement",  # 对应arrangement模块
+            "target_page": "Arrangement",  # 对应arrangement模块
             "icon": "🔄",
         },
         {
@@ -133,7 +133,7 @@ def show_home_page():
         {
             "name": "排列组合预处理模型",
             "description": "融合“步骤排列”与“算法组合”的高阶预处理模型，既支持按业务逻辑固定预处理步骤顺序（排列），又允许在每个步骤中灵活选择多种算法（组合）。例如：固定“去噪→基线校正→归一化”排列顺序，同时在“去噪”步骤中可选SG/小波/移动平均算法，在“基线校正”步骤中可选airPLS/ALS算法，兼顾流程规范性与算法灵活性，适配多场景复杂数据处理需求。",
-            "target_page": "Arrangement",
+            "target_page": "arrangement_combination",
             "icon": "🔀",
         },
     ]
