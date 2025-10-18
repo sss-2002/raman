@@ -1806,7 +1806,7 @@ def main():
                 results = st.session_state.test_results
         
                 # 精确匹配k值曲线高度的图表尺寸
-                fig, ax = plt.subplots(figsize=(3.5, 1.0))  # 3.5英寸≈200px，与k值曲线默认高度匹配
+                fig, ax = plt.subplots(figsize=(3.5, 2.0))  # 3.5英寸≈200px，与k值曲线默认高度匹配
                 sns.heatmap(
                     results['confusion_matrix'], 
                     annot=True, 
