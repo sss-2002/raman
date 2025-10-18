@@ -1780,16 +1780,14 @@ def main():
                     unsafe_allow_html=True)
 
 
-
-            # 4. 混淆矩阵区域（第二行第二列）——与k值曲线宽度对齐版
+            # 4. 混淆矩阵区域（第二行第二列）——修正参数错误并与k值曲线宽度对齐
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
             
-            # 与k值曲线保持相同的容器宽度占比（利用Streamlit列的自动分配）
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
                 
-                # 1. 分类指标：紧凑布局，不占用过多宽度
+                # 分类指标布局
                 st.markdown("**分类指标**")
                 st.markdown(
                     f"""
@@ -1800,20 +1798,18 @@ def main():
                     unsafe_allow_html=True
                 )
                 
-                # 2. 关键：按k值曲线宽度比例缩小图表（宽度占满列，高度按比例压缩）
-                # 计算与k值曲线的宽度比例（假设k值曲线图表宽度为100%，此处保持一致）
-                fig, ax = plt.subplots(figsize=(4.5, 3))  # 宽度适配列宽，高度按比例缩小
+                # 核心：修正重复ax参数，按比例缩小图表
+                fig, ax = plt.subplots(figsize=(4.5, 3))  # 宽度适配列宽，与k值曲线一致
+                # 移除重复的ax参数，只保留一次
                 sns.heatmap(
                     results['confusion_matrix'], 
                     annot=True, 
                     fmt='d', 
                     cmap='Blues', 
-                    ax=ax,
+                    ax=ax,  # 仅这里需要指定ax
                     annot_kws={"size": 7},
                     cbar=False,
-                    linewidths=0.5,
-                    # 强制图表宽度占满容器
-                    ax=ax
+                    linewidths=0.5
                 )
                 ax.set_xlabel('预测标签', fontsize=7)
                 ax.set_ylabel('真实标签', fontsize=7)
@@ -1822,11 +1818,11 @@ def main():
                 plt.yticks(fontsize=6, rotation=0)
                 plt.tight_layout()
                 
-                # 3. 用use_container_width=True强制图表宽度与k值曲线一致
+                # 强制宽度与k值曲线一致
                 st.pyplot(fig, use_container_width=True)
                 
             else:
-                # 无数据时的虚线框，宽度自动与k值曲线的空状态对齐
+                # 无数据时的虚线框，宽度自动对齐
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:260px; display:flex; align-items:center; justify-content:center;">请先进行分类测试</div>',
                     unsafe_allow_html=True)
