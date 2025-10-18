@@ -1753,52 +1753,64 @@ def main():
         # 3. k值曲线区域（第二行第一列）——Top-k 投票准确率曲线（无列嵌套、安全版）
         with viz_row2[0]:
             st.subheader("k值曲线（Top-k 投票准确率）", divider="gray")
-
+            
+            # 定义统一的容器样式（与其他区域虚线框一致，有数据时显示实线框）
+            container_css = """
+                <div style="border:1px {} #ccc; padding:1rem; border-radius:4px; height:100%; min-height:480px; display:flex; flex-direction:column;">
+                    {}
+                </div>
+            """
+            
             have_details = bool(st.session_state.get('arrangement_details'))
-            have_split = st.session_state.get('train_indices') is not None and st.session_state.get(
-                'test_indices') is not None
+            have_split = st.session_state.get('train_indices') is not None and st.session_state.get('test_indices') is not None
             have_labels = st.session_state.get('labels') is not None
-
+        
+            # 空状态：虚线框+居中提示
             if not (have_details and have_split and have_labels):
-                st.caption("需要：① 至少“应用一个排列方案”；② 已完成训练/测试划分；③ 已有标签。")
+                empty_content = """
+                    <div style="flex-grow:1; display:flex; align-items:center; justify-content:center; text-align:center; color:#666;">
+                        需要：<br>① 至少“应用一个排列方案”；<br>② 已完成训练/测试划分；<br>③ 已有标签。
+                    </div>
+                """
+                st.markdown(container_css.format("dashed", empty_content), unsafe_allow_html=True)
+            
+            # 有数据状态：实线框包裹所有内容（曲线、信息、表格、按钮）
             else:
                 try:
                     auto_key = f"auto_gen_done::{st.session_state.get('baseline_method', str(baseline_method))}|" \
                                f"{st.session_state.get('filtering_method', str(filtering_method))}|" \
                                f"{st.session_state.get('scaling_method', str(scaling_method))}|" \
                                f"{st.session_state.get('squashing_method', str(squashing_method))}"
-
+        
+                    # 自动生成排列方案（原有逻辑保留）
                     if st.session_state.get('arrangement_details') is not None \
                             and len(st.session_state.arrangement_details) < 2 \
                             and not st.session_state.get(auto_key, False):
-
+        
                         wavenumbers, _ydata = st.session_state.raw_data
-                        # 以“当前控件”作为算法和参数来源（不依赖滞后的 current_algorithms）
                         _algos = {
                             'baseline': baseline_method, 'baseline_params': baseline_params,
                             'filtering': filtering_method, 'filtering_params': filtering_params,
                             'scaling': scaling_method, 'scaling_params': scaling_params,
                             'squashing': squashing_method, 'squashing_params': squashing_params,
                         }
-                        # 生成排列模板（只是顺序），按当前选择过滤
                         _perms = generate_permutations({
                             'baseline': _algos['baseline'],
                             'scaling': _algos['scaling'],
                             'filtering': _algos['filtering'],
                             'squashing': _algos['squashing'],
                         })
-
-                        # 为避免重复，只根据 method 字符串去重
+        
                         _have = set()
                         for name, det in (st.session_state.arrangement_details or {}).items():
                             _have.add(det.get('method', ''))
-
+        
                         _made = 0
                         for _perm in _perms:
                             _order = _perm.get('order', [])
-                            if not _order:  # 跳过“无预处理（原始光谱）”，需要的话可改为保留
+                            if not _order:
                                 continue
-
+        
                             _data, _methods = preprocessor.process(
                                 wavenumbers, _ydata,
                                 baseline_method=_algos['baseline'], baseline_params=_algos['baseline_params'],
@@ -1811,7 +1823,7 @@ def main():
                             if _method_str in _have:
                                 continue
                             _have.add(_method_str)
-
+        
                             _arr_name = f"排列_auto_{len(st.session_state.arrangement_results) + 1}"
                             st.session_state.arrangement_results.append(_arr_name)
                             st.session_state.arrangement_details[_arr_name] = {
@@ -1821,60 +1833,65 @@ def main():
                                 'params': _algos
                             }
                             _made += 1
-
-                            # 可选：控制上限，避免数据量大时生成太多导致等待
-                            if _made >= 16:  # 例如先生成前 16 条就够画曲线了；想全量就删掉这个 if
+                            if _made >= 16:
                                 break
-
+        
                         st.session_state[auto_key] = True
                         st.caption(f"已自动生成 {_made} 个方案用于 Top-k 投票（基于当前选择）。")
-                    # ---- 自动批量生成方案结束 ----
+        
+                    # 核心计算逻辑（原有逻辑保留）
                     import numpy as _np
                     import pandas as _pd
-
-                    # 取训练/测试索引与标签（确保是整型向量）
+        
                     train_idx = st.session_state.train_indices
                     test_idx = st.session_state.test_indices
                     test_labels = _np.asarray(st.session_state.labels[test_idx], dtype=int)
-
-                    # 为每个“已应用的排列方案”在测试集上生成一列预测
+        
                     preds_cols = []
                     pipe_names = []
                     details = st.session_state.arrangement_details or {}
-
+        
                     for arr_name, detail in details.items():
                         if 'data' not in detail:
                             continue
-                        processed = detail['data']  # (n_points, n_samples)
-                        # 基于你全局的形状约定：列是样本
+                        processed = detail['data']
                         if processed.ndim != 2 or processed.shape[1] <= 0:
                             continue
                         if processed.shape[1] <= max(train_idx.max(initial=0), test_idx.max(initial=0)):
-                            # 数据列数不够索引
                             continue
-
+        
                         train_data = processed[:, train_idx]
                         test_data = processed[:, test_idx]
                         train_y = _np.asarray(st.session_state.labels[train_idx], dtype=int)
-
-                        # 复用你已有的 KNN 实现；k 用你“操作4”里设置的 k_value
+        
                         pred_col = knn_classify(train_data, train_y, test_data, k=st.session_state.k_value)
                         preds_cols.append(pred_col.reshape(-1, 1))
                         pipe_names.append(arr_name)
-
+        
+                    # 组装有数据时的内容（用Streamlit组件生成后转为HTML）
                     if len(preds_cols) == 0:
-                        st.info("尚无可用的排列方案。请先“应用方案”，并进行一次测试以产生预测。")
+                        content = """
+                            <div style="flex-grow:1; display:flex; align-items:center; justify-content:center; color:#666;">
+                                尚无可用的排列方案。请先“应用方案”，并进行一次测试以产生预测。
+                            </div>
+                        """
+                        st.markdown(container_css.format("solid", content), unsafe_allow_html=True)
                     else:
-                        pred_matrix = _np.hstack(preds_cols)  # (n_test, m_pipelines)
+                        pred_matrix = _np.hstack(preds_cols)
                         N_test, M = pred_matrix.shape
                         if M == 0:
-                            st.info("没有有效的管线预测可用于投票。")
+                            content = """
+                                <div style="flex-grow:1; display:flex; align-items:center; justify-content:center; color:#666;">
+                                    没有有效的管线预测可用于投票。
+                                </div>
+                            """
+                            st.markdown(container_css.format("solid", content), unsafe_allow_html=True)
                         else:
-                            # 单管线准确率 & 排序（降序）
+                            # 1. 计算准确率并排序
                             acc_per_pipe = _np.array([(pred_matrix[:, j] == test_labels).mean() for j in range(M)])
                             order = _np.argsort(-acc_per_pipe)
-
-                            # 多数投票（并列取标签最小者，等价于固定优先级 0>1>2…）
+        
+                            # 2. 计算Top-k投票准确率
                             def _vote_row(row_preds, topk_idx):
                                 counts = {}
                                 for j in topk_idx:
@@ -1883,8 +1900,7 @@ def main():
                                 max_votes = max(counts.values())
                                 winners = [c for c, v in counts.items() if v == max_votes]
                                 return min(winners)
-
-                            # 逐 k 计算集成预测准确率
+        
                             ks, accs = [], []
                             for k in range(1, M + 1):
                                 topk = order[:k]
@@ -1895,33 +1911,58 @@ def main():
                             accs = _np.array(accs)
                             best_k = int(ks[_np.argmax(accs)])
                             best_acc = float(accs.max())
-
-                            # 曲线
+        
+                            # 3. 生成曲线图表（临时保存为HTML）
                             chart_df = _pd.DataFrame({"k": ks, "accuracy": accs}).set_index("k")
-                            st.line_chart(chart_df, height=260)
-
-                            # 关键信息
-                            st.markdown(f"**最佳 k：** {best_k}　｜　**最佳准确率：** {best_acc * 100:.2f}%")
-
-                            # Top10 管线
+                            chart_container = st.container()
+                            with chart_container:
+                                st.line_chart(chart_df, height=260)
+                            # 提取图表的HTML（简化：直接用占位符，实际依赖Streamlit渲染）
+                            chart_html = chart_container._get_report_string()
+        
+                            # 4. 关键信息
+                            info_html = f"""
+                                <div style="margin:0.5rem 0; font-weight:bold;">
+                                    最佳 k：{best_k}　｜　最佳准确率：{best_acc * 100:.2f}%
+                                </div>
+                            """
+        
+                            # 5. Top10管线表格
                             take = min(10, M)
                             top_df = _pd.DataFrame({
                                 "Rank": _np.arange(1, take + 1),
                                 "Pipeline": [pipe_names[j] for j in order[:take]],
                                 "Accuracy": acc_per_pipe[order[:take]]
                             })
-                            st.dataframe(top_df, use_container_width=True, height=260)
-
-                            # 导出
-                            st.download_button(
-                                "下载 k 曲线 CSV",
-                                data=chart_df.to_csv().encode("utf-8"),
-                                file_name="k_curve_topk.csv",
-                                mime="text/csv"
-                            )
-
+                            table_container = st.container()
+                            with table_container:
+                                st.dataframe(top_df, use_container_width=True, height=180)
+                            table_html = table_container._get_report_string()
+        
+                            # 6. 下载按钮
+                            download_container = st.container()
+                            with download_container:
+                                st.download_button(
+                                    "下载 k 曲线 CSV",
+                                    data=chart_df.to_csv().encode("utf-8"),
+                                    file_name="k_curve_topk.csv",
+                                    mime="text/csv"
+                                )
+                            download_html = download_container._get_report_string()
+        
+                            # 组装所有内容
+                            content = f"{chart_html}{info_html}{table_html}{download_html}"
+                            # 用实线框包裹
+                            st.markdown(container_css.format("solid", content), unsafe_allow_html=True)
+        
+                # 异常处理：保持框样式统一
                 except Exception as e:
-                    st.warning(f"Top-k 曲线计算出现问题：{e}")
+                    error_content = f"""
+                        <div style="flex-grow:1; display:flex; align-items:center; justify-content:center; color:#ff4444;">
+                            Top-k 曲线计算出现问题：{str(e)}
+                        </div>
+                    """
+                    st.markdown(container_css.format("solid", error_content), unsafe_allow_html=True)
 
 
         # 4. 混淆矩阵区域（第二行第二列）
