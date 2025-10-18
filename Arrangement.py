@@ -1763,6 +1763,72 @@ def main():
                 st.caption("需要：① 至少“应用一个排列方案”；② 已完成训练/测试划分；③ 已有标签。")
             else:
                 try:
+                    auto_key = f"auto_gen_done::{st.session_state.get('baseline_method', str(baseline_method))}|" \
+                               f"{st.session_state.get('filtering_method', str(filtering_method))}|" \
+                               f"{st.session_state.get('scaling_method', str(scaling_method))}|" \
+                               f"{st.session_state.get('squashing_method', str(squashing_method))}"
+
+                    if st.session_state.get('arrangement_details') is not None \
+                            and len(st.session_state.arrangement_details) < 2 \
+                            and not st.session_state.get(auto_key, False):
+
+                        wavenumbers, _ydata = st.session_state.raw_data
+                        # 以“当前控件”作为算法和参数来源（不依赖滞后的 current_algorithms）
+                        _algos = {
+                            'baseline': baseline_method, 'baseline_params': baseline_params,
+                            'filtering': filtering_method, 'filtering_params': filtering_params,
+                            'scaling': scaling_method, 'scaling_params': scaling_params,
+                            'squashing': squashing_method, 'squashing_params': squashing_params,
+                        }
+                        # 生成排列模板（只是顺序），按当前选择过滤
+                        _perms = generate_permutations({
+                            'baseline': _algos['baseline'],
+                            'scaling': _algos['scaling'],
+                            'filtering': _algos['filtering'],
+                            'squashing': _algos['squashing'],
+                        })
+
+                        # 为避免重复，只根据 method 字符串去重
+                        _have = set()
+                        for name, det in (st.session_state.arrangement_details or {}).items():
+                            _have.add(det.get('method', ''))
+
+                        _made = 0
+                        for _perm in _perms:
+                            _order = _perm.get('order', [])
+                            if not _order:  # 跳过“无预处理（原始光谱）”，需要的话可改为保留
+                                continue
+
+                            _data, _methods = preprocessor.process(
+                                wavenumbers, _ydata,
+                                baseline_method=_algos['baseline'], baseline_params=_algos['baseline_params'],
+                                squashing_method=_algos['squashing'], squashing_params=_algos['squashing_params'],
+                                filtering_method=_algos['filtering'], filtering_params=_algos['filtering_params'],
+                                scaling_method=_algos['scaling'], scaling_params=_algos['scaling_params'],
+                                algorithm_order=_order
+                            )
+                            _method_str = " → ".join(_methods)
+                            if _method_str in _have:
+                                continue
+                            _have.add(_method_str)
+
+                            _arr_name = f"排列_auto_{len(st.session_state.arrangement_results) + 1}"
+                            st.session_state.arrangement_results.append(_arr_name)
+                            st.session_state.arrangement_details[_arr_name] = {
+                                'data': _data,
+                                'method': _method_str,
+                                'order': _order,
+                                'params': _algos
+                            }
+                            _made += 1
+
+                            # 可选：控制上限，避免数据量大时生成太多导致等待
+                            if _made >= 16:  # 例如先生成前 16 条就够画曲线了；想全量就删掉这个 if
+                                break
+
+                        st.session_state[auto_key] = True
+                        st.caption(f"已自动生成 {_made} 个方案用于 Top-k 投票（基于当前选择）。")
+                    # ---- 自动批量生成方案结束 ----
                     import numpy as _np
                     import pandas as _pd
 
