@@ -1780,58 +1780,56 @@ def main():
                     unsafe_allow_html=True)
 
 
-            # 4. 混淆矩阵区域（第二行第二列）——与k值曲线大小对齐版
+
+            # 4. 混淆矩阵区域（第二行第二列）——与k值曲线宽度对齐版
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
             
-            # 与k值曲线统一高度（约260px，含标题和内容）
-            container_height = "260px"
-            
+            # 与k值曲线保持相同的容器宽度占比（利用Streamlit列的自动分配）
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
                 
-                with st.container():
-                    # 强制容器高度，内容超出时自动滚动
-                    st.markdown(f'<div style="height:{container_height}; overflow:auto;">', unsafe_allow_html=True)
-                    
-                    # 分类指标：简化布局，与k值曲线的信息密度对齐
-                    st.markdown("**分类指标**")
-                    st.markdown(
-                        f"""
-                        <div style="font-size:0.75rem; margin-bottom:0.3rem;">
-                            准确率: {results['accuracy']:.4f}　｜　卡帕系数: {results['kappa']:.4f}
-                        </div>
-                        """, 
-                        unsafe_allow_html=True
-                    )
-                    
-                    # 调整图表尺寸：与k值曲线的图表区域比例对齐
-                    fig, ax = plt.subplots(figsize=(3.5, 2.5))
-                    sns.heatmap(
-                        results['confusion_matrix'], 
-                        annot=True, 
-                        fmt='d', 
-                        cmap='Blues', 
-                        ax=ax,
-                        annot_kws={"size": 6},  # 极小字体适配小图表
-                        cbar=False,  # 移除颜色条，节省垂直空间
-                        linewidths=0.5  # 缩小格子线宽度
-                    )
-                    ax.set_xlabel('预测标签', fontsize=6)
-                    ax.set_ylabel('真实标签', fontsize=6)
-                    ax.set_title('混淆矩阵', fontsize=7, pad=5)
-                    plt.xticks(fontsize=5, rotation=0)
-                    plt.yticks(fontsize=5, rotation=0)
-                    plt.tight_layout(pad=0.5)  # 最小化内边距
-                    st.pyplot(fig, use_container_width=True)
-                    
-                    st.markdown('</div>', unsafe_allow_html=True)
-            else:
-                # 无数据时的虚线框，与k值曲线的空状态高度对齐
+                # 1. 分类指标：紧凑布局，不占用过多宽度
+                st.markdown("**分类指标**")
                 st.markdown(
-                    f'<div style="border:1px dashed #ccc; height:{container_height}; display:flex; align-items:center; justify-content:center;">请先进行分类测试</div>',
+                    f"""
+                    <div style="font-size:0.75rem; margin-bottom:0.3rem; width:100%;">
+                        准确率: {results['accuracy']:.4f}　｜　卡帕系数: {results['kappa']:.4f}
+                    </div>
+                    """, 
+                    unsafe_allow_html=True
+                )
+                
+                # 2. 关键：按k值曲线宽度比例缩小图表（宽度占满列，高度按比例压缩）
+                # 计算与k值曲线的宽度比例（假设k值曲线图表宽度为100%，此处保持一致）
+                fig, ax = plt.subplots(figsize=(4.5, 3))  # 宽度适配列宽，高度按比例缩小
+                sns.heatmap(
+                    results['confusion_matrix'], 
+                    annot=True, 
+                    fmt='d', 
+                    cmap='Blues', 
+                    ax=ax,
+                    annot_kws={"size": 7},
+                    cbar=False,
+                    linewidths=0.5,
+                    # 强制图表宽度占满容器
+                    ax=ax
+                )
+                ax.set_xlabel('预测标签', fontsize=7)
+                ax.set_ylabel('真实标签', fontsize=7)
+                ax.set_title('混淆矩阵', fontsize=8, pad=5)
+                plt.xticks(fontsize=6, rotation=0)
+                plt.yticks(fontsize=6, rotation=0)
+                plt.tight_layout()
+                
+                # 3. 用use_container_width=True强制图表宽度与k值曲线一致
+                st.pyplot(fig, use_container_width=True)
+                
+            else:
+                # 无数据时的虚线框，宽度自动与k值曲线的空状态对齐
+                st.markdown(
+                    '<div style="border:1px dashed #ccc; height:260px; display:flex; align-items:center; justify-content:center;">请先进行分类测试</div>',
                     unsafe_allow_html=True)
-
         # 结果导出
         if st.session_state.arrangement_results or st.session_state.get('processed_data'):
             st.subheader("💾 结果导出", divider="gray")
