@@ -20,6 +20,7 @@ import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 
+
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
@@ -44,6 +45,7 @@ def modpoly(wavenumbers, spectra, k):
         baseline[:, i] = y
     return spectra - baseline
 
+
 def pls(spectra, lam):
     """Penalized Least Squares (PLS) 基线校正"""
     n_points = spectra.shape[0]
@@ -55,6 +57,7 @@ def pls(spectra, lam):
         A = sparse.eye(n_points) + D
         baseline[:, i] = spsolve(A, y)
     return spectra - baseline
+
 
 def airpls(spectra, lam, max_iter=15, threshold=0.001):
     """Adaptive Iteratively Reweighted Penalized Least Squares (airPLS) 基线校正"""
@@ -82,6 +85,7 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
             baseline_i = b
         baseline[:, i] = baseline_i
     return spectra - baseline
+
 
 def dtw_squashing(x, l, k1, k2):
     """动态时间规整(DTW)挤压算法"""
@@ -127,6 +131,7 @@ def dtw_squashing(x, l, k1, k2):
         result[:, i] = squashed
     return result
 
+
 # ===== 分类算法实现 =====
 def knn_classify(train_data, train_labels, test_data, k=5):
     """K近邻分类算法实现"""
@@ -137,7 +142,7 @@ def knn_classify(train_data, train_labels, test_data, k=5):
     predictions = []
     for test_sample in test_data:
         # 计算与所有训练样本的欧氏距离
-        distances = np.sqrt(np.sum((train_data - test_sample) **2, axis=1))
+        distances = np.sqrt(np.sum((train_data - test_sample) ** 2, axis=1))
         # 获取最近的k个样本的索引
         k_indices = np.argsort(distances)[:k]
         # 获取这些样本的标签
@@ -145,7 +150,8 @@ def knn_classify(train_data, train_labels, test_data, k=5):
         # 多数投票决定预测标签
         most_common = np.bincount(k_nearest_labels).argmax()
         predictions.append(most_common)
-    return np.array(predictions)  
+    return np.array(predictions)
+
 
 # ===== 预处理类 =====
 class Preprocessor:
@@ -246,12 +252,12 @@ class Preprocessor:
                 if step_type == "baseline":
                     algorithm_func = self.BASELINE_ALGORITHMS[method]
                     if method in ["多项式拟合", "ModPoly", "I-ModPoly"]:
-                        y_processed = algorithm_func(wavenumbers, y_processed,** params)
+                        y_processed = algorithm_func(wavenumbers, y_processed, **params)
                     elif method in ["PLS"]:
                         y_processed = algorithm_func(y_processed, **params)
                     elif method == "AsLS":
                         # 适配改进的AsLS算法参数
-                        y_processed = algorithm_func(y_processed,** params)
+                        y_processed = algorithm_func(y_processed, **params)
                     elif method == "airPLS":
                         y_processed = algorithm_func(y_processed, **params)
                     elif method == "二阶差分(D2)":  # 处理二阶差分
@@ -291,7 +297,7 @@ class Preprocessor:
 
                 elif step_type == "filtering":
                     algorithm_func = self.FILTERING_ALGORITHMS[method]
-                    y_processed = algorithm_func(y_processed,** params)
+                    y_processed = algorithm_func(y_processed, **params)
                     params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
                     method_name.append(f"{method}({params_str})")
 
@@ -449,6 +455,7 @@ class Preprocessor:
             return diff_result.T  # 转回原始形状
         else:
             return D2(spectra)
+
 
 # ===== 文件处理类 =====
 class FileHandler:
@@ -1025,7 +1032,7 @@ def squashing_legacy(x):
 
 
 # sgolayfilt滤波器实现
-def SGfilter(Intensity, window_length,polyorder):  # 输入均为行
+def SGfilter(Intensity, window_length, polyorder):  # 输入均为行
     """
     Savitzky-Golay滤波器实现
 
@@ -1162,7 +1169,7 @@ def main():
     }
 
     # 合并所有状态变量并初始化
-    all_states = {** test_states, **other_states}
+    all_states = {**test_states, **other_states}
     for key, value in all_states.items():
         if key not in st.session_state:
             st.session_state[key] = value
@@ -1315,12 +1322,12 @@ def main():
                     baseline_params["tolerance"] = tolerance
                     st.caption(f"阶数: {polyorder}, 迭代: {max_iter}, 容差: {tolerance}")
                 elif baseline_method == "PLS":
-                    lam = st.selectbox("λ", [10 **10, 10** 8, 10 **7], key="lam_pls", label_visibility="collapsed")
+                    lam = st.selectbox("λ", [10 ** 10, 10 ** 8, 10 ** 7], key="lam_pls", label_visibility="collapsed")
                     baseline_params["lam"] = lam
                     st.caption(f"λ: {lam}")
                 elif baseline_method == "AsLS":
                     p = st.selectbox("非对称系数p", [0.001, 0.01, 0.1], key="p_asls", label_visibility="collapsed")
-                    lam = st.selectbox("平滑系数λ", [10** 5, 10 **7, 10** 9], key="lam_asls",
+                    lam = st.selectbox("平滑系数λ", [10 ** 5, 10 ** 7, 10 ** 9], key="lam_asls",
                                        label_visibility="collapsed")
                     niter = st.selectbox("迭代次数", [5, 10, 15], key="niter_asls", label_visibility="collapsed")
                     baseline_params["lam"] = lam
@@ -1328,7 +1335,7 @@ def main():
                     baseline_params["niter"] = niter
                     st.caption(f"p: {p}, λ: {lam}, 迭代次数: {niter}")
                 elif baseline_method == "airPLS":
-                    lam = st.selectbox("λ", [10 **7, 10** 4, 10 **2], key="lam_air", label_visibility="collapsed")
+                    lam = st.selectbox("λ", [10 ** 7, 10 ** 4, 10 ** 2], key="lam_air", label_visibility="collapsed")
                     baseline_params["lam"] = lam
                     st.caption(f"λ: {lam}")
                 elif baseline_method == "二阶差分(D2)":  # 二阶差分参数说明
@@ -1690,7 +1697,7 @@ def main():
         # 创建四个固定区域的布局：原始光谱、预处理后光谱、k值曲线、混淆矩阵
         # 第一行：原始光谱和预处理后光谱
         viz_row1 = st.columns(2, gap="medium")
-        
+
         # 第二行：k值曲线和混淆矩阵
         viz_row2 = st.columns(2, gap="medium")
 
@@ -1702,7 +1709,7 @@ def main():
                 idx1 = 0 if y.shape[1] > 0 else 0
                 raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
                 st.line_chart(raw_data1, height=250)
-                
+
                 # 显示更多原始光谱（不使用嵌套列）
                 if y.shape[1] > 1:
                     with st.expander("查看更多原始光谱", expanded=False):
@@ -1724,11 +1731,11 @@ def main():
                 arr_data = st.session_state.arrangement_details[selected_arr]['data']
                 arr_method = st.session_state.arrangement_details[selected_arr]['method']
                 st.caption(f"处理方法: {arr_method}")
-                
+
                 idx1 = 0 if arr_data.shape[1] > 0 else 0
                 proc_data1 = pd.DataFrame({"预处理后1": arr_data[:, idx1]}, index=wavenumbers)
                 st.line_chart(proc_data1, height=250)
-                
+
                 # 显示更多预处理后光谱（不使用嵌套列）
                 if arr_data.shape[1] > 1:
                     with st.expander("查看更多预处理后光谱", expanded=False):
@@ -1742,46 +1749,118 @@ def main():
                     unsafe_allow_html=True)
 
         # 3. k值曲线区域（第二行第一列）
+        # 3. k值曲线区域（第二行第一列）——改为“Top-k 投票准确率曲线”
         with viz_row2[0]:
-            st.subheader("k值曲线", divider="gray")
-            if st.session_state.get('selected_arrangement'):
-                selected_arr = st.session_state.selected_arrangement
-                arr_data = st.session_state.arrangement_details[selected_arr]['data']
-                wavenumbers, y = st.session_state.raw_data
-                arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
-                
-                if arr_order:  # 只有应用了预处理才有k值曲线
-                    idx1 = 0 if arr_data.shape[1] > 0 else 0
-                    k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
-                    k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
-                    st.line_chart(k_data1, height=250)
-                    
-                    # 显示更多k值曲线（不使用嵌套列）
-                    if y.shape[1] > 1:
-                        with st.expander("查看更多k值曲线", expanded=False):
-                            for i in range(1, min(y.shape[1], 5)):
-                                st.subheader(f"k值{i + 1}", divider="gray")
-                                k_vals = np.abs(arr_data[:, i] / (y[:, i] + 1e-8))
-                                data = pd.DataFrame({f"k值{i + 1}": k_vals}, index=wavenumbers)
-                                st.line_chart(data, height=150)
-                else:
-                    st.info("ℹ️ 无预处理（原始光谱），不显示k值曲线")
-            else:
-                st.markdown(
-                    '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
-                    unsafe_allow_html=True)
+            st.subheader("k值曲线（Top-k 投票准确率）", divider="gray")
 
+            # 生成 Top-k 曲线所需的前置条件
+            have_details = bool(st.session_state.get('arrangement_details'))
+            have_split = st.session_state.get('train_indices') is not None and st.session_state.get(
+                'test_indices') is not None
+            have_labels = st.session_state.get('labels') is not None
+
+            if not (have_details and have_split and have_labels):
+                st.caption("需要：① 至少“应用一个排列方案”；② 已完成训练/测试划分；③ 已有标签。")
+            else:
+                try:
+                    # 取测试集标签
+                    test_idx = st.session_state.test_indices
+                    train_idx = st.session_state.train_indices
+                    test_labels = st.session_state.labels[test_idx]
+
+                    # —— 关键：为“每个已应用的排列方案”在测试集上生成一列预测，拼成 N_test × M 的预测矩阵
+                    preds_cols = []
+                    pipe_names = []
+                    for arr_name, detail in st.session_state.arrangement_details.items():
+                        processed = detail['data']  # 预处理后的全量数据: (n_points, n_samples)
+                        train_data = processed[:, train_idx]  # 别动你的数据形状约定
+                        test_data = processed[:, test_idx]
+                        train_y = st.session_state.labels[train_idx]
+
+                        pred_col = knn_classify(
+                            train_data, train_y, test_data,
+                            k=st.session_state.k_value  # 你右上角“操作4”设置的 KNN k
+                        )
+                        preds_cols.append(pred_col.reshape(-1, 1))
+                        pipe_names.append(arr_name)
+
+                    if len(preds_cols) == 0:
+                        st.info("尚无可用的排列方案。请先“应用方案”，并进行一次测试以产生预测。")
+                    else:
+                        import numpy as _np
+                        import pandas as _pd
+
+                        pred_matrix = _np.hstack(preds_cols)  # (n_test, m_pipelines)
+                        N_test, M = pred_matrix.shape
+
+                        # 单管线准确率 & 排序（降序）
+                        acc_per_pipe = _np.array([(pred_matrix[:, j] == test_labels).mean() for j in range(M)])
+                        order = _np.argsort(-acc_per_pipe)
+
+                        # —— 多数投票（并列按“标签最小值优先”打平；等价于你们常用的 0>1>2>…）
+                        def _vote_row(row_preds, topk_idx):
+                            counts = {}
+                            for j in topk_idx:
+                                cls = int(row_preds[j])
+                                counts[cls] = counts.get(cls, 0) + 1
+                            max_votes = max(counts.values())
+                            # 并列取标签最小者（稳定、无需额外配置）
+                            winners = [c for c, v in counts.items() if v == max_votes]
+                            return min(winners)
+
+                        # 逐 k 计算集成预测准确率
+                        ks, accs = [], []
+                        for k in range(1, M + 1):
+                            topk = order[:k]
+                            voted = _np.array([_vote_row(pred_matrix[i], topk) for i in range(N_test)])
+                            ks.append(k)
+                            accs.append((voted == test_labels).mean())
+                        ks = _np.array(ks)
+                        accs = _np.array(accs)
+                        best_k = int(ks[_np.argmax(accs)])
+                        best_acc = float(accs.max())
+
+                        # 画曲线（k -> accuracy）
+                        chart_df = _pd.DataFrame({"k": ks, "accuracy": accs}).set_index("k")
+                        st.line_chart(chart_df, height=260)
+
+                        # 关键信息 & Top10 管线
+                        c3, c4 = st.columns([1, 2])
+                        with c3:
+                            st.metric("最佳 k", best_k)
+                            st.metric("最佳准确率", f"{best_acc * 100:.2f}%")
+                        with c4:
+                            take = min(10, M)
+                            top_df = _pd.DataFrame({
+                                "Rank": _np.arange(1, take + 1),
+                                "Pipeline": [pipe_names[j] for j in order[:take]],
+                                "Accuracy": acc_per_pipe[order[:take]]
+                            })
+                            st.dataframe(top_df, use_container_width=True, height=260)
+
+                        # 导出
+                        st.download_button(
+                            "下载 k 曲线 CSV",
+                            data=chart_df.to_csv().encode("utf-8"),
+                            file_name="k_curve_topk.csv",
+                            mime="text/csv"
+                        )
+
+                except Exception as e:
+                    st.warning(f"Top-k 曲线计算出现问题：{e}")
+
+        
         # 4. 混淆矩阵区域（第二行第二列）
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
-                
+
                 # 显示分类指标（不使用嵌套列）
                 st.markdown("**分类指标**")
                 st.text(f"准确率: {results['accuracy']:.4f}")
                 st.text(f"卡帕系数: {results['kappa']:.4f}")
-                
+
                 # 显示混淆矩阵
                 fig, ax = plt.subplots(figsize=(5, 4))
                 sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues', ax=ax,
@@ -1822,6 +1901,7 @@ def main():
                 '<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>',
                 unsafe_allow_html=True)
 
+
 if __name__ == "__main__":
     main()
-    
+
