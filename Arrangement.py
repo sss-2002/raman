@@ -852,6 +852,121 @@ def KalmanF(xd, R):
 
 
 # IModPoly: improved modified multi-polynomial fit method
+def IModPoly(wavenumbers, originalRaman, polyorder, max_iter=100, tolerance=0.005):
+    """
+    改进的多项式拟合基线校正（自适配输入形状）
+    入参:
+        wavenumbers: 一维波数数组，长度 = n_points
+        originalRaman: 光谱矩阵 (n_points, n_samples) 或 (n_samples, n_points)
+        polyorder: 多项式阶数
+        max_iter, tolerance: 迭代与收敛阈值
+    返回:
+        与 originalRaman 形状一致的校正结果
+    """
+    import numpy as np
+
+    # --- 规范化输入 ---
+    x = np.asarray(wavenumbers).ravel()
+    Y = np.asarray(originalRaman, dtype=float)
+
+    if Y.ndim != 2:
+        raise ValueError(f"originalRaman 必须是二维矩阵，当前 ndim={Y.ndim}")
+
+    # 识别并统一到内部形状 (n_samples, n_points)
+    transposed_back = False
+    if Y.shape[0] == x.size and Y.shape[1] != x.size:  # (n_points, n_samples)
+        Y = Y.T
+        transposed_back = True
+    elif Y.shape[1] == x.size:
+        pass  # 已是 (n_samples, n_points)
+    else:
+        raise ValueError(
+            f"输入维度与波数不匹配：wavenumbers(len={x.size}), originalRaman{originalRaman.shape}"
+        )
+
+    n_samples, n_points = Y.shape
+
+    # 去 NaN/Inf 并按 x 排序（x 与每条 y 用同一掩码/顺序）
+    finite_mask = np.isfinite(x)
+    if not np.all(finite_mask):
+        x = x[finite_mask]
+    sort_idx = np.argsort(x)
+    x_sorted = x[sort_idx]
+
+    # 预先为每条谱准备同样的掩码/排序
+    corrected = np.zeros_like(Y)
+
+    for j in range(n_samples):
+        y_full = Y[j]
+        # 与 x 同步清理
+        if not np.all(finite_mask):
+            y = y_full[finite_mask]
+        else:
+            y = y_full
+
+        # 若 y 与 x 仍不等长，说明该条谱自身有 NaN/Inf；再做一次行内掩码
+        row_mask = np.isfinite(y)
+        x_row = x_sorted if row_mask.all() else x_sorted[row_mask]
+        y_row = y[sort_idx] if row_mask.all() else y[sort_idx][row_mask]
+
+        if x_row.size != y_row.size:
+            raise ValueError(
+                f"样本 {j}：清理后 x 与 y 长度仍不等 (len(x)={x_row.size}, len(y)={y_row.size})"
+            )
+
+        # 迭代拟合
+        prev_spectrum = y_row.copy()
+        curr_spectrum = prev_spectrum.copy()
+        prev_std = 0.0
+        converged = False
+        iteration = 1
+
+        while not converged and iteration <= max_iter:
+            # 多项式拟合与残差
+            coeffs = np.polyfit(x_row, curr_spectrum, polyorder)
+            fitted = np.polyval(coeffs, x_row)
+            residual = curr_spectrum - fitted
+            curr_std = np.std(residual)
+
+            # 光谱修正
+            if iteration == 1:
+                mask = prev_spectrum > (fitted + curr_std)
+                curr_spectrum[mask] = fitted[mask] + curr_std
+            else:
+                mask = prev_spectrum < (fitted + curr_std)
+                curr_spectrum = np.where(mask, prev_spectrum, fitted + curr_std)
+
+            # 收敛判定
+            relative_change = abs((curr_std - prev_std) / curr_std) if curr_std != 0 else 0.0
+            converged = (relative_change < tolerance)
+            prev_spectrum = curr_spectrum
+            prev_std = curr_std
+            iteration += 1
+
+        # 将校正结果还原到与 y_full 同长度（插回被掩掉的点）
+        # 目标：original - baseline(fitted)
+        baseline_row = np.polyval(np.polyfit(x_row, curr_spectrum, polyorder), x_row)
+
+        # 构造完整长度 baseline_full
+        baseline_full = np.zeros_like(y_full)
+        if not np.all(finite_mask):
+            # 先准备 x_full 的排序映射
+            x_full = np.asarray(wavenumbers).ravel()
+            order_full = np.argsort(x_full[finite_mask])
+            # 放回有限位置
+            tmp = np.zeros_like(x_row)
+            tmp[order_full] = baseline_row  # baseline_row 已与 x_row 同排序
+            baseline_full[finite_mask] = tmp
+            # 对于非有限位置，保留原值的差为 0（等价于不校正）
+            baseline_full[~finite_mask] = 0.0
+        else:
+            # x 全有限
+            baseline_full[np.argsort(np.asarray(wavenumbers).ravel())] = baseline_row
+
+        corrected[j] = y_full - baseline_full
+
+    # 返回到原始形状
+    return corrected.T if transposed_back else corrected
 
 
 
