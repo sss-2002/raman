@@ -854,120 +854,56 @@ def KalmanF(xd, R):
 # IModPoly: improved modified multi-polynomial fit method
 def IModPoly(wavenumbers, originalRaman, polyorder, max_iter=100, tolerance=0.005):
     """
-    改进的多项式拟合基线校正（自适配输入形状）
-    入参:
-        wavenumbers: 一维波数数组，长度 = n_points
-        originalRaman: 光谱矩阵 (n_points, n_samples) 或 (n_samples, n_points)
+    改进的多项式拟合基线校正
+
+    参数:
+        wavenumbers: 拉曼位移(cm^-1)的一维数组
+        originalRaman: 原始拉曼光谱，形状为(n_samples, n_points)
         polyorder: 多项式阶数
-        max_iter, tolerance: 迭代与收敛阈值
+        max_iter: 最大迭代次数 (默认100)
+        tolerance: 收敛容差 (默认0.005)
+
     返回:
-        与 originalRaman 形状一致的校正结果
+        校正后的光谱，形状与originalRaman相同
     """
-    import numpy as np
+    row, col = originalRaman.shape
+    corrected = np.zeros((row, col))
 
-    # --- 规范化输入 ---
-    x = np.asarray(wavenumbers).ravel()
-    Y = np.asarray(originalRaman, dtype=float)
-
-    if Y.ndim != 2:
-        raise ValueError(f"originalRaman 必须是二维矩阵，当前 ndim={Y.ndim}")
-
-    # 识别并统一到内部形状 (n_samples, n_points)
-    transposed_back = False
-    if Y.shape[0] == x.size and Y.shape[1] != x.size:  # (n_points, n_samples)
-        Y = Y.T
-        transposed_back = True
-    elif Y.shape[1] == x.size:
-        pass  # 已是 (n_samples, n_points)
-    else:
-        raise ValueError(
-            f"输入维度与波数不匹配：wavenumbers(len={x.size}), originalRaman{originalRaman.shape}"
-        )
-
-    n_samples, n_points = Y.shape
-
-    # 去 NaN/Inf 并按 x 排序（x 与每条 y 用同一掩码/顺序）
-    finite_mask = np.isfinite(x)
-    if not np.all(finite_mask):
-        x = x[finite_mask]
-    sort_idx = np.argsort(x)
-    x_sorted = x[sort_idx]
-
-    # 预先为每条谱准备同样的掩码/排序
-    corrected = np.zeros_like(Y)
-
-    for j in range(n_samples):
-        y_full = Y[j]
-        # 与 x 同步清理
-        if not np.all(finite_mask):
-            y = y_full[finite_mask]
-        else:
-            y = y_full
-
-        # 若 y 与 x 仍不等长，说明该条谱自身有 NaN/Inf；再做一次行内掩码
-        row_mask = np.isfinite(y)
-        x_row = x_sorted if row_mask.all() else x_sorted[row_mask]
-        y_row = y[sort_idx] if row_mask.all() else y[sort_idx][row_mask]
-
-        if x_row.size != y_row.size:
-            raise ValueError(
-                f"样本 {j}：清理后 x 与 y 长度仍不等 (len(x)={x_row.size}, len(y)={y_row.size})"
-            )
-
-        # 迭代拟合
-        prev_spectrum = y_row.copy()
+    for j in range(row):
+        prev_spectrum = originalRaman[j]
         curr_spectrum = prev_spectrum.copy()
-        prev_std = 0.0
+        prev_std = 0
         converged = False
         iteration = 1
 
         while not converged and iteration <= max_iter:
-            # 多项式拟合与残差
-            coeffs = np.polyfit(x_row, curr_spectrum, polyorder)
-            fitted = np.polyval(coeffs, x_row)
+            # 多项式拟合
+            coeffs = np.polyfit(wavenumbers, curr_spectrum, polyorder)
+            fitted = np.polyval(coeffs, wavenumbers)
             residual = curr_spectrum - fitted
             curr_std = np.std(residual)
 
             # 光谱修正
             if iteration == 1:
+                # 首次迭代：去除明显峰
                 mask = prev_spectrum > (fitted + curr_std)
                 curr_spectrum[mask] = fitted[mask] + curr_std
             else:
+                # 后续迭代：重建模型
                 mask = prev_spectrum < (fitted + curr_std)
                 curr_spectrum = np.where(mask, prev_spectrum, fitted + curr_std)
 
-            # 收敛判定
-            relative_change = abs((curr_std - prev_std) / curr_std) if curr_std != 0 else 0.0
-            converged = (relative_change < tolerance)
+            # 检查收敛条件
+            relative_change = abs((curr_std - prev_std) / curr_std) if curr_std != 0 else 0
+            converged = relative_change < tolerance
+
             prev_spectrum = curr_spectrum
             prev_std = curr_std
             iteration += 1
 
-        # 将校正结果还原到与 y_full 同长度（插回被掩掉的点）
-        # 目标：original - baseline(fitted)
-        baseline_row = np.polyval(np.polyfit(x_row, curr_spectrum, polyorder), x_row)
+        corrected[j] = originalRaman[j] - fitted
 
-        # 构造完整长度 baseline_full
-        baseline_full = np.zeros_like(y_full)
-        if not np.all(finite_mask):
-            # 先准备 x_full 的排序映射
-            x_full = np.asarray(wavenumbers).ravel()
-            order_full = np.argsort(x_full[finite_mask])
-            # 放回有限位置
-            tmp = np.zeros_like(x_row)
-            tmp[order_full] = baseline_row  # baseline_row 已与 x_row 同排序
-            baseline_full[finite_mask] = tmp
-            # 对于非有限位置，保留原值的差为 0（等价于不校正）
-            baseline_full[~finite_mask] = 0.0
-        else:
-            # x 全有限
-            baseline_full[np.argsort(np.asarray(wavenumbers).ravel())] = baseline_row
-
-        corrected[j] = y_full - baseline_full
-
-    # 返回到原始形状
-    return corrected.T if transposed_back else corrected
-
+    return corrected
 
 
 # 移动窗口平均（MWA）滤波算法
@@ -1812,6 +1748,7 @@ def main():
                     '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
                     unsafe_allow_html=True)
 
+
             # 3. k值曲线区域（第二行第一列）
         with viz_row2[0]:
             st.subheader("k值曲线", divider="gray")
@@ -1822,14 +1759,14 @@ def main():
                     arr_data = st.session_state.arrangement_details[selected_arr]['data']
                     wavenumbers, y = st.session_state.raw_data
                     arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
-
+                    
                     if arr_order:  # 只有应用了预处理才有k值曲线
                         idx1 = 0 if arr_data.shape[1] > 0 else 0
                         k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
                         k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
                         # 关键：删除height=None，使用Streamlit默认高度（不指定height参数）
                         st.line_chart(k_data1)
-
+                        
                         # 显示更多k值曲线（折叠面板）
                         if y.shape[1] > 1:
                             with st.expander("查看更多k值曲线", expanded=False):
@@ -1846,7 +1783,7 @@ def main():
                     st.markdown(
                         '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
                         unsafe_allow_html=True)
-
+        
             # 4. 混淆矩阵区域（第二行第二列）
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
@@ -1864,17 +1801,17 @@ def main():
                 }
                 </style>
             """, unsafe_allow_html=True)
-
+            
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
-
+        
                 # 精确匹配k值曲线高度的图表尺寸
                 fig, ax = plt.subplots(figsize=(2.5, 1.5))  # 3.5英寸≈200px，与k值曲线默认高度匹配
                 sns.heatmap(
-                    results['confusion_matrix'],
-                    annot=True,
-                    fmt='d',
-                    cmap='Blues',
+                    results['confusion_matrix'], 
+                    annot=True, 
+                    fmt='d', 
+                    cmap='Blues', 
                     ax=ax,
                     annot_kws={"size": 4},
                     cbar_kws={"shrink": 0.9}
