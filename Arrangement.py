@@ -20,7 +20,43 @@ import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 
+def calculate_accuracy_for_all_arrangements():
+    """计算并存储所有排列组合的精确度"""
+    for arrangement in st.session_state.filtered_perms:
+        algorithm_order = arrangement.get('order', [])
 
+        # 应用当前的预处理方案
+        processed_data, method_name = preprocessor.process(
+            wavenumbers, y,
+            baseline_method=selected_algorithms['baseline'],
+            baseline_params=baseline_params,
+            squashing_method=selected_algorithms['squashing'],
+            squashing_params=squashing_params,
+            filtering_method=selected_algorithms['filtering'],
+            filtering_params=filtering_params,
+            scaling_method=selected_algorithms['scaling'],
+            scaling_params=scaling_params,
+            algorithm_order=algorithm_order
+        )
+
+        # 获取训练集和测试集
+        dataTrain = processed_data[:, st.session_state.train_indices]
+        dataTest = processed_data[:, st.session_state.test_indices]
+        LTrain = st.session_state.labels[st.session_state.train_indices]
+        LTest = st.session_state.labels[st.session_state.test_indices]
+
+        # 计算精确度与卡帕系数
+        accuracy, kappa = doit(dataTrain, dataTest, LTrain, PCs=0.9, __nam="方案")
+
+        # 存储精度
+        arrangement_name = arrangement.get('name', f"排列_{len(st.session_state.arrangement_results) + 1}")
+        st.session_state.arrangement_details[arrangement_name] = {
+            'data': processed_data,
+            'method': " → ".join(method_name),
+            'accuracy': accuracy,  # 存储准确率
+            'kappa': kappa,  # 存储卡帕系数
+            'params': selected_algorithms
+        }
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
@@ -1581,6 +1617,7 @@ def main():
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
+                    calculate_accuracy_for_all_arrangements()
                 else:
                     st.session_state.filtered_perms = []
 
