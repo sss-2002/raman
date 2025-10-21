@@ -64,6 +64,8 @@ def calculate_processed_spectra_for_all_arrangements():
 
         # 存储分类结果
         st.session_state.arrangement_details[arrangement_name]['accuracy'] = accuracy
+        st.session_state.arrangement_details[arrangement_name]['predictions'] = predictions  # 存储预测结果
+        st.session_state.arrangement_details[arrangement_name]['true_labels'] = test_labels  # 存储真实标签
 
         # 存储已处理的方案
         sorted_arrangements.append((arrangement_name, accuracy, method_name, predictions, test_labels))
