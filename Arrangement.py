@@ -39,13 +39,12 @@ def vote_prediction(predictions, k):
 
 def calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, y, selected_algorithms, baseline_params, squashing_params, filtering_params, scaling_method, scaling_params, algorithm_order):
     """计算并存储所有排列组合的预处理后的光谱数据并进行KNN分类"""
-    # sorted_arrangements 初始化
     sorted_arrangements = []
 
     # 遍历所有排列组合
     for arrangement in st.session_state.filtered_perms:
-        # 直接使用外部传递的 algorithm_order
-        algorithm_order = arrangement.get('order', algorithm_order)
+        # 不要在此处重新初始化 algorithm_order
+        # algorithm_order = arrangement.get('order', [])  # 移除此行
 
         # 应用当前的预处理方案
         processed_data, method_name = preprocessor.process(
@@ -58,7 +57,7 @@ def calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, 
             filtering_params=filtering_params,
             scaling_method=selected_algorithms['scaling'],
             scaling_params=scaling_params,
-            algorithm_order=algorithm_order  # 使用传递的 algorithm_order
+            algorithm_order=algorithm_order  # 使用外部传入的 algorithm_order
         )
 
         # 存储处理后的光谱数据
@@ -97,6 +96,12 @@ def calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, 
 
     # 存储排序后的方案和相应的预处理方法顺序
     st.session_state.sorted_arrangements = sorted_arrangements
+
+    # 仅存储相应的预处理方法顺序
+    for arrangement_name, accuracy, method_name, predictions, true_labels in sorted_arrangements:
+        # 存储排序后的预处理方法顺序
+        st.session_state.arrangement_details[arrangement_name]['method'] = method_name
+
 
     # 仅存储相应的预处理方法顺序
     for arrangement_name, accuracy, method_name, predictions, true_labels in sorted_arrangements:
