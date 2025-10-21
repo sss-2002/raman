@@ -1629,6 +1629,7 @@ def main():
                             filtering_params=filtering_params,
                             scaling_method=scaling_method,
                             scaling_params=scaling_params
+                            algorithm_order=selected_perm.get('order', [])
                         )
 
                         arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
