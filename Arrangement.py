@@ -1618,8 +1618,6 @@ def main():
                     st.warning("⚠️ 请先上传数据")
                 else:
                     try:
-                        selected_perm = st.session_state.filtered_perms[st.session_state.selected_perm_idx]
-                        algorithm_order = selected_perm.get('order', [])  # 获取排列顺序
                         wavenumbers, y = st.session_state.raw_data
                         processed_data, method_name = preprocessor.process(
                             wavenumbers, y,
@@ -1631,7 +1629,6 @@ def main():
                             filtering_params=filtering_params,
                             scaling_method=scaling_method,
                             scaling_params=scaling_params
-                            
                         )
 
                         arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
@@ -1647,6 +1644,7 @@ def main():
                         st.success(f"✅ 处理完成")
                     except Exception as e:
                         st.error(f"❌ 处理失败: {str(e)}")
+
 
         # 6. 显示排列与筛选
         with preprocess_cols[5]:
