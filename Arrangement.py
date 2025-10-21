@@ -21,7 +21,7 @@ from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 
 def calculate_accuracy_for_all_arrangements():
-    """计算并存储所有排列组合的精确度"""
+    """计算并存储所有排列组合的精确度，并进行排序"""
     for arrangement in st.session_state.filtered_perms:
         algorithm_order = arrangement.get('order', [])
 
@@ -57,6 +57,17 @@ def calculate_accuracy_for_all_arrangements():
             'kappa': kappa,  # 存储卡帕系数
             'params': selected_algorithms
         }
+
+    # 排序精确度（从高到低）
+    sorted_arrangements = sorted(
+        st.session_state.arrangement_details.items(),
+        key=lambda x: x[1]['accuracy'],  # 按照准确率排序
+        reverse=True  # 逆序，即准确率最高的方案在前
+    )
+
+    # 存储排序后的方案
+    st.session_state.sorted_arrangements = sorted_arrangements
+
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
