@@ -1639,6 +1639,16 @@ def main():
                             st.warning("⚠️ 请先上传数据")
                         else:
                             try:
+                                algos = {
+                                'baseline': baseline_method,
+                                'baseline_params': baseline_params,
+                                'squashing': squashing_method,
+                                'squashing_params': squashing_params,
+                                'filtering': filtering_method,
+                                'filtering_params': filtering_params,
+                                'scaling': scaling_method,
+                                'scaling_params': scaling_params,
+                                                                }
                                 wavenumbers, y = st.session_state.raw_data
                                 processed_data, method_name = preprocessor.process(
                                 wavenumbers, y,
