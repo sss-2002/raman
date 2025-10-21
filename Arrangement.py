@@ -20,7 +20,7 @@ import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 
-
+preprocessor = Preprocessor()
 def vote_prediction(predictions, k):
     """投票机制：对每个k值进行投票"""
     # 选择前k个分类结果
