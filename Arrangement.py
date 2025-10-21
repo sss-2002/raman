@@ -37,7 +37,7 @@ def vote_prediction(predictions, k):
     return voted_results
 
 
-def calculate_processed_spectra_for_all_arrangements(preprocessor):
+def calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, y):
     """计算并存储所有排列组合的预处理后的光谱数据并进行KNN分类"""
     sorted_arrangements = []
 
@@ -1662,7 +1662,7 @@ def main():
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
-                    calculate_processed_spectra_for_all_arrangements(preprocessor)
+                    calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, y)
                 else:
                     st.session_state.filtered_perms = []
 
