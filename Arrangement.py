@@ -1670,7 +1670,7 @@ def main():
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
-                    calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, y,selected_algorithms,baseline_params,squashing_params,filtering_params,scaling_method,scaling_params,algorithm_order)
+                    # calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, y,selected_algorithms,baseline_params,squashing_params,filtering_params,scaling_method,scaling_params,algorithm_order)
                 else:
                     st.session_state.filtered_perms = []
 
