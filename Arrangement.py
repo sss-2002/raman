@@ -41,10 +41,7 @@ def calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, 
     """计算并存储所有排列组合的预处理后的光谱数据并进行KNN分类"""
     sorted_arrangements = []
 
-    # 遍历所有排列组合
-    for arrangement in st.session_state.filtered_perms:
-        algorithm_order = arrangement.get('order', [])
-
+   
         # 应用当前的预处理方案
         processed_data, method_name = preprocessor.process(
             wavenumbers, y,
@@ -1663,7 +1660,7 @@ def main():
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
-                    # calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, y,selected_algorithms,baseline_params,squashing_params,filtering_params,scaling_method,scaling_params,algorithm_order)
+                    calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, y,selected_algorithms,baseline_params,squashing_params,filtering_params,scaling_method,scaling_params,algorithm_order)
                 else:
                     st.session_state.filtered_perms = []
 
