@@ -66,13 +66,17 @@ def calculate_processed_spectra_for_all_arrangements():
         st.session_state.arrangement_details[arrangement_name]['accuracy'] = accuracy
 
         # 存储已处理的方案
-        sorted_arrangements.append(arrangement_name)
+        sorted_arrangements.append((arrangement_name, accuracy))
+
+    # 按照准确率从高到低排序
+    sorted_arrangements = sorted(sorted_arrangements, key=lambda x: x[1], reverse=True)
 
     # 更新预处理方案列表
     st.session_state.processed_arrangements = list(st.session_state.arrangement_details.items())
 
     # 存储排序后的方案
     st.session_state.sorted_arrangements = sorted_arrangements
+
 
 
 # ===== 算法实现 =====
