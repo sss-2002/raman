@@ -1745,7 +1745,7 @@ def main():
                                     scaling_params=scaling_params,
                                     algorithm_order=selected_perm.get('order', [])
                                 )
-                                calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, y,selected_algorithms,baseline_params,squashing_params,filtering_params,scaling_method,scaling_params,algorithm_order)
+                                
 
                                 arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
                                 st.session_state.arrangement_results.append(arr_name)
@@ -1799,6 +1799,7 @@ def main():
                     st.warning("⚠️ 无法划分训练集")
                 else:
                     try:
+                        calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, y,selected_algorithms,baseline_params,squashing_params,filtering_params,scaling_method,scaling_params,algorithm_order)
                         selected_arr = st.session_state.selected_arrangement
                         processed_data = st.session_state.arrangement_details[selected_arr]['data']
                         train_idx = st.session_state.train_indices
