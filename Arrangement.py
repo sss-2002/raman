@@ -39,11 +39,11 @@ def vote_prediction(predictions, k):
 
 def calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, y,selected_algorithms,baseline_params,squashing_params,filtering_params,scaling_method,scaling_params,algorithm_order):
     """计算并存储所有排列组合的预处理后的光谱数据并进行KNN分类"""
-    sorted_arrangements = []
+            sorted_arrangements = []
 
    
         # 应用当前的预处理方案
-        processed_data, method_name = preprocessor.process(
+            processed_data, method_name = preprocessor.process(
             wavenumbers, y,
             baseline_method=selected_algorithms['baseline'],
             baseline_params=baseline_params,
