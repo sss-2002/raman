@@ -1270,6 +1270,7 @@ def generate_permutations(algorithms):
 
 def main():
     # 最优先初始化session state
+    preprocessor = Preprocessor()
     if 'show_arrangements' not in st.session_state:
         st.session_state.show_arrangements = False
 
