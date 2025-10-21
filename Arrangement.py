@@ -1216,7 +1216,7 @@ def main():
     }
 
     # 将 current_algorithms 存储到 session_state 中，以便全局访问
-    st.session_state['current_algorithms'] = current_algorithms
+    st.session_state.setdefault('current_algorithms', current_algorithms)
     # 初始化其他必要的session状态变量
     other_states = {
         'raw_data': None,
@@ -1640,20 +1640,18 @@ def main():
                         else:
                             try:
                                 wavenumbers, y = st.session_state.raw_data
-                                algos = st.session_state.current_algorithms
-
                                 processed_data, method_name = preprocessor.process(
-                                    wavenumbers, y,
-                                    baseline_method=algos['baseline'],
-                                    baseline_params=algos['baseline_params'],
-                                    squashing_method=algos['squashing'],
-                                    squashing_params=algos['squashing_params'],
-                                    filtering_method=algos['filtering'],
-                                    filtering_params=algos['filtering_params'],
-                                    scaling_method=algos['scaling'],
-                                    scaling_params=algos['scaling_params'],
-                                    algorithm_order=selected_perm.get('order', [])
-                                )
+                                wavenumbers, y,
+                                baseline_method=baseline_method,
+                                baseline_params=baseline_params,
+                                squashing_method=squashing_method,
+                                squashing_params=squashing_params,
+                                filtering_method=filtering_method,
+                                filtering_params=filtering_params,
+                                scaling_method=scaling_method,
+                                scaling_params=scaling_params,
+                                algorithm_order=selected_perm.get('order', [])
+                                                                                )
 
                                 arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
                                 st.session_state.arrangement_results.append(arr_name)
