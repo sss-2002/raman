@@ -20,8 +20,9 @@ import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 
-def calculate_accuracy_for_all_arrangements():
-    """计算并存储所有排列组合的精确度，并进行排序"""
+def calculate_processed_spectra_for_all_arrangements():
+    """计算并存储所有排列组合的预处理后的光谱数据"""
+    # 遍历所有排列组合
     for arrangement in st.session_state.filtered_perms:
         algorithm_order = arrangement.get('order', [])
 
@@ -39,31 +40,16 @@ def calculate_accuracy_for_all_arrangements():
             algorithm_order=algorithm_order
         )
 
-        # 获取训练集和测试集
-        dataTrain = processed_data[:, st.session_state.train_indices]
-        dataTest = processed_data[:, st.session_state.test_indices]
-        LTrain = st.session_state.labels[st.session_state.train_indices]
-        LTest = st.session_state.labels[st.session_state.test_indices]
-
-        # 计算精确度与卡帕系数
-        accuracy, kappa = doit(dataTrain, dataTest, LTrain, PCs=0.9, __nam="方案")
-
-        # 存储精度
+        # 存储处理后的光谱数据
         arrangement_name = arrangement.get('name', f"排列_{len(st.session_state.arrangement_results) + 1}")
         st.session_state.arrangement_details[arrangement_name] = {
-            'data': processed_data,
-            'method': " → ".join(method_name),
-            'accuracy': accuracy,  # 存储准确率
-            'kappa': kappa,  # 存储卡帕系数
-            'params': selected_algorithms
+            'data': processed_data,  # 存储处理后的光谱数据
+            'method': " → ".join(method_name),  # 存储预处理方法的顺序
+            'params': selected_algorithms  # 存储所选算法的参数
         }
 
-    # 排序精确度（从高到低）
-    sorted_arrangements = sorted(
-        st.session_state.arrangement_details.items(),
-        key=lambda x: x[1]['accuracy'],  # 按照准确率排序
-        reverse=True  # 逆序，即准确率最高的方案在前
-    )
+    # 更新预处理方案列表
+    st.session_state.processed_arrangements = list(st.session_state.arrangement_details.items())
 
     # 存储排序后的方案
     st.session_state.sorted_arrangements = sorted_arrangements
@@ -1628,7 +1614,7 @@ def main():
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
-                    calculate_accuracy_for_all_arrangements()
+                    calculate_processed_spectra_for_all_arrangements()
                 else:
                     st.session_state.filtered_perms = []
 
