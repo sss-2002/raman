@@ -1618,6 +1618,8 @@ def main():
                     st.warning("⚠️ 请先上传数据")
                 else:
                     try:
+                        selected_perm = st.session_state.filtered_perms[st.session_state.selected_perm_idx]
+                        algorithm_order = selected_perm.get('order', [])  # 获取排列顺序
                         wavenumbers, y = st.session_state.raw_data
                         processed_data, method_name = preprocessor.process(
                             wavenumbers, y,
