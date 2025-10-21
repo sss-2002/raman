@@ -21,7 +21,9 @@ from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 
 def calculate_processed_spectra_for_all_arrangements():
-    """计算并存储所有排列组合的预处理后的光谱数据"""
+    """计算并存储所有排列组合的预处理后的光谱数据并进行KNN分类"""
+    sorted_arrangements = []
+
     # 遍历所有排列组合
     for arrangement in st.session_state.filtered_perms:
         algorithm_order = arrangement.get('order', [])
@@ -48,11 +50,30 @@ def calculate_processed_spectra_for_all_arrangements():
             'params': selected_algorithms  # 存储所选算法的参数
         }
 
+        # 获取训练集和测试集
+        train_data = processed_data[:, st.session_state.train_indices]
+        test_data = processed_data[:, st.session_state.test_indices]
+        train_labels = st.session_state.labels[st.session_state.train_indices]
+        test_labels = st.session_state.labels[st.session_state.test_indices]
+
+        # 进行KNN分类
+        predictions = knn_classify(train_data, train_labels, test_data, k=5)
+
+        # 计算准确率
+        accuracy = accuracy_score(test_labels, predictions)
+
+        # 存储分类结果
+        st.session_state.arrangement_details[arrangement_name]['accuracy'] = accuracy
+
+        # 存储已处理的方案
+        sorted_arrangements.append(arrangement_name)
+
     # 更新预处理方案列表
     st.session_state.processed_arrangements = list(st.session_state.arrangement_details.items())
 
     # 存储排序后的方案
     st.session_state.sorted_arrangements = sorted_arrangements
+
 
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
