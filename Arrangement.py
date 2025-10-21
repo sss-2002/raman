@@ -66,7 +66,7 @@ def calculate_processed_spectra_for_all_arrangements():
         st.session_state.arrangement_details[arrangement_name]['accuracy'] = accuracy
 
         # 存储已处理的方案
-        sorted_arrangements.append((arrangement_name, accuracy))
+        sorted_arrangements.append((arrangement_name, accuracy, method_name, predictions, test_labels))
 
     # 按照准确率从高到低排序
     sorted_arrangements = sorted(sorted_arrangements, key=lambda x: x[1], reverse=True)
@@ -74,8 +74,14 @@ def calculate_processed_spectra_for_all_arrangements():
     # 更新预处理方案列表
     st.session_state.processed_arrangements = list(st.session_state.arrangement_details.items())
 
-    # 存储排序后的方案
+    # 存储排序后的方案和相应的预处理方法顺序
     st.session_state.sorted_arrangements = sorted_arrangements
+
+    # 仅存储相应的预处理方法顺序
+    for arrangement_name, accuracy, method_name, predictions, true_labels in sorted_arrangements:
+        # 存储排序后的预处理方法顺序
+        st.session_state.arrangement_details[arrangement_name]['method'] = method_name
+
 
 
 
