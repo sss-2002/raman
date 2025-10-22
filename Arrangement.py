@@ -1591,7 +1591,7 @@ def main():
                     st.session_state.filtered_perms = []
 
                 st.rerun()
-           with preprocess_cols[6]:
+        with preprocess_cols[6]:
                 st.subheader("操作3")
             
                 # 添加存储排列组合的按钮
