@@ -23,6 +23,7 @@ from sklearn.neighbors import KNeighborsClassifier
 
 import io
 import csv
+st.set_page_config(layout="wide", page_icon="🔬", page_title="排列预处理模型"
 
 labels_input = st.session_state.labels  # 用户输入的标签
 train_test_ratio = st.session_state.train_test_split_ratio  # 训练集比例
