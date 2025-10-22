@@ -1650,17 +1650,13 @@ def main():
                             st.error(f"❌ 特征样本数（{X.shape[0]}）与标签样本数（{len(y)}）不一致！")
                             return
 
-                        # 数据标准化
-                        scaler = StandardScaler()
-                        X_scaled = scaler.fit_transform(X)
-
                         # 划分训练集和测试集
-                        X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.3, random_state=42)
+                        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
                         # 初始化准确率列表
                         accuracies = []
 
-                        # 对每个 k 值进行KNN分类和投票（k值范围从1到65）
+                        # 对每个 k 值进行KNN分类和投票
                         for k in range(1, 66):  # 从k=1到k=65
                             knn = KNeighborsClassifier(n_neighbors=k)
 
@@ -1677,17 +1673,27 @@ def main():
                         # 将准确率列表转换为DataFrame
                         accuracies_df = pd.DataFrame(accuracies)
 
-                        # 显示准确率与k值的关系
-                        st.write("按k值排列的准确率：")
-                        st.dataframe(accuracies_df)
+                        # 按照准确率从高到低排序
+                        accuracies_df_sorted = accuracies_df.sort_values(by='accuracy', ascending=False)
 
-                        # 绘制 K 值曲线（k从1到65）
+                        # 显示排序后的准确率
+                        st.write("按准确率排序后的k值：")
+                        st.dataframe(accuracies_df_sorted)
+
+                        # 绘制 K 值曲线（排序后的准确率）
                         plt.figure(figsize=(10, 6))
-                        plt.plot(accuracies_df['k'], accuracies_df['accuracy'], marker='o', linestyle='-', color='b')
-                        plt.title("KNN: k 值与准确率的关系")
+                        plt.plot(accuracies_df_sorted['k'], accuracies_df_sorted['accuracy'], marker='o', linestyle='-',
+                                 color='b')
+                        plt.title("KNN: k 值曲线（按准确率排序）")
                         plt.xlabel("k 值")
                         plt.ylabel("准确率")
                         st.pyplot(plt)
+
+                        # 保存排序后的准确率到Excel文件
+                        sorted_file_path = "/mnt/data/sorted_k_values_accuracy.xlsx"
+                        accuracies_df_sorted.to_excel(sorted_file_path, index=False)
+
+                        st.write(f"✅ 排序后的准确率数据已保存为：{sorted_file_path}")
 
                     else:
                         st.error(f"❌ 请先上传原始光谱数据")
