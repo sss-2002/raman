@@ -1607,7 +1607,6 @@ def main():
                             filtering_params = perm.get('params', {}).get('filtering_params', {})
                             squashing_params = perm.get('params', {}).get('squashing_params', {})
 
-                            # 处理数据
                             try:
                                 processed_data, method_name = preprocessor.process(
                                     wavenumbers, y,
