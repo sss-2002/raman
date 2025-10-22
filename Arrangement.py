@@ -24,9 +24,14 @@ from sklearn.neighbors import KNeighborsClassifier
 # 准备数据函数，假设你已经有了训练集和测试集
 def prepare_data():
     # 从st.session_state中获取处理后的光谱数据
-    processed_spectra = np.array(st.session_state.processed_spectra)  # 将列表转换为 NumPy 数组
+    processed_spectra = st.session_state.processed_spectra  # 65 种预处理后的光谱数据
     labels_input = st.session_state.labels  # 用户输入的标签
     train_test_ratio = st.session_state.train_test_split_ratio  # 训练集比例
+
+    # 确保 processed_spectra 是二维数组（样本数 x 特征数）
+    processed_spectra = np.array(processed_spectra)
+    if processed_spectra.ndim == 1:
+        processed_spectra = processed_spectra.reshape(-1, 1)  # 如果是1维，调整为2维
 
     # 划分训练集和测试集
     n_samples = len(labels_input)
@@ -57,27 +62,21 @@ def prepare_data():
     test_data = np.array(test_data)
     test_labels = np.array(test_labels)
 
-    # 展平每个样本的光谱数据 (n_samples, n_points * n_features)
-    train_data = train_data.reshape(train_data.shape[0], -1)  # 将训练数据展平成二维数组
-    test_data = test_data.reshape(test_data.shape[0], -1)  # 将测试数据展平成二维数组
-
     return train_data, train_labels, test_data, test_labels
 
 
-# 投票函数（按k值投票）
-def vote_predictions(predictions, k):
-    selected_predictions = predictions[:, :k]  # 选择前k个预测
-    final_predictions = []
-    for row in selected_predictions:
-        most_common = np.bincount(row).argmax()  # 投票机制：选择出现最多的类别
-        final_predictions.append(most_common)
-    return np.array(final_predictions)
 
 
 # KNN 分类和投票函数
 def knn_classification_and_voting(train_data, train_labels, test_data, test_labels):
     # 动态调整 n_neighbors，确保不超过样本数量
     n_neighbors = min(5, len(train_data))  # 设置 n_neighbors 为训练集样本数的最小值
+
+    # 确保输入数据是二维的
+    if train_data.ndim == 1:
+        train_data = train_data.reshape(-1, 1)
+    if test_data.ndim == 1:
+        test_data = test_data.reshape(-1, 1)
 
     # KNN 分类并输出准确率
     knn = KNeighborsClassifier(n_neighbors=n_neighbors)
