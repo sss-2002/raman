@@ -1625,46 +1625,38 @@ def main():
                                 processed_results.append({
                                     'arrangement_name': f"排列_{i + 1}",
                                     'method': " → ".join(method_name),
-                                    'data': processed_data.tolist()  # 将数据转为列表形式以便保存
+                                    'data': processed_data.tolist()  # 将数据转为列表形式以便处理
                                 })
-
-                                # 将每个处理结果保存为 CSV 文件
-                                result_df = pd.DataFrame(processed_results)
-                                file_path = os.path.join(cloud_storage_dir, f"processed_spectra_{i + 1}.csv")
-                                result_df.to_csv(file_path, index=False)
 
                             except Exception as e:
                                 st.error(f"❌ 处理失败: 排列_{i + 1} - 错误: {str(e)}")
 
-                        st.success(f"✅ 处理过的光谱数据已保存到云端：{cloud_storage_dir}")
+                        # 将处理结果直接存储在一个变量中（内存中的数据）
+                        processed_data_df = pd.DataFrame(processed_results)
 
-                        # 现在进行 KNN 分类
+                        # 获取特征 X 和标签 y
+                        X = processed_data_df['data'].apply(pd.Series)  # 将每个光谱的列表数据展开成DataFrame
+                        y = np.array(labels)  # 使用用户输入的标签作为目标变量
+
+                        # 划分训练集和测试集
+                        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+                        # 初始化准确率列表
                         accuracies = []
 
+                        # 对每个 k 值进行KNN分类和投票
                         for k in range(1, 66):  # 从k=1到k=65
                             knn = KNeighborsClassifier(n_neighbors=k)
 
-                            # 假设从云端目录中读取每个处理后的文件
-                            for i in range(1, len(st.session_state.algorithm_permutations) + 1):
-                                file_path = os.path.join(cloud_storage_dir, f"processed_spectra_{i}.csv")
-                                if os.path.exists(file_path):
-                                    df = pd.read_csv(file_path)
-                                    X = df['data'].apply(pd.Series)  # 将每个光谱的列表数据展开成DataFrame
-                                    y = np.array(labels)  # 使用用户输入的标签作为目标变量
+                            # 训练KNN分类器
+                            knn.fit(X_train, y_train)
 
-                                    # 划分训练集和测试集
-                                    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3,
-                                                                                        random_state=42)
+                            # 预测测试集
+                            y_pred = knn.predict(X_test)
 
-                                    # 训练KNN分类器
-                                    knn.fit(X_train, y_train)
-
-                                    # 预测测试集
-                                    y_pred = knn.predict(X_test)
-
-                                    # 计算准确率
-                                    accuracy = accuracy_score(y_test, y_pred)
-                                    accuracies.append({'k': k, 'accuracy': accuracy})
+                            # 计算准确率
+                            accuracy = accuracy_score(y_test, y_pred)
+                            accuracies.append({'k': k, 'accuracy': accuracy})
 
                         # 将准确率列表转换为DataFrame
                         accuracies_df = pd.DataFrame(accuracies)
