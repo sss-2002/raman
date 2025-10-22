@@ -30,8 +30,10 @@ def prepare_data():
 
     # 确保 processed_spectra 是二维数组（样本数 x 特征数）
     processed_spectra = np.array(processed_spectra)
-    if processed_spectra.ndim == 1:
-        processed_spectra = processed_spectra.reshape(-1, 1)  # 如果是1维，调整为2维
+    
+    # 如果数据是三维的 (n_samples x n_features x 1)，我们可以通过 reshape 将它变为二维
+    if processed_spectra.ndim == 3:
+        processed_spectra = processed_spectra.reshape(processed_spectra.shape[0], -1)
 
     # 划分训练集和测试集
     n_samples = len(labels_input)
@@ -138,8 +140,6 @@ def knn_classification_and_voting(train_data, train_labels, test_data, test_labe
 
     # 输出最终结果
     st.write("k 值与准确率曲线已绘制完成！")
-
-
 
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
