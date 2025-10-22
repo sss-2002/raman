@@ -1607,7 +1607,7 @@ def main():
                 st.subheader("操作4")
 
                         # 按排列组合处理数据
-                        if st.button("开始处理光谱", type="primary", use_container_width=True,
+                    if st.button("开始处理光谱", type="primary", use_container_width=True,
                                      key="process_spectra_btn"):
                             # 获取原始光谱数据
                             if st.session_state.get('raw_data'):
