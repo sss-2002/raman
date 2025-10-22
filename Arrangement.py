@@ -22,6 +22,7 @@ import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 import csv
 import pandas as pd
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split
 cloud_storage_dir = "/mnt/data/processed_spectra"  # 临时目录，用于存储文件
 
 # ===== 算法实现 =====
