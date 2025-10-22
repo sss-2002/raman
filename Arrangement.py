@@ -19,6 +19,7 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
+import csv
 
 def generate_all_combinations(current_algorithms):
     """
@@ -1607,6 +1608,15 @@ def main():
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
                     all_combinations = generate_all_combinations(current_algorithms)
+                    with open("combinations.csv", "w", newline='') as f:
+                        writer = csv.writer(f)
+                        writer.writerow(["Baseline", "Scaling", "Filtering", "Squashing"])  # CSV 文件的标题行
+                        
+                        # 遍历 all_combinations 并写入每个组合
+                        for combination in all_combinations:
+                            writer.writerow(combination)
+
+                    print("combinations.csv 文件已生成。")
                 else:
                     st.session_state.filtered_perms = []
 
