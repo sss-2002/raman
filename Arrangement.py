@@ -1644,7 +1644,7 @@ def main():
                 else:
                     st.session_state.filtered_perms = []
 
-                st.rerun()  # 重新运行以更新页面
+                #st.rerun()  # 重新运行以更新页面
         # 7. 排列选择与应用
         with preprocess_cols[6]:
             st.subheader("操作3")
