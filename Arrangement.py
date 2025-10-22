@@ -1621,7 +1621,7 @@ def main():
                 
 
 
-      with preprocess_cols[6]:
+       with preprocess_cols[6]:
             st.subheader("操作4")
             
             # 按排列组合处理数据
