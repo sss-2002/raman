@@ -21,7 +21,7 @@ from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 import io
 import csv
-from sklearn.neighbors import KNeighborsClassifier
+
 
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
@@ -1565,15 +1565,11 @@ def main():
                     except Exception as e:
                         st.error(f"❌ 处理失败: {str(e)}")
 
-        st.set_page_config(page_title="光谱分类与排序", layout="wide")
-
-        # 获取标签和训练集比例
-        labels_input = st.session_state.labels  # 用户输入的标签
-        train_test_ratio = st.session_state.train_test_split_ratio  # 训练集比例
+        # 6. 显示排列与筛选
         with preprocess_cols[5]:
             st.subheader("操作2")
             # 显示排列按钮
-            if st.button("🔍 显示排列并计算准确率", type="secondary", use_container_width=True, key="show_perm_btn"):
+            if st.button("🔍 显示排列", type="secondary", use_container_width=True, key="show_perm_btn"):
                 st.session_state.show_arrangements = not st.session_state.show_arrangements
 
                 if st.session_state.show_arrangements:
@@ -1583,70 +1579,128 @@ def main():
                         'filtering': filtering_method,
                         'squashing': squashing_method
                     }
-
-                    # 生成排列组合并存储
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
-                    st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
+                    st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
 
-                    # 获取原始光谱数据并进行处理
-                    if st.session_state.get('raw_data') and labels_input:
-                        wavenumbers, y = st.session_state.raw_data
-                        processed_results = {}  # 存储每个排列组合的处理结果
-                        knn_accuracies = {}  # 存储每个排列组合的分类准确率
-                        knn_predictions = {}  # 存储每个排列组合的预测标签
 
-                        # 处理每个排列组合并进行KNN分类
-                        for i, perm in enumerate(st.session_state.algorithm_permutations):
-                            arrangement_name = f"排列_{i + 1}"
 
-                            # 获取每个排列组合的处理后数据
-                            processed_data = st.session_state.get(arrangement_name, {}).get('data')
 
-                            if processed_data is not None:
-                                # 使用训练集和测试集的索引
-                                train_idx = st.session_state.train_indices
-                                test_idx = st.session_state.test_indices
 
-                                # 提取训练集和测试集数据
-                                train_data = processed_data[:, train_idx]
-                                test_data = processed_data[:, test_idx]
-                                train_labels = labels_input[train_idx]  # 使用用户输入的标签
-                                test_labels = labels_input[test_idx]  # 使用用户输入的标签
-
-                                # 初始化KNN分类器
-                                knn = KNeighborsClassifier(n_neighbors=5)
-
-                                # 训练KNN模型
-                                knn.fit(train_data.T, train_labels)
-
-                                # 进行预测
-                                predictions = knn.predict(test_data.T)
-
-                                # 计算分类准确率
-                                accuracy = accuracy_score(test_labels, predictions)
-                                knn_accuracies[arrangement_name] = accuracy
-                                knn_predictions[arrangement_name] = predictions
-
-                        # 对排列组合按准确率从高到低进行排序
-                        sorted_accuracies = dict(sorted(knn_accuracies.items(), key=lambda item: item[1], reverse=True))
-
-                        # 存储排序后的排列组合和处理结果
-                        st.session_state.sorted_results = {}
-                        for arrangement_name in sorted_accuracies:
-                            st.session_state.sorted_results[arrangement_name] = {
-                                'accuracy': sorted_accuracies[arrangement_name],
-                                'predictions': knn_predictions[arrangement_name]
-                            }
-
-                        st.success("✅ 排列组合的准确率和预测标签已成功存储！")
-
-                    else:
-                        st.warning("⚠️ 请先上传原始光谱数据和标签")
                 else:
                     st.session_state.filtered_perms = []
 
-                st.rerun()  # 重新运行以更新页面
+                st.rerun()
+        with preprocess_cols[6]:
+                st.subheader("操作3")
+            
+                # 添加存储排列组合的按钮
+                if st.button("存储排列组合", type="secondary", use_container_width=True, key="store_combinations_btn"):
+                    # 检查是否已经生成排列组合
+                    if st.session_state.get('algorithm_permutations'):
+                        # 如果有排列组合，直接存储它们到 st.session_state 中
+                        st.session_state['stored_combinations'] = st.session_state.get('algorithm_permutations')
+                        st.success("✅ 排列组合已成功存储！")
+                    else:
+                        st.warning("⚠️ 还未生成排列组合，请先生成排列组合。")
+        with preprocess_cols[6]:
+                st.subheader("操作4")
+
+                        # 按排列组合处理数据
+                        if st.button("开始处理光谱", type="primary", use_container_width=True,
+                                     key="process_spectra_btn"):
+                            # 获取原始光谱数据
+                            if st.session_state.get('raw_data'):
+                                wavenumbers, y = st.session_state.raw_data
+                                processed_results = {}  # 用来存储处理结果
+
+                                # 处理每个排列组合
+                                for i, perm in enumerate(st.session_state.algorithm_permutations):
+                                    # 获取排列组合的算法顺序
+                                    algorithm_order = perm.get('order', [])
+
+                                    # 获取每个排列组合中的算法名称和参数
+                                    baseline_method = perm.get('params', {}).get('baseline', '无')
+                                    scaling_method = perm.get('params', {}).get('scaling', '无')
+                                    filtering_method = perm.get('params', {}).get('filtering', '无')
+                                    squashing_method = perm.get('params', {}).get('squashing', '无')
+
+                                    # 传递参数给 Preprocessor
+                                    baseline_params = perm.get('params', {}).get('baseline_params', {})
+                                    scaling_params = perm.get('params', {}).get('scaling_params', {})
+                                    filtering_params = perm.get('params', {}).get('filtering_params', {})
+                                    squashing_params = perm.get('params', {}).get('squashing_params', {})
+
+                                    # 处理数据
+                                    try:
+                                        processed_data, method_name = preprocessor.process(
+                                            wavenumbers, y,
+                                            baseline_method=baseline_method, baseline_params=baseline_params,
+                                            squashing_method=squashing_method, squashing_params=squashing_params,
+                                            filtering_method=filtering_method, filtering_params=filtering_params,
+                                            scaling_method=scaling_method, scaling_params=scaling_params,
+                                            algorithm_order=algorithm_order  # 按照排列组合的顺序进行处理
+                                        )
+
+                                        # 存储处理结果到 st.session_state 中
+                                        arrangement_name = f"排列_{i + 1}"
+                                        st.session_state[arrangement_name] = {
+                                            'data': processed_data,
+                                            'method': " → ".join(method_name)  # 保存处理的步骤
+                                        }
+
+                                        st.success(f"✅ 处理完成: {arrangement_name} ({', '.join(method_name)})")
+
+                                    except Exception as e:
+                                        st.error(f"❌ 处理失败: 排列_{i + 1} - 错误: {str(e)}")
+
+                                # 所有排列组合的处理结果存储完成后，统一展示结果
+                                st.subheader("处理后的所有光谱数据")
+                                for arrangement_name, result in st.session_state.items():
+                                    if arrangement_name.startswith("排列_"):  # 确保只展示排列组合的结果
+                                        st.write(f"**{arrangement_name} 的处理结果**")
+                                        st.dataframe(result['data'])
+
+                            else:
+                                st.warning("⚠️ 请先上传原始光谱数据")
+
+                    # 展示 DataFrame
+                    st.write("当前的排列组合：")
+                    st.dataframe(df)  # 使用 st.dataframe() 展示为表格
+
+                else:
+                    # 如果没有排列组合，给出提示
+                    st.warning("⚠️ 尚未生成任何排列组合。请先点击'显示排列'生成排列方案。")
+    
+
+            # 排列方案选择（紧凑显示）
+            if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
+                # 第一步类型筛选
+                try:
+                    all_first_step_types = list({
+                        perm.get("first_step_type", "未知")
+                        for perm in st.session_state.algorithm_permutations
+                    })
+                    all_first_step_types.sort()
+                except Exception as e:
+                    st.error(f"❌ 筛选错误: {str(e)}")
+                    all_first_step_types = ["全部", "无预处理", "基线校准", "缩放", "滤波", "挤压"]
+
+                selected_first_step = st.selectbox(
+                    "第一步类型",
+                    ["全部"] + all_first_step_types,
+                    key="first_step_filter",
+                    label_visibility="collapsed"
+                )
+
+                # 筛选排列
+                if selected_first_step == "全部":
+                    st.session_state.filtered_perms = st.session_state.algorithm_permutations
+                else:
+                    st.session_state.filtered_perms = [
+                        p for p in st.session_state.algorithm_permutations
+                        if p.get("first_step_type") == selected_first_step
+                    ]
 
         # 7. 排列选择与应用
         with preprocess_cols[6]:
@@ -1893,18 +1947,18 @@ def main():
             st.subheader("混淆矩阵", divider="gray")
             # 强制高度一致的CSS（修复选择器，确保生效）
             st.markdown("""
-                        <style>
-                        /* 定位第二行的两列容器，强制高度相同 */
-                        [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"] {
-                            height: 100% !important;
-                        }
-                        /* 消除图表内外边距 */
-                        [data-testid="stMatplotlibChart"] {
-                            margin: 0 !important;
-                            padding: 0 !important;
-                        }
-                        </style>
-                    """, unsafe_allow_html=True)
+                <style>
+                /* 定位第二行的两列容器，强制高度相同 */
+                [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"] {
+                    height: 100% !important;
+                }
+                /* 消除图表内外边距 */
+                [data-testid="stMatplotlibChart"] {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+                </style>
+            """, unsafe_allow_html=True)
 
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
@@ -1932,32 +1986,31 @@ def main():
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">请先进行分类测试</div>',
                     unsafe_allow_html=True)
+        # 结果导出
+        if st.session_state.arrangement_results or st.session_state.get('processed_data'):
+            st.subheader("💾 结果导出", divider="gray")
+            export_cols = st.columns([3, 1], gap="small")
+            with export_cols[0]:
+                export_name = st.text_input("导出文件名", "processed_spectra.txt", key="export_name")
+            with export_cols[1]:
+                st.markdown("<br>", unsafe_allow_html=True)  # 垂直对齐
+                if st.button("导出", type="secondary", key="export_btn"):
+                    try:
+                        if st.session_state.selected_arrangement:
+                            arr_data = st.session_state.arrangement_details[st.session_state.selected_arrangement][
+                                'data']
+                            file_handler.export_data(export_name, arr_data)
+                        else:
+                            wavenumbers, y_processed = st.session_state.processed_data
+                            file_handler.export_data(export_name, y_processed)
+                        st.success(f"✅ 已导出到 {export_name}")
+                    except Exception as e:
+                        st.error(f"❌ 导出失败: {str(e)}")
+        else:
+            st.markdown(
+                '<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>',
+                unsafe_allow_html=True)
 
-
-# 结果导出
-if st.session_state.arrangement_results or st.session_state.get('processed_data'):
-    st.subheader("💾 结果导出", divider="gray")
-    export_cols = st.columns([3, 1], gap="small")
-    with export_cols[0]:
-        export_name = st.text_input("导出文件名", "processed_spectra.txt", key="export_name")
-    with export_cols[1]:
-        st.markdown("<br>", unsafe_allow_html=True)  # 垂直对齐
-        if st.button("导出", type="secondary", key="export_btn"):
-            try:
-                if st.session_state.selected_arrangement:
-                    arr_data = st.session_state.arrangement_details[st.session_state.selected_arrangement][
-                        'data']
-                    file_handler.export_data(export_name, arr_data)
-                else:
-                    wavenumbers, y_processed = st.session_state.processed_data
-                    file_handler.export_data(export_name, y_processed)
-                st.success(f"✅ 已导出到 {export_name}")
-            except Exception as e:
-                st.error(f"❌ 导出失败: {str(e)}")
-else:
-    st.markdown(
-        '<div style="border:1px dashed #ccc; height:80px; display:flex; align-items:center; justify-content:center;">处理完成后可导出结果</div>',
-        unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
