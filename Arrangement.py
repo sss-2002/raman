@@ -32,9 +32,7 @@ def get_csv_file(algorithm_permutations):
         writer.writerow([name, order, params])
     return output.getvalue()
 
-# 在Streamlit应用中提供下载按钮
-csv_data = get_csv_file(st.session_state.algorithm_permutations)
-st.download_button("下载排列方案", csv_data, "arrangements.csv", mime="text/csv")
+
 
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
@@ -1606,6 +1604,10 @@ def main():
                     st.session_state.filtered_perms = []
 
                 st.rerun()
+             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
+                # 使用 st.download_button 提供下载功能
+                csv_data = get_csv_file(st.session_state.algorithm_permutations)
+                st.download_button("下载排列方案", csv_data, "arrangements.csv", mime="text/csv")
 
             # 排列方案选择（紧凑显示）
             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
