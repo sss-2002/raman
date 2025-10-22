@@ -24,12 +24,9 @@ from sklearn.neighbors import KNeighborsClassifier
 # 准备数据函数，假设你已经有了训练集和测试集
 def prepare_data():
     # 从st.session_state中获取处理后的光谱数据
-    processed_spectra = st.session_state.processed_spectra  # 65 种预处理后的光谱数据
+    processed_spectra = np.array(st.session_state.processed_spectra)  # 将列表转换为 NumPy 数组
     labels_input = st.session_state.labels  # 用户输入的标签
     train_test_ratio = st.session_state.train_test_split_ratio  # 训练集比例
-
-    # 如果数据是三维的（n_samples, n_points, n_features），就需要将它展平为二维的（n_samples, n_points * n_features）
-    processed_spectra_2d = processed_spectra.reshape(processed_spectra.shape[0], -1)
 
     # 划分训练集和测试集
     n_samples = len(labels_input)
@@ -39,10 +36,30 @@ def prepare_data():
     test_indices = indices[train_size:]
 
     # 获取训练集和测试集
-    train_data = processed_spectra_2d[train_indices]
-    train_labels = labels_input[train_indices]
-    test_data = processed_spectra_2d[test_indices]
-    test_labels = labels_input[test_indices]
+    train_data = []
+    train_labels = []
+    test_data = []
+    test_labels = []
+
+    # 填充训练集和测试集
+    for i in range(n_samples):
+        spectrum = processed_spectra[i]  # 获取每个处理后的光谱
+        if i in train_indices:
+            train_data.append(spectrum)
+            train_labels.append(labels_input[i])
+        else:
+            test_data.append(spectrum)
+            test_labels.append(labels_input[i])
+
+    # 转换为 numpy 数组
+    train_data = np.array(train_data)
+    train_labels = np.array(train_labels)
+    test_data = np.array(test_data)
+    test_labels = np.array(test_labels)
+
+    # 展平每个样本的光谱数据 (n_samples, n_points * n_features)
+    train_data = train_data.reshape(train_data.shape[0], -1)  # 将训练数据展平成二维数组
+    test_data = test_data.reshape(test_data.shape[0], -1)  # 将测试数据展平成二维数组
 
     return train_data, train_labels, test_data, test_labels
 
