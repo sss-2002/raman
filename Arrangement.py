@@ -1456,9 +1456,11 @@ def main():
                 key="baseline_method",
                 label_visibility="collapsed"
             )
-            if baseline_method != "无" and "基线校准" not in st.session_state['algorithm_order']:
-                        st.session_state['algorithm_order'].append("基线校准")
-            
+            if baseline_method != "无":
+                st.session_state['algorithm_order'].append("基线校正")
+                method_index = {"SD": 1, "FD": 2, "多项式拟合": 3, "ModPoly": 4, "I-ModPoly": 5, "PLS": 6, "AsLS": 7, "airPLS": 8, "二阶差分(D2)": 9}
+                st.session_state['method_index'].append(method_index.get(baseline_method))
+
 
             # 基线参数
             baseline_params = {}
@@ -1508,8 +1510,10 @@ def main():
                 key="scaling_method",
                 label_visibility="collapsed"
             )
-            if scaling_method != "无" and "缩放" not in st.session_state['algorithm_order']:
-                    st.session_state['algorithm_order'].append("缩放")
+            if scaling_method != "无":
+                st.session_state['algorithm_order'].append("缩放")
+                method_index = {"Peak-Norm": 1, "SNV": 2, "MSC": 3, "M-M-Norm": 4, "L-范数": 5, "Ma-Minorm": 6, "标准化(均值0，方差1)": 7}
+                st.session_state['method_index'].append(method_index.get(scaling_method))
 
             # 缩放参数
             scaling_params = {}
@@ -1531,8 +1535,12 @@ def main():
                 key="filtering_method",
                 label_visibility="collapsed"
             )
-            if filtering_method != "无" and "滤波" not in st.session_state['algorithm_order']:
+            if filtering_method != "无":
                 st.session_state['algorithm_order'].append("滤波")
+                method_index = {"Savitzky-Golay": 1, "sgolayfilt滤波器": 2, "中值滤波(MF)": 3, "移动平均(MAF)": 4, "MWA（移动窗口平均）": 5,
+                                "MWM（移动窗口中值）": 6, "卡尔曼滤波": 7, "Lowess": 8, "FFT": 9, "Smfft傅里叶滤波": 10, "小波变换(DWT)": 11, "小波线性阈值去噪": 12}
+                st.session_state['method_index'].append(method_index.get(filtering_method))
+
 
             # 滤波参数
             filtering_params = {}
@@ -1599,8 +1607,10 @@ def main():
                 key="squashing_method",
                 label_visibility="collapsed"
             )
-            if squashing_method != "无" and "挤压" not in st.session_state['algorithm_order']:
+            if squashing_method != "无":
                 st.session_state['algorithm_order'].append("挤压")
+                method_index = {"Sigmoid挤压": 1, "改进的Sigmoid挤压": 2, "逻辑函数": 3, "余弦挤压(squashing)": 4, "改进的逻辑函数": 5, "DTW挤压": 6}
+                st.session_state['method_index'].append(method_index.get(squashing_method))
 
             # 挤压参数
             squashing_params = {}
@@ -1640,22 +1650,91 @@ def main():
                     try:
                          # 初始化 algorithm_order
                         algorithm_order = []
+                        method_index = []  # 用于存储算法编号
+
         
-                        # 如果选择了基线校正方法，则将其添加到 algorithm_order
                         if baseline_method != "无":
-                            algorithm_order.append("基线校准")
-                        
-                        # 如果选择了缩放方法，则将其添加到 algorithm_order
+                            algorithm_order.append("基线校正")
+                            if baseline_method == "SD":
+                                method_index.append(1)  # SD算法
+                            elif baseline_method == "FD":
+                                method_index.append(2)  # FD算法
+                            elif baseline_method == "多项式拟合":
+                                method_index.append(3)  # 多项式拟合
+                            elif baseline_method == "ModPoly":
+                                method_index.append(4)  # ModPoly算法
+                            elif baseline_method == "I-ModPoly":
+                                method_index.append(5)  # I-ModPoly算法
+                            elif baseline_method == "PLS":
+                                method_index.append(6)  # PLS算法
+                            elif baseline_method == "AsLS":
+                                method_index.append(7)  # AsLS算法
+                            elif baseline_method == "airPLS":
+                                method_index.append(8)  # airPLS算法
+                            elif baseline_method == "二阶差分(D2)":
+                                method_index.append(9)  # 二阶差分算法
+                
+                # 如果选择了缩放方法，则将其添加到 algorithm_order 和 method_index
                         if scaling_method != "无":
                             algorithm_order.append("缩放")
-                        
-                        # 如果选择了滤波方法，则将其添加到 algorithm_order
+                            if scaling_method == "Peak-Norm":
+                                method_index.append(1)  # Peak-Norm算法
+                            elif scaling_method == "SNV":
+                                method_index.append(2)  # SNV算法
+                            elif scaling_method == "MSC":
+                                method_index.append(3)  # MSC算法
+                            elif scaling_method == "M-M-Norm":
+                                method_index.append(4)  # M-M-Norm算法
+                            elif scaling_method == "L-范数":
+                                method_index.append(5)  # L-范数算法
+                            elif scaling_method == "Ma-Minorm":
+                                method_index.append(6)  # Ma-Minorm算法
+                            elif scaling_method == "标准化(均值0，方差1)":
+                                method_index.append(7)  # 标准化算法
+
+                # 如果选择了滤波方法，则将其添加到 algorithm_order 和 method_index
                         if filtering_method != "无":
                             algorithm_order.append("滤波")
-                        
-                        # 如果选择了挤压方法，则将其添加到 algorithm_order
+                            if filtering_method == "Savitzky-Golay":
+                                method_index.append(1)  # Savitzky-Golay算法
+                            elif filtering_method == "sgolayfilt滤波器":
+                                method_index.append(2)  # sgolayfilt滤波器算法
+                            elif filtering_method == "中值滤波(MF)":
+                                method_index.append(3)  # 中值滤波算法
+                            elif filtering_method == "移动平均(MAF)":
+                                method_index.append(4)  # 移动平均算法
+                            elif filtering_method == "MWA（移动窗口平均）":
+                                method_index.append(5)  # MWA算法
+                            elif filtering_method == "MWM（移动窗口中值）":
+                                method_index.append(6)  # MWM算法
+                            elif filtering_method == "卡尔曼滤波":
+                                method_index.append(7)  # 卡尔曼滤波算法
+                            elif filtering_method == "Lowess":
+                                method_index.append(8)  # Lowess算法
+                            elif filtering_method == "FFT":
+                                method_index.append(9)  # FFT算法
+                            elif filtering_method == "Smfft傅里叶滤波":
+                                method_index.append(10) # Smfft傅里叶滤波算法
+                            elif filtering_method == "小波变换(DWT)":
+                                method_index.append(11) # 小波变换算法
+                            elif filtering_method == "小波线性阈值去噪":
+                                method_index.append(12) # 小波线性阈值去噪算法
+
+                # 如果选择了挤压方法，则将其添加到 algorithm_order 和 method_index
                         if squashing_method != "无":
                             algorithm_order.append("挤压")
+                            if squashing_method == "Sigmoid挤压":
+                                method_index.append(1)  # Sigmoid挤压算法
+                            elif squashing_method == "改进的Sigmoid挤压":
+                                method_index.append(2)  # 改进的Sigmoid挤压算法
+                            elif squashing_method == "逻辑函数":
+                                method_index.append(3)  # 逻辑函数算法
+                            elif squashing_method == "余弦挤压(squashing)":
+                                method_index.append(4)  # 余弦挤压算法
+                            elif squashing_method == "改进的逻辑函数":
+                                method_index.append(5)  # 改进的逻辑函数算法
+                            elif squashing_method == "DTW挤压":
+                                method_index.append(6)  # DTW挤压算法
                         
                         # 确保 algorithm_order 不为空
                         if len(algorithm_order) == 0:
@@ -1663,6 +1742,7 @@ def main():
                         else:
                             # 更新 session_state 中的 algorithm_order
                             st.session_state['algorithm_order'] = algorithm_order
+                            st.session_state['method_index'] = method_index
 
 
                         wavenumbers, y = st.session_state.raw_data
