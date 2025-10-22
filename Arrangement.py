@@ -1318,8 +1318,8 @@ def main():
         'current_algorithms': {},  # 存储当前选择的算法
         'filtered_perms': [],  # 存储筛选后的排列方案
         'selected_perm_idx': 0  # 存储当前选中的排列索引
-    }
-     if 'algorithm_order' not in st.session_state or not st.session_state['algorithm_order']:
+            }
+    if 'algorithm_order' not in st.session_state or not st.session_state['algorithm_order']:
         st.session_state['algorithm_order'] = ["基线校准", "缩放", "滤波", "挤压"]
     
 
