@@ -1290,14 +1290,7 @@ def main():
     if 'show_arrangements' not in st.session_state:
         st.session_state.show_arrangements = False
 
-    # 初始化测试相关的session状态变量
-    test_states = {
-        'k_value': 5,  # 默认k值
-        'test_results': None,  # 存储测试结果
-        'labels': None,  # 存储样本标签
-        'train_indices': None,  # 训练集索引
-        'test_indices': None  # 测试集索引
-    }
+
     file_handler = FileHandler()
     preprocessor = Preprocessor()
     # 初始化 current_algorithms 字典
