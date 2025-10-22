@@ -1696,14 +1696,7 @@ def main():
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
                     
-                    all_combinations = generate_all_combinations(current_algorithms)
-                    processed_results = process_all_combinations()
-                    results = knn_classification_on_processed_data(st.session_state.processed_results)
-                    if st.button("处理所有预处理组合并保存", type="primary", use_container_width=True):
-                        results = process_all_combinations()
-                        if results:
-                            st.info("所有预处理组合处理完成并保存！")
-                    
+                   
            
                    
                 else:
