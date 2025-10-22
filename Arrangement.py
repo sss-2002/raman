@@ -1655,22 +1655,14 @@ def main():
                             st.error(f"❌ 处理失败: 排列_{i + 1} - 错误: {str(e)}")
 
                     # 所有排列组合的处理结果存储完成后，统一展示结果
-                    st.subheader("处理后的所有光谱数据")
-                    for arrangement_name, result in st.session_state.items():
-                        if arrangement_name.startswith("排列_"):  # 确保只展示排列组合的结果
-                            st.write(f"**{arrangement_name} 的处理结果**")
-                            st.dataframe(result['data'])
-                else:
-                    st.warning("⚠️ 请先上传原始光谱数据")
-    
-                # 展示 DataFrame
-                st.write("当前的排列组合：")
-                st.dataframe(df)  # 使用 st.dataframe() 展示为表格
+                        st.subheader("处理后的所有光谱数据")
+                        for arrangement_name, result in st.session_state.items():
+                            if arrangement_name.startswith("排列_"):  # 确保只展示排列组合的结果
+                                st.write(f"**{arrangement_name} 的处理结果**")
+                                st.dataframe(result['data'])
             else:
-            # 如果没有排列组合，给出提示
-            st.warning("⚠️ 尚未生成任何排列组合。请先点击'显示排列'生成排列方案。")
+                st.warning("⚠️ 请先上传原始光谱数据")
     
-            # 排列方案选择（紧凑显示）
 
 
 if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
