@@ -1651,7 +1651,7 @@ def main():
                             filtering_method=filtering_method,
                             filtering_params=filtering_params,
                             scaling_method=scaling_method,
-                            scaling_params=scaling_params
+                            scaling_params=scaling_params,
                             algorithm_order=algorithm_order
                         )
 
