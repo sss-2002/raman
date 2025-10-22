@@ -1592,19 +1592,19 @@ def main():
 
                 st.rerun()
            with preprocess_cols[6]:
-            st.subheader("操作3")
-        
-            # 添加存储排列组合的按钮
-            if st.button("存储排列组合", type="secondary", use_container_width=True, key="store_combinations_btn"):
-                # 检查是否已经生成排列组合
-                if st.session_state.get('algorithm_permutations'):
-                    # 如果有排列组合，直接存储它们到 st.session_state 中
-                    st.session_state['stored_combinations'] = st.session_state.get('algorithm_permutations')
-                    st.success("✅ 排列组合已成功存储！")
-                else:
-                    st.warning("⚠️ 还未生成排列组合，请先生成排列组合。")
-                            with preprocess_cols[6]:
-                                st.subheader("操作4")
+                st.subheader("操作3")
+            
+                # 添加存储排列组合的按钮
+                if st.button("存储排列组合", type="secondary", use_container_width=True, key="store_combinations_btn"):
+                    # 检查是否已经生成排列组合
+                    if st.session_state.get('algorithm_permutations'):
+                        # 如果有排列组合，直接存储它们到 st.session_state 中
+                        st.session_state['stored_combinations'] = st.session_state.get('algorithm_permutations')
+                        st.success("✅ 排列组合已成功存储！")
+                    else:
+                        st.warning("⚠️ 还未生成排列组合，请先生成排列组合。")
+                                with preprocess_cols[6]:
+                                    st.subheader("操作4")
 
                         # 按排列组合处理数据
                         if st.button("开始处理光谱", type="primary", use_container_width=True,
