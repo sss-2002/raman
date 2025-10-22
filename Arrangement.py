@@ -1610,12 +1610,7 @@ def main():
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
                     all_combinations = generate_all_combinations(current_algorithms)
-                    df = pd.DataFrame(all_combinations, columns=["Baseline", "Scaling", "Filtering", "Squeezing"])
-
-                    # 保存为 Excel 文件
-                    df.to_excel("combinations.xlsx", index=False)
-                    
-                    st.success("combinations.xlsx 文件已生成，可以下载查看！")
+                   
                    
                 else:
                     st.session_state.filtered_perms = []
