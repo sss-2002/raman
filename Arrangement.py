@@ -28,6 +28,9 @@ def prepare_data():
     labels_input = st.session_state.labels  # 用户输入的标签
     train_test_ratio = st.session_state.train_test_split_ratio  # 训练集比例
 
+    # 如果数据是三维的（n_samples, n_points, n_features），就需要将它展平为二维的（n_samples, n_points * n_features）
+    processed_spectra_2d = processed_spectra.reshape(processed_spectra.shape[0], -1)
+
     # 划分训练集和测试集
     n_samples = len(labels_input)
     train_size = int(n_samples * train_test_ratio)
@@ -36,26 +39,10 @@ def prepare_data():
     test_indices = indices[train_size:]
 
     # 获取训练集和测试集
-    train_data = []
-    train_labels = []
-    test_data = []
-    test_labels = []
-
-    # 填充训练集和测试集
-    for i in range(n_samples):
-        spectrum = processed_spectra[i]  # 获取每个处理后的光谱
-        if i in train_indices:
-            train_data.append(spectrum)
-            train_labels.append(labels_input[i])
-        else:
-            test_data.append(spectrum)
-            test_labels.append(labels_input[i])
-
-    # 转换为 numpy 数组
-    train_data = np.array(train_data)
-    train_labels = np.array(train_labels)
-    test_data = np.array(test_data)
-    test_labels = np.array(test_labels)
+    train_data = processed_spectra_2d[train_indices]
+    train_labels = labels_input[train_indices]
+    test_data = processed_spectra_2d[test_indices]
+    test_labels = labels_input[test_indices]
 
     return train_data, train_labels, test_data, test_labels
 
