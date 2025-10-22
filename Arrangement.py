@@ -21,7 +21,8 @@ from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 import csv
 import pandas as pd
-
+from sklearn.neighbors import KNeighborsClassifier
+cloud_storage_dir = "/mnt/data/processed_spectra"  # 临时目录，用于存储文件
 
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
@@ -1586,6 +1587,16 @@ def main():
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
 
+                    # 获取用户输入的标签（如：0,0,1,1）
+                    labels_input = st.text_input("标签（请勿分隔， 与光谱顺序一致）", "0,0,1,1")
+                    try:
+                        # 将用户输入的标签转换为列表
+                        labels = list(map(int, labels_input.split(',')))
+                        st.write("标签已加载：", labels)
+                    except Exception as e:
+                        st.error("标签格式错误，请确保标签为用逗号分隔的整数，例如：0,0,1,1")
+                        return
+
                     # 获取原始光谱数据并进行处理
                     if st.session_state.get('raw_data'):
                         wavenumbers, y = st.session_state.raw_data
@@ -1617,34 +1628,73 @@ def main():
                                     'data': processed_data.tolist()  # 将数据转为列表形式以便保存
                                 })
 
+                                # 将每个处理结果保存为 CSV 文件
+                                result_df = pd.DataFrame(processed_results)
+                                file_path = os.path.join(cloud_storage_dir, f"processed_spectra_{i + 1}.csv")
+                                result_df.to_csv(file_path, index=False)
+
                             except Exception as e:
                                 st.error(f"❌ 处理失败: 排列_{i + 1} - 错误: {str(e)}")
 
-                        # 确保文件保存路径明确
-                        result_df = pd.DataFrame(processed_results)
-                        csv_file = "processed_spectra_results.csv"
+                        st.success(f"✅ 处理过的光谱数据已保存到云端：{cloud_storage_dir}")
 
-                        # 保存文件到当前工作目录（可以改为自定义路径）
-                        file_path = os.path.join(os.getcwd(), csv_file)
+                        # 现在进行 KNN 分类
+                        accuracies = []
 
-                        # 打印文件路径帮助调试
-                        st.write(f"文件将保存到: {file_path}")
+                        for k in range(1, 66):  # 从k=1到k=65
+                            knn = KNeighborsClassifier(n_neighbors=k)
 
-                        # 保存数据
-                        result_df.to_csv(file_path, index=False)
+                            # 假设从云端目录中读取每个处理后的文件
+                            for i in range(1, len(st.session_state.algorithm_permutations) + 1):
+                                file_path = os.path.join(cloud_storage_dir, f"processed_spectra_{i}.csv")
+                                if os.path.exists(file_path):
+                                    df = pd.read_csv(file_path)
+                                    X = df['data'].apply(pd.Series)  # 将每个光谱的列表数据展开成DataFrame
+                                    y = np.array(labels)  # 使用用户输入的标签作为目标变量
 
-                        # 确保文件保存成功
-                        if os.path.exists(file_path):
-                            st.success(f"✅ 处理结果已保存为中间文件: {file_path}")
-                        else:
-                            st.error("❌ 文件保存失败，请检查路径或权限问题。")
+                                    # 划分训练集和测试集
+                                    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3,
+                                                                                        random_state=42)
+
+                                    # 训练KNN分类器
+                                    knn.fit(X_train, y_train)
+
+                                    # 预测测试集
+                                    y_pred = knn.predict(X_test)
+
+                                    # 计算准确率
+                                    accuracy = accuracy_score(y_test, y_pred)
+                                    accuracies.append({'k': k, 'accuracy': accuracy})
+
+                        # 将准确率列表转换为DataFrame
+                        accuracies_df = pd.DataFrame(accuracies)
+
+                        # 按照准确率从高到低排序
+                        accuracies_df_sorted = accuracies_df.sort_values(by='accuracy', ascending=False)
+
+                        # 显示排序后的准确率
+                        st.write("按准确率排序后的k值：")
+                        st.dataframe(accuracies_df_sorted)
+
+                        # 绘制 K 值曲线（排序后的准确率）
+                        plt.figure(figsize=(10, 6))
+                        plt.plot(accuracies_df_sorted['k'], accuracies_df_sorted['accuracy'], marker='o', linestyle='-',
+                                 color='b')
+                        plt.title("KNN: k 值曲线（按准确率排序）")
+                        plt.xlabel("k 值")
+                        plt.ylabel("准确率")
+                        st.pyplot(plt)
+
+                        # 保存排序后的准确率到Excel文件
+                        sorted_file_path = "/mnt/data/sorted_k_values_accuracy.xlsx"
+                        accuracies_df_sorted.to_excel(sorted_file_path, index=False)
+
+                        st.write(f"✅ 排序后的准确率数据已保存为：{sorted_file_path}")
 
                     else:
-                        st.warning("⚠️ 请先上传原始光谱数据")
+                        st.error(f"❌ 请先上传原始光谱数据")
                 else:
                     st.session_state.filtered_perms = []
-
-                #st.rerun()  # 重新运行以更新页面
         # 7. 排列选择与应用
         with preprocess_cols[6]:
             st.subheader("操作3")
