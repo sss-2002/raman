@@ -1565,6 +1565,11 @@ def main():
                     except Exception as e:
                         st.error(f"❌ 处理失败: {str(e)}")
 
+        st.set_page_config(page_title="光谱分类与排序", layout="wide")
+
+        # 获取标签和训练集比例
+        labels_input = st.session_state.labels  # 用户输入的标签
+        train_test_ratio = st.session_state.train_test_split_ratio  # 训练集比例
         with preprocess_cols[5]:
             st.subheader("操作2")
             # 显示排列按钮
