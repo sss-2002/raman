@@ -19,8 +19,111 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
+from sklearn.neighbors import KNeighborsClassifier
+
 import io
 import csv
+
+labels_input = st.session_state.labels  # 用户输入的标签
+train_test_ratio = st.session_state.train_test_split_ratio  # 训练集比例
+def prepare_data():
+    # 获取所有处理后的光谱数据
+    processed_spectra = st.session_state.processed_spectra  # 65 种预处理后的光谱数据
+
+    # 划分训练集和测试集
+    n_samples = len(labels_input)
+    train_size = int(n_samples * train_test_ratio)
+    indices = np.random.permutation(n_samples)
+    train_indices = indices[:train_size]
+    test_indices = indices[train_size:]
+
+    # 获取训练集和测试集
+    train_data = []
+    train_labels = []
+    test_data = []
+    test_labels = []
+
+    # 填充训练集和测试集
+    for i in range(n_samples):
+        spectrum = processed_spectra[i]  # 获取每个处理后的光谱
+        if i in train_indices:
+            train_data.append(spectrum)
+            train_labels.append(labels_input[i])
+        else:
+            test_data.append(spectrum)
+            test_labels.append(labels_input[i])
+
+    # 转换为 numpy 数组
+    train_data = np.array(train_data)
+    train_labels = np.array(train_labels)
+    test_data = np.array(test_data)
+    test_labels = np.array(test_labels)
+
+    return train_data, train_labels, test_data, test_labels
+
+
+# 分类与投票逻辑
+def knn_classification_and_voting(train_data, train_labels, test_data, test_labels):
+    # KNN 分类并输出准确率
+    knn = KNeighborsClassifier(n_neighbors=5)
+    knn.fit(train_data, train_labels)
+    predictions = knn.predict(test_data)
+
+    # 计算准确率
+    accuracy = accuracy_score(test_labels, predictions)
+    st.write(f"分类准确率: {accuracy * 100:.2f}%")
+
+    # 投票机制（按k值投票）
+    def vote_predictions(predictions, k):
+        """对每个光谱的预测结果进行投票"""
+        selected_predictions = predictions[:, :k]  # 选择前k个预测
+        final_predictions = []
+        for row in selected_predictions:
+            most_common = np.bincount(row).argmax()  # 投票机制：选择出现最多的类别
+            final_predictions.append(most_common)
+        return np.array(final_predictions)
+
+    # 投票并计算准确率
+    vote_accuracies = {}
+    for k in range(1, 66):
+        voted_predictions = vote_predictions(predictions, k)
+        vote_accuracy = accuracy_score(test_labels, voted_predictions)
+        vote_accuracies[k] = vote_accuracy
+
+    # 按照准确率从高到低排序
+    sorted_vote_accuracies = dict(sorted(vote_accuracies.items(), key=lambda item: item[1], reverse=True))
+
+    # 输出排序后的投票准确率
+    st.write("按投票准确率从高到低排序: ")
+    for k, acc in sorted_vote_accuracies.items():
+        st.write(f"k={k}: {acc * 100:.2f}%")
+
+    # 绘制 k 值准确率曲线
+    k_values = list(sorted_vote_accuracies.keys())
+    accuracies = list(sorted_vote_accuracies.values())
+
+    fig, ax = plt.subplots()
+    ax.plot(k_values, accuracies, marker='o', linestyle='-', color='b')
+    ax.set_xlabel('k 值')
+    ax.set_ylabel('准确率')
+    ax.set_title('k 值与分类准确率关系')
+    ax.grid(True)
+
+    st.pyplot(fig)  # 显示图形
+
+    # 将分类和投票结果保存到 session_state 中
+    knn_results = {
+        'accuracy': accuracy,
+        'predictions': predictions,
+        'test_labels': test_labels,
+        'vote_accuracies': sorted_vote_accuracies
+    }
+
+    # 保存到 session_state 以供后续使用
+    st.session_state.knn_results = knn_results
+
+    # 输出最终结果
+    st.write("k 值与准确率曲线已绘制完成！")
 
 
 # ===== 算法实现 =====
@@ -1635,8 +1738,7 @@ def main():
 
                 st.rerun()  # 重新运行以更新页面
 
-
-# 7. 排列选择与应用
+        # 7. 排列选择与应用
         with preprocess_cols[6]:
             st.subheader("操作3")
             # 排列下拉框
@@ -1649,12 +1751,12 @@ def main():
                     label_visibility="collapsed",
                     help="选择预处理算法顺序"
                 )
-        
+
                 # 应用排列按钮
                 try:
                     selected_perm = st.session_state.filtered_perms[st.session_state.selected_perm_idx]
                     st.caption(f"当前: {selected_perm.get('name', '未知')}")
-        
+
                     if st.button("✅ 应用方案", type="primary", use_container_width=True, key="apply_perm_btn"):
                         if st.session_state.raw_data is None:
                             st.warning("⚠️ 请先上传数据")
@@ -1683,7 +1785,7 @@ def main():
                                     scaling_params=scaling_params,
                                     algorithm_order=selected_perm.get('order', [])
                                 )
-        
+
                                 arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
                                 st.session_state.arrangement_results.append(arr_name)
                                 st.session_state.arrangement_details[arr_name] = {
@@ -1703,7 +1805,29 @@ def main():
             else:
                 if st.session_state.show_arrangements:
                     st.info("ℹ️ 无符合条件的方案")
-        
+        with preprocess_cols[8]:  # 放置按钮的列
+            st.subheader("操作5")  # 操作5区域
+
+            # 创建按钮，点击后绘制 k 值曲线
+            if st.button("绘制 K 值准确率曲线", type="primary", use_container_width=True, key="plot_k_curve_btn"):
+                if st.session_state.raw_data is None:
+                    st.warning("⚠️ 请先上传数据")
+                elif st.session_state.labels is None:
+                    st.warning("⚠️ 请先输入标签")
+                elif st.session_state.train_indices is None:
+                    st.warning("⚠️ 无法划分训练集")
+                else:
+                    # 获取已处理的光谱数据、标签和训练集索引
+                    processed_spectra = st.session_state.processed_spectra  # 65 种预处理后的光谱数据
+                    labels_input = st.session_state.labels  # 用户输入的标签
+                    train_test_ratio = st.session_state.train_test_split_ratio  # 训练集比例
+
+                    # 准备训练集和测试集数据
+                    train_data, train_labels, test_data, test_labels = prepare_data()  # 从 prepare_data 函数获取数据
+
+                    # 调用 knn 分类和投票功能，绘制 k 值准确率曲线
+                    knn_classification_and_voting(train_data, train_labels, test_data, test_labels)
+
         # 8. 分类测试参数（已移除"分类测试"文本）
         with preprocess_cols[7]:
             st.subheader("操作4")
@@ -1716,11 +1840,11 @@ def main():
                 key="k_input",
                 label_visibility="collapsed"
             )
-        
+
             if st.button("确定k值", type="secondary", use_container_width=True, key="k_confirm_btn"):
                 st.session_state.k_value = k_value
                 st.success(f"k={k_value}")
-        
+
         # 9. 测试按钮
         with preprocess_cols[8]:
             st.subheader("操作5")
@@ -1740,12 +1864,12 @@ def main():
                         processed_data = st.session_state.arrangement_details[selected_arr]['data']
                         train_idx = st.session_state.train_indices
                         test_idx = st.session_state.test_indices
-        
+
                         train_data = processed_data[:, train_idx]
                         test_data = processed_data[:, test_idx]
                         train_labels = st.session_state.labels[train_idx]
                         test_labels = st.session_state.labels[test_idx]
-        
+
                         with st.spinner("测试中..."):
                             predictions = knn_classify(
                                 train_data,
@@ -1753,11 +1877,11 @@ def main():
                                 test_data,
                                 k=st.session_state.k_value
                             )
-        
+
                         accuracy = accuracy_score(test_labels, predictions)
                         kappa = cohen_kappa_score(test_labels, predictions)
                         cm = confusion_matrix(test_labels, predictions)
-        
+
                         st.session_state.test_results = {
                             'accuracy': accuracy,
                             'kappa': kappa,
@@ -1765,12 +1889,12 @@ def main():
                             'predictions': predictions,
                             'test_labels': test_labels
                         }
-        
+
                         st.success("✅ 测试完成！结果在下方")
-        
+
                     except Exception as e:
                         st.error(f"❌ 测试失败: {str(e)}")
-        
+
         # 保存当前选择的算法
         current_algorithms = {
             'baseline': baseline_method,
@@ -1783,18 +1907,18 @@ def main():
             'squashing_params': squashing_params
         }
         st.session_state.current_algorithms = current_algorithms
-        
+
         # ===== 光谱可视化与结果导出（在预处理设置下方）=====
         st.subheader("📈 光谱可视化", divider="gray")
-        
+
         # 创建四个固定区域的布局：原始光谱、预处理后光谱、k值曲线、混淆矩阵
         # 第一行：原始光谱和预处理后光谱
         viz_row1 = st.columns(2, gap="medium")
-        
+
         # 第二行：k值曲线和混淆矩阵
         viz_row2 = st.columns(2, gap="medium")
 
-# 1. 原始光谱区域（第一行第一列）
+        # 1. 原始光谱区域（第一行第一列）
         with viz_row1[0]:
             st.subheader("原始光谱", divider="gray")
             if st.session_state.get('raw_data'):
@@ -1802,7 +1926,7 @@ def main():
                 idx1 = 0 if y.shape[1] > 0 else 0
                 raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
                 st.line_chart(raw_data1, height=250)
-        
+
                 # 显示更多原始光谱（不使用嵌套列）
                 if y.shape[1] > 1:
                     with st.expander("查看更多原始光谱", expanded=False):
@@ -1815,7 +1939,7 @@ def main():
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
                     unsafe_allow_html=True)
-        
+
         # 2. 预处理后光谱区域（第一行第二列）
         with viz_row1[1]:
             st.subheader("预处理后的光谱", divider="gray")
@@ -1824,11 +1948,11 @@ def main():
                 arr_data = st.session_state.arrangement_details[selected_arr]['data']
                 arr_method = st.session_state.arrangement_details[selected_arr]['method']
                 st.caption(f"处理方法: {arr_method}")
-        
+
                 idx1 = 0 if arr_data.shape[1] > 0 else 0
                 proc_data1 = pd.DataFrame({"预处理后1": arr_data[:, idx1]}, index=wavenumbers)
                 st.line_chart(proc_data1, height=250)
-        
+
                 # 显示更多预处理后光谱（不使用嵌套列）
                 if arr_data.shape[1] > 1:
                     with st.expander("查看更多预处理后光谱", expanded=False):
@@ -1840,7 +1964,7 @@ def main():
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
                     unsafe_allow_html=True)
-        
+
             # 3. k值曲线区域（第二行第一列）
         with viz_row2[0]:
             st.subheader("k值曲线", divider="gray")
@@ -1851,14 +1975,14 @@ def main():
                     arr_data = st.session_state.arrangement_details[selected_arr]['data']
                     wavenumbers, y = st.session_state.raw_data
                     arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
-        
+
                     if arr_order:  # 只有应用了预处理才有k值曲线
                         idx1 = 0 if arr_data.shape[1] > 0 else 0
                         k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
                         k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
                         # 关键：删除height=None，使用Streamlit默认高度（不指定height参数）
                         st.line_chart(k_data1)
-        
+
                         # 显示更多k值曲线（折叠面板）
                         if y.shape[1] > 1:
                             with st.expander("查看更多k值曲线", expanded=False):
@@ -1875,7 +1999,7 @@ def main():
                     st.markdown(
                         '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
                         unsafe_allow_html=True)
-        
+
             # 4. 混淆矩阵区域（第二行第二列）
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
@@ -1893,10 +2017,10 @@ def main():
                         }
                         </style>
                     """, unsafe_allow_html=True)
-        
+
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
-        
+
                 # 精确匹配k值曲线高度的图表尺寸
                 fig, ax = plt.subplots(figsize=(2.5, 1.5))  # 3.5英寸≈200px，与k值曲线默认高度匹配
                 sns.heatmap(
@@ -1920,6 +2044,8 @@ def main():
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">请先进行分类测试</div>',
                     unsafe_allow_html=True)
+
+
 # 结果导出
 if st.session_state.arrangement_results or st.session_state.get('processed_data'):
     st.subheader("💾 结果导出", divider="gray")
