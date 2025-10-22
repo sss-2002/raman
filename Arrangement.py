@@ -19,17 +19,22 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
+import io
 import csv
-def save_to_csv(algorithm_permutations, filename="arrangements.csv"):
-    with open(filename, mode='w', newline='') as f:
-        writer = csv.writer(f)
-        # 写入表头
-        writer.writerow(["排列名称", "算法顺序", "算法参数"])
-        for perm in algorithm_permutations:
-            name = perm.get("name", "未知")
-            order = ", ".join(map(str, perm.get("order", [])))
-            params = ", ".join(map(str, perm.get("params", {}).items()))
-            writer.writerow([name, order, params])
+def get_csv_file(algorithm_permutations):
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["排列名称", "算法顺序", "算法参数"])
+    for perm in algorithm_permutations:
+        name = perm.get("name", "未知")
+        order = ", ".join(map(str, perm.get("order", [])))
+        params = ", ".join(map(str, perm.get("params", {}).items()))
+        writer.writerow([name, order, params])
+    return output.getvalue()
+
+# 在Streamlit应用中提供下载按钮
+csv_data = get_csv_file(st.session_state.algorithm_permutations)
+st.download_button("下载排列方案", csv_data, "arrangements.csv", mime="text/csv")
 
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
