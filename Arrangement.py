@@ -21,6 +21,7 @@ from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 import io
 import csv
+from sklearn.neighbors import KNeighborsClassifier
 
 
 # ===== 算法实现 =====
