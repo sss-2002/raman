@@ -21,7 +21,100 @@ from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 from sklearn.neighbors import KNeighborsClassifier
 
+# 准备数据函数，假设你已经有了训练集和测试集
+def prepare_data():
+    # 从st.session_state中获取处理后的光谱数据
+    processed_spectra = st.session_state.processed_spectra  # 65 种预处理后的光谱数据
+    labels_input = st.session_state.labels  # 用户输入的标签
+    train_test_ratio = st.session_state.train_test_split_ratio  # 训练集比例
 
+    # 划分训练集和测试集
+    n_samples = len(labels_input)
+    train_size = int(n_samples * train_test_ratio)
+    indices = np.random.permutation(n_samples)
+    train_indices = indices[:train_size]
+    test_indices = indices[train_size:]
+
+    # 获取训练集和测试集
+    train_data = []
+    train_labels = []
+    test_data = []
+    test_labels = []
+
+    # 填充训练集和测试集
+    for i in range(n_samples):
+        spectrum = processed_spectra[i]  # 获取每个处理后的光谱
+        if i in train_indices:
+            train_data.append(spectrum)
+            train_labels.append(labels_input[i])
+        else:
+            test_data.append(spectrum)
+            test_labels.append(labels_input[i])
+
+    # 转换为 numpy 数组
+    train_data = np.array(train_data)
+    train_labels = np.array(train_labels)
+    test_data = np.array(test_data)
+    test_labels = np.array(test_labels)
+
+    return train_data, train_labels, test_data, test_labels
+
+
+# 投票函数（按k值投票）
+def vote_predictions(predictions, k):
+    selected_predictions = predictions[:, :k]  # 选择前k个预测
+    final_predictions = []
+    for row in selected_predictions:
+        most_common = np.bincount(row).argmax()  # 投票机制：选择出现最多的类别
+        final_predictions.append(most_common)
+    return np.array(final_predictions)
+
+
+# KNN 分类和投票函数
+def knn_classification_and_voting(train_data, train_labels, test_data, test_labels):
+    # KNN 分类
+    knn = KNeighborsClassifier(n_neighbors=5)
+    knn.fit(train_data, train_labels)
+    predictions = knn.predict(test_data)
+
+    # 计算准确率
+    accuracy = accuracy_score(test_labels, predictions)
+    st.write(f"分类准确率: {accuracy * 100:.2f}%")
+
+    # 投票机制（按k值投票）
+    vote_accuracies = {}
+    for k in range(1, 66):  # 1 到 65
+        voted_predictions = vote_predictions(predictions, k)
+        vote_accuracy = accuracy_score(test_labels, voted_predictions)
+        vote_accuracies[k] = vote_accuracy
+
+    # 排序并绘制 k 值准确率曲线
+    sorted_vote_accuracies = dict(sorted(vote_accuracies.items(), key=lambda item: item[1], reverse=True))
+
+    k_values = list(sorted_vote_accuracies.keys())
+    accuracies = list(sorted_vote_accuracies.values())
+
+    fig, ax = plt.subplots()
+    ax.plot(k_values, accuracies, marker='o', linestyle='-', color='b')
+    ax.set_xlabel('k 值')
+    ax.set_ylabel('准确率')
+    ax.set_title('k 值与分类准确率关系')
+    ax.grid(True)
+
+    st.pyplot(fig)  # 显示图形
+
+
+# 按钮实现
+def main():
+    st.title("绘制 K 值准确率曲线")
+
+    # 创建一个按钮，点击时绘制 K 值准确率曲线
+    if st.button("绘制 K 值准确率曲线"):
+        # 在此处调用 prepare_data 函数获取训练数据和测试数据
+        train_data, train_labels, test_data, test_labels = prepare_data()
+
+        # 调用 knn 分类和投票函数
+        knn_classification_and_voting(train_data, train_labels, test_data, test_labels)
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
@@ -1350,6 +1443,15 @@ def main():
 
     # ===== 右侧：预处理设置和光谱可视化 =====
     with col_right:
+        st.title("绘制 K 值准确率曲线")
+
+        # 创建一个按钮，点击时绘制 K 值准确率曲线
+        if st.button("绘制 K 值准确率曲线"):
+            # 在此处调用 prepare_data 函数获取训练数据和测试数据
+            train_data, train_labels, test_data, test_labels = prepare_data()
+
+            # 调用 knn 分类和投票函数
+            knn_classification_and_voting(train_data, train_labels, test_data, test_labels)
         # ===== 预处理设置（横向排列在光谱可视化上方，与四种算法在同一行）=====
         st.subheader("⚙️ 预处理设置", divider="gray")
 
@@ -1701,7 +1803,7 @@ def main():
             else:
                 if st.session_state.show_arrangements:
                     st.info("ℹ️ 无符合条件的方案")
-      
+
         # 8. 分类测试参数（已移除"分类测试"文本）
         with preprocess_cols[7]:
             st.subheader("操作4")
