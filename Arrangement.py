@@ -76,8 +76,11 @@ def vote_predictions(predictions, k):
 
 # KNN 分类和投票函数
 def knn_classification_and_voting(train_data, train_labels, test_data, test_labels):
-    # KNN 分类
-    knn = KNeighborsClassifier(n_neighbors=5)
+    # 动态调整 n_neighbors，确保不超过样本数量
+    n_neighbors = min(5, len(train_data))  # 设置 n_neighbors 为训练集样本数的最小值
+
+    # KNN 分类并输出准确率
+    knn = KNeighborsClassifier(n_neighbors=n_neighbors)
     knn.fit(train_data, train_labels)
     predictions = knn.predict(test_data)
 
@@ -86,15 +89,31 @@ def knn_classification_and_voting(train_data, train_labels, test_data, test_labe
     st.write(f"分类准确率: {accuracy * 100:.2f}%")
 
     # 投票机制（按k值投票）
+    def vote_predictions(predictions, k):
+        """对每个光谱的预测结果进行投票"""
+        selected_predictions = predictions[:, :k]  # 选择前k个预测
+        final_predictions = []
+        for row in selected_predictions:
+            most_common = np.bincount(row).argmax()  # 投票机制：选择出现最多的类别
+            final_predictions.append(most_common)
+        return np.array(final_predictions)
+
+    # 投票并计算准确率
     vote_accuracies = {}
-    for k in range(1, 66):  # 1 到 65
+    for k in range(1, 66):
         voted_predictions = vote_predictions(predictions, k)
         vote_accuracy = accuracy_score(test_labels, voted_predictions)
         vote_accuracies[k] = vote_accuracy
 
-    # 排序并绘制 k 值准确率曲线
+    # 按照准确率从高到低排序
     sorted_vote_accuracies = dict(sorted(vote_accuracies.items(), key=lambda item: item[1], reverse=True))
 
+    # 输出排序后的投票准确率
+    st.write("按投票准确率从高到低排序: ")
+    for k, acc in sorted_vote_accuracies.items():
+        st.write(f"k={k}: {acc * 100:.2f}%")
+
+    # 绘制 k 值准确率曲线
     k_values = list(sorted_vote_accuracies.keys())
     accuracies = list(sorted_vote_accuracies.values())
 
@@ -107,18 +126,22 @@ def knn_classification_and_voting(train_data, train_labels, test_data, test_labe
 
     st.pyplot(fig)  # 显示图形
 
+    # 将分类和投票结果保存到 session_state 中
+    knn_results = {
+        'accuracy': accuracy,
+        'predictions': predictions,
+        'test_labels': test_labels,
+        'vote_accuracies': sorted_vote_accuracies
+    }
 
-# 按钮实现
-def main():
-    st.title("绘制 K 值准确率曲线")
+    # 保存到 session_state 以供后续使用
+    st.session_state.knn_results = knn_results
 
-    # 创建一个按钮，点击时绘制 K 值准确率曲线
-    if st.button("绘制 K 值准确率曲线"):
-        # 在此处调用 prepare_data 函数获取训练数据和测试数据
-        train_data, train_labels, test_data, test_labels = prepare_data()
+    # 输出最终结果
+    st.write("k 值与准确率曲线已绘制完成！")
 
-        # 调用 knn 分类和投票函数
-        knn_classification_and_voting(train_data, train_labels, test_data, test_labels)
+
+
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
