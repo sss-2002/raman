@@ -20,6 +20,7 @@ import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 
+
 def calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, raw_data, current_algorithms):
     """
     对所有排列组合处理光谱数据并存储每个处理方案的结果。
@@ -80,10 +81,10 @@ def calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, 
 
             # 可选：输出处理完成的方案
             print(f"已完成处理方案: {', '.join(method_name)}")
-        
+
         except Exception as e:
             print(f"处理失败: {e}")
-    
+
     return processed_results
 
 
@@ -1255,7 +1256,7 @@ def generate_permutations(algorithms):
 
 def main():
     # 最优先初始化session state
-    
+
     if 'show_arrangements' not in st.session_state:
         st.session_state.show_arrangements = False
 
@@ -1630,7 +1631,6 @@ def main():
                     except Exception as e:
                         st.error(f"❌ 处理失败: {str(e)}")
 
-
         # 6. 显示排列与筛选
         with preprocess_cols[5]:
             st.subheader("操作2")
@@ -1648,7 +1648,7 @@ def main():
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
-                    processed_results = calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, st.session_state.raw_data[1], selected_algorithms)
+                    processed_results = calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers,st.session_state.raw_data[1],selected_algorithms)
                     # 存储处理后的结果
                     st.session_state.arrangement_details = processed_results
                 else:
@@ -1732,7 +1732,6 @@ def main():
                                     scaling_params=scaling_params,
                                     algorithm_order=selected_perm.get('order', [])
                                 )
-                                
 
                                 arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
                                 st.session_state.arrangement_results.append(arr_name)
@@ -1786,7 +1785,7 @@ def main():
                     st.warning("⚠️ 无法划分训练集")
                 else:
                     try:
-                        
+
                         selected_arr = st.session_state.selected_arrangement
                         processed_data = st.session_state.arrangement_details[selected_arr]['data']
                         train_idx = st.session_state.train_indices
