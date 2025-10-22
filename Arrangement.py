@@ -1568,11 +1568,13 @@ def main():
         # 6. 显示排列与筛选
         with preprocess_cols[5]:
             st.subheader("操作2")
-            # 显示排列按钮
-            if st.button("🔍 显示排列", type="secondary", use_container_width=True, key="show_perm_btn"):
-                st.session_state.show_arrangements = not st.session_state.show_arrangements
 
-                if st.session_state.show_arrangements:
+            # 显示排列并存储处理结果的按钮
+            if st.button("生成并存储排列组合和处理结果", type="secondary", use_container_width=True,
+                         key="generate_and_store_btn"):
+                # 检查是否已经选择了处理方法
+                if baseline_method and scaling_method and filtering_method and squashing_method:
+                    # 生成排列组合并存储
                     selected_algorithms = {
                         'baseline': baseline_method,
                         'scaling': scaling_method,
@@ -1581,88 +1583,57 @@ def main():
                     }
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
-                    st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
+                    st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
 
+                    # 获取原始光谱数据
+                    if st.session_state.get('raw_data'):
+                        wavenumbers, y = st.session_state.raw_data
+                        processed_results = {}  # 用来存储处理结果
 
+                        # 处理每个排列组合
+                        for i, perm in enumerate(st.session_state.algorithm_permutations):
+                            # 获取排列组合的算法顺序
+                            algorithm_order = perm.get('order', [])
 
+                            # 获取每个排列组合中的算法名称和参数
+                            baseline_method = perm.get('params', {}).get('baseline', '无')
+                            scaling_method = perm.get('params', {}).get('scaling', '无')
+                            filtering_method = perm.get('params', {}).get('filtering', '无')
+                            squashing_method = perm.get('params', {}).get('squashing', '无')
 
+                            # 传递参数给 Preprocessor
+                            baseline_params = perm.get('params', {}).get('baseline_params', {})
+                            scaling_params = perm.get('params', {}).get('scaling_params', {})
+                            filtering_params = perm.get('params', {}).get('filtering_params', {})
+                            squashing_params = perm.get('params', {}).get('squashing_params', {})
 
+                            # 处理数据
+                            try:
+                                processed_data, method_name = preprocessor.process(
+                                    wavenumbers, y,
+                                    baseline_method=baseline_method, baseline_params=baseline_params,
+                                    squashing_method=squashing_method, squashing_params=squashing_params,
+                                    filtering_method=filtering_method, filtering_params=filtering_params,
+                                    scaling_method=scaling_method, scaling_params=scaling_params,
+                                    algorithm_order=algorithm_order  # 按照排列组合的顺序进行处理
+                                )
+
+                                # 存储处理结果到 st.session_state 中
+                                arrangement_name = f"排列_{i + 1}"
+                                st.session_state[arrangement_name] = {
+                                    'data': processed_data,
+                                    'method': " → ".join(method_name)  # 保存处理的步骤
+                                }
+
+                            except Exception as e:
+                                st.error(f"❌ 处理失败: 排列_{i + 1} - 错误: {str(e)}")
+
+                        st.success("✅ 所有排列组合的处理结果已成功存储！")
+                    else:
+                        st.warning("⚠️ 请先上传原始光谱数据")
                 else:
-                    st.session_state.filtered_perms = []
+                    st.warning("⚠️ 请确保所有处理方法都已选择！")
 
-                st.rerun()
-        with preprocess_cols[6]:
-            st.subheader("操作3")
-
-            # 添加存储排列组合的按钮
-            if st.button("存储排列组合", type="secondary", use_container_width=True, key="store_combinations_btn"):
-                # 检查是否已经生成排列组合
-                if st.session_state.get('algorithm_permutations'):
-                    # 如果有排列组合，直接存储它们到 st.session_state 中
-                    st.session_state['stored_combinations'] = st.session_state.get('algorithm_permutations')
-                    st.success("✅ 排列组合已成功存储！")
-                else:
-                    st.warning("⚠️ 还未生成排列组合，请先生成排列组合。")
-        with preprocess_cols[6]:
-            st.subheader("操作4")
-
-            # 按排列组合处理数据
-            if st.button("开始处理光谱", type="primary", use_container_width=True,
-                         key="process_spectra_btn"):
-                # 获取原始光谱数据
-                if st.session_state.get('raw_data'):
-                    wavenumbers, y = st.session_state.raw_data
-                    processed_results = {}  # 用来存储处理结果
-
-                    # 处理每个排列组合
-                    for i, perm in enumerate(st.session_state.algorithm_permutations):
-                        # 获取排列组合的算法顺序
-                        algorithm_order = perm.get('order', [])
-
-                        # 获取每个排列组合中的算法名称和参数
-                        baseline_method = perm.get('params', {}).get('baseline', '无')
-                        scaling_method = perm.get('params', {}).get('scaling', '无')
-                        filtering_method = perm.get('params', {}).get('filtering', '无')
-                        squashing_method = perm.get('params', {}).get('squashing', '无')
-
-                        # 传递参数给 Preprocessor
-                        baseline_params = perm.get('params', {}).get('baseline_params', {})
-                        scaling_params = perm.get('params', {}).get('scaling_params', {})
-                        filtering_params = perm.get('params', {}).get('filtering_params', {})
-                        squashing_params = perm.get('params', {}).get('squashing_params', {})
-
-                        # 处理数据
-                        try:
-                            processed_data, method_name = preprocessor.process(
-                                wavenumbers, y,
-                                baseline_method=baseline_method, baseline_params=baseline_params,
-                                squashing_method=squashing_method, squashing_params=squashing_params,
-                                filtering_method=filtering_method, filtering_params=filtering_params,
-                                scaling_method=scaling_method, scaling_params=scaling_params,
-                                algorithm_order=algorithm_order  # 按照排列组合的顺序进行处理
-                            )
-
-                            # 存储处理结果到 st.session_state 中
-                            arrangement_name = f"排列_{i + 1}"
-                            st.session_state[arrangement_name] = {
-                                'data': processed_data,
-                                'method': " → ".join(method_name)  # 保存处理的步骤
-                            }
-
-                            st.success(f"✅ 处理完成: {arrangement_name} ({', '.join(method_name)})")
-
-                        except Exception as e:
-                            st.error(f"❌ 处理失败: 排列_{i + 1} - 错误: {str(e)}")
-
-                    # 所有排列组合的处理结果存储完成后，统一展示结果
-                        st.subheader("处理后的所有光谱数据")
-                        for arrangement_name, result in st.session_state.items():
-                            if arrangement_name.startswith("排列_"):  # 确保只展示排列组合的结果
-                                st.write(f"**{arrangement_name} 的处理结果**")
-                                st.dataframe(result['data'])
-            else:
-                st.warning("⚠️ 请先上传原始光谱数据")
-    
 
 
 if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
