@@ -1319,6 +1319,9 @@ def main():
         'filtered_perms': [],  # 存储筛选后的排列方案
         'selected_perm_idx': 0  # 存储当前选中的排列索引
     }
+     if 'algorithm_order' not in st.session_state or not st.session_state['algorithm_order']:
+        st.session_state['algorithm_order'] = ["基线校准", "缩放", "滤波", "挤压"]
+    
 
     # 合并所有状态变量并初始化
     all_states = {**test_states, **other_states}
