@@ -1725,6 +1725,11 @@ def main():
                                     'method': " → ".join(method_name)  # 保存处理的步骤
                                 }
 
+                                # 存储 processed_spectra，确保可以后续访问
+                                if 'processed_spectra' not in st.session_state:
+                                    st.session_state.processed_spectra = []
+                                st.session_state.processed_spectra.append(processed_data)  # 将数据添加到 processed_spectra 中
+
                             except Exception as e:
                                 st.error(f"❌ 处理失败: 排列_{i + 1} - 错误: {str(e)}")
 
