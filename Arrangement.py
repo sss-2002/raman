@@ -21,16 +21,6 @@ from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 import io
 import csv
-def get_csv_file(algorithm_permutations):
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["排列名称", "算法顺序", "算法参数"])
-    for perm in algorithm_permutations:
-        name = perm.get("name", "未知")
-        order = ", ".join(map(str, perm.get("order", [])))
-        params = ", ".join(map(str, perm.get("params", {}).items()))
-        writer.writerow([name, order, params])
-    return output.getvalue()
 
 
 
@@ -1594,8 +1584,7 @@ def main():
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
-                    save_to_csv(st.session_state.algorithm_permutations)
-                    st.success("✅ 排列组合已保存为 CSV 文件")
+                    
                     
                    
            
