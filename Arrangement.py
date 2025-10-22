@@ -20,93 +20,71 @@ import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 
+def calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, raw_data, current_algorithms):
+    """
+    对所有排列组合处理光谱数据并存储每个处理方案的结果。
 
-def vote_prediction(predictions, k):
-    """投票机制：对每个k值进行投票"""
-    # 选择前k个分类结果
-    selected_predictions = predictions[:, :k]
+    参数：
+    - preprocessor: Preprocessor 类的实例。
+    - wavenumbers: 波数数据（一维数组）。
+    - raw_data: 原始光谱数据（二维数组，形状为：n_samples x n_points）。
+    - current_algorithms: 当前选择的四个预处理算法和它们的参数（字典类型）。
 
-    # 投票函数：返回最频繁的预测结果
-    def vote_row(row):
-        most_frequent = mode(row)[0][0]
-        return most_frequent
+    返回：
+    - processed_results: 处理后的所有数据（字典类型），包含每个排列组合的处理数据和所用的算法方法。
+    """
+    # 获取原始数据
+    y = raw_data
+    processed_results = {}  # 用来存储所有处理结果
 
-    # 对每一行应用投票函数
-    voted_results = np.apply_along_axis(vote_row, axis=1, arr=selected_predictions)
+    # 获取所有算法的排列（包括无预处理）
+    algorithm_permutations = generate_permutations(current_algorithms)
 
-    return voted_results
+    for perm in algorithm_permutations:
+        # 获取排列组合的顺序（只包含算法的顺序，不含编号）
+        algorithm_order = [step[0] for step in perm]
 
+        # 获取每个算法的选择和参数
+        baseline_method = current_algorithms['baseline']
+        scaling_method = current_algorithms['scaling']
+        filtering_method = current_algorithms['filtering']
+        squashing_method = current_algorithms['squashing']
 
-def calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, y, selected_algorithms, baseline_params, squashing_params, filtering_params, scaling_method, scaling_params, algorithm_order):
-    """计算并存储所有排列组合的预处理后的光谱数据并进行KNN分类"""
-    sorted_arrangements = []
+        # 获取相应的算法参数
+        baseline_params = current_algorithms.get('baseline_params', {})
+        squashing_params = current_algorithms.get('squashing_params', {})
+        filtering_params = current_algorithms.get('filtering_params', {})
+        scaling_params = current_algorithms.get('scaling_params', {})
 
-    # 遍历所有排列组合
-    for arrangement in st.session_state.filtered_perms:
-        # 不要在此处重新初始化 algorithm_order
-        # algorithm_order = arrangement.get('order', [])  # 移除此行
+        # 调用 preprocessor 进行预处理
+        try:
+            processed_data, method_name = preprocessor.process(
+                wavenumbers, y,
+                baseline_method=baseline_method,
+                baseline_params=baseline_params,
+                squashing_method=squashing_method,
+                squashing_params=squashing_params,
+                filtering_method=filtering_method,
+                filtering_params=filtering_params,
+                scaling_method=scaling_method,
+                scaling_params=scaling_params,
+                algorithm_order=algorithm_order  # 传递算法顺序
+            )
 
-        # 应用当前的预处理方案
-        processed_data, method_name = preprocessor.process(
-            wavenumbers, y,
-            baseline_method=selected_algorithms['baseline'],
-            baseline_params=baseline_params,
-            squashing_method=selected_algorithms['squashing'],
-            squashing_params=squashing_params,
-            filtering_method=selected_algorithms['filtering'],
-            filtering_params=filtering_params,
-            scaling_method=selected_algorithms['scaling'],
-            scaling_params=scaling_params,
-            algorithm_order=algorithm_order  # 使用外部传入的 algorithm_order
-        )
+            # 将处理结果存储到字典中
+            processed_results[f"排列_{len(processed_results) + 1}"] = {
+                'data': processed_data,  # 处理后的数据
+                'method': " → ".join(method_name),  # 方法名（步骤）
+                'order': algorithm_order  # 算法顺序
+            }
 
-        # 存储处理后的光谱数据
-        arrangement_name = arrangement.get('name', f"排列_{len(st.session_state.arrangement_results) + 1}")
-        st.session_state.arrangement_details[arrangement_name] = {
-            'data': processed_data,  # 存储处理后的光谱数据
-            'method': " → ".join(method_name),  # 存储预处理方法的顺序
-            'params': selected_algorithms  # 存储所选算法的参数
-        }
-
-        # 获取训练集和测试集
-        train_data = processed_data[:, st.session_state.train_indices]
-        test_data = processed_data[:, st.session_state.test_indices]
-        train_labels = st.session_state.labels[st.session_state.train_indices]
-        test_labels = st.session_state.labels[st.session_state.test_indices]
-
-        # 进行KNN分类
-        predictions = knn_classify(train_data, train_labels, test_data, k=5)
-
-        # 计算准确率
-        accuracy = accuracy_score(test_labels, predictions)
-
-        # 存储分类结果
-        st.session_state.arrangement_details[arrangement_name]['accuracy'] = accuracy
-        st.session_state.arrangement_details[arrangement_name]['predictions'] = predictions  # 存储预测结果
-        st.session_state.arrangement_details[arrangement_name]['true_labels'] = test_labels  # 存储真实标签
-
-        # 存储已处理的方案
-        sorted_arrangements.append((arrangement_name, accuracy, method_name, predictions, test_labels))
-
-    # 按照准确率从高到低排序
-    sorted_arrangements = sorted(sorted_arrangements, key=lambda x: x[1], reverse=True)
-
-    # 更新预处理方案列表
-    st.session_state.processed_arrangements = list(st.session_state.arrangement_details.items())
-
-    # 存储排序后的方案和相应的预处理方法顺序
-    st.session_state.sorted_arrangements = sorted_arrangements
-
-    # 仅存储相应的预处理方法顺序
-    for arrangement_name, accuracy, method_name, predictions, true_labels in sorted_arrangements:
-        # 存储排序后的预处理方法顺序
-        st.session_state.arrangement_details[arrangement_name]['method'] = method_name
-
-
-    # 仅存储相应的预处理方法顺序
-    for arrangement_name, accuracy, method_name, predictions, true_labels in sorted_arrangements:
-        # 存储排序后的预处理方法顺序
-        st.session_state.arrangement_details[arrangement_name]['method'] = method_name
+            # 可选：输出处理完成的方案
+            print(f"已完成处理方案: {', '.join(method_name)}")
+        
+        except Exception as e:
+            print(f"处理失败: {e}")
+    
+    return processed_results
 
 
 # ===== 算法实现 =====
@@ -1670,7 +1648,11 @@ def main():
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
-                    calculate_processed_spectra_for_all_arrangements(preprocessor, wavenumbers, y,selected_algorithms,baseline_params,squashing_params,filtering_params,scaling_method,scaling_params,algorithm_order)
+                    processed_results = calculate_processed_spectra_for_all_arrangements(
+                    preprocessor, wavenumbers, st.session_state.raw_data[1], selected_algorithms
+            )
+            # 存储处理后的结果
+            st.session_state.arrangement_details = processed_results
                 else:
                     st.session_state.filtered_perms = []
 
