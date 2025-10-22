@@ -1,5 +1,24 @@
 import streamlit as st
-
+import numpy as np
+import pandas as pd
+import re
+import itertools
+import matplotlib.pyplot as plt
+import math
+import zipfile
+import os
+from sklearn.metrics import accuracy_score, cohen_kappa_score, confusion_matrix
+import seaborn as sns
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
+from scipy.signal import savgol_filter, medfilt
+from scipy.fft import fft, ifft
+from scipy.fftpack import fft as fftpack_fft, ifft as fftpack_ifft
+import copy
+from statsmodels.nonparametric.smoothers_lowess import lowess
+import pywt
+from sklearn.linear_model import LinearRegression  # 用于MSC
+import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 class FileHandler:
     def load_data_from_zip(self, zip_file):
         """从压缩包中加载波数和光谱数据，自动识别数据维度"""
