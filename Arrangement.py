@@ -22,6 +22,55 @@ import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 import csv
 import pandas as pd
 
+def process_all_combinations():
+    """处理所有预处理组合并保存结果"""
+    all_combinations = generate_all_combinations(st.session_state.current_algorithms)
+    
+    # 获取原始光谱数据
+    if st.session_state.raw_data is None:
+        st.warning("⚠️ 请先上传数据")
+        return
+
+    wavenumbers, y = st.session_state.raw_data
+    processed_results = {}
+
+    # 对每个组合应用预处理
+    for idx, combination in enumerate(all_combinations):
+        # 设置当前组合的预处理方法
+        baseline_method, scaling_method, filtering_method, squashing_method = combination
+        baseline_params = st.session_state.current_algorithms['baseline_params']
+        scaling_params = st.session_state.current_algorithms['scaling_params']
+        filtering_params = st.session_state.current_algorithms['filtering_params']
+        squashing_params = st.session_state.current_algorithms['squashing_params']
+        
+        try:
+            # 处理光谱数据
+            preprocessor = Preprocessor()
+            processed_data, method_name = preprocessor.process(
+                wavenumbers, y,
+                baseline_method=baseline_method,
+                baseline_params=baseline_params,
+                squashing_method=squashing_method,
+                squashing_params=squashing_params,
+                filtering_method=filtering_method,
+                filtering_params=filtering_params,
+                scaling_method=scaling_method,
+                scaling_params=scaling_params
+            )
+
+            # 保存每个组合的处理结果
+            result_key = f"组合_{idx + 1}_{'_'.join(combination)}"
+            processed_results[result_key] = processed_data
+            
+            # 保存到文件
+            file_handler.export_data(f"{result_key}.txt", processed_data)
+            st.success(f"✅ 处理并保存组合 {result_key}")
+
+        except Exception as e:
+            st.error(f"❌ 处理组合 {combination} 失败: {str(e)}")
+
+    return processed_results
+
 def generate_all_combinations(current_algorithms):
     """
     基于 current_algorithms 生成所有预处理组合，
@@ -1610,6 +1659,10 @@ def main():
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
                     all_combinations = generate_all_combinations(current_algorithms)
+                    if st.button("处理所有预处理组合并保存", type="primary", use_container_width=True):
+                        results = process_all_combinations()
+                        if results:
+                            st.info("所有预处理组合处理完成并保存！")
                    
                    
                 else:
