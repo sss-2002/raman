@@ -1615,21 +1615,7 @@ def main():
                 elif squashing_method == "逻辑函数":
                     st.caption("无额外参数")
         
-        baseline_method = st.session_state.get("baseline_method", "无")
-        scaling_method = st.session_state.get("scaling_method", "无")
-        filtering_method = st.session_state.get("filtering_method", "无")
-        squashing_method = st.session_state.get("squashing_method", "无")
         
-        # 根据用户选择的预处理方法生成算法顺序（algorithm_order）
-        algorithm_order = []
-        if baseline_method != "无":
-            algorithm_order.append(1)  # 基线校准
-        if scaling_method != "无":
-            algorithm_order.append(2)  # 缩放
-        if filtering_method != "无":
-            algorithm_order.append(3)  # 滤波
-        if squashing_method != "无":
-            algorithm_order.append(4)  # 挤压
         # 5-9列：操作相关内容（横向排列在四个预处理算法后面）
         # 5. 应用处理按钮（已移除推荐应用按钮）
         with preprocess_cols[4]:
@@ -1652,7 +1638,7 @@ def main():
                             filtering_params=filtering_params,
                             scaling_method=scaling_method,
                             scaling_params=scaling_params,
-                            algorithm_order=algorithm_order
+                          
                         )
 
                         arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
