@@ -1606,8 +1606,8 @@ def main():
                 st.rerun()
              if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
                 # 使用 st.download_button 提供下载功能
-                csv_data = get_csv_file(st.session_state.algorithm_permutations)
-                st.download_button("下载排列方案", csv_data, "arrangements.csv", mime="text/csv")
+                    csv_data = get_csv_file(st.session_state.algorithm_permutations)
+                    st.download_button("下载排列方案", csv_data, "arrangements.csv", mime="text/csv")
 
             # 排列方案选择（紧凑显示）
             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
