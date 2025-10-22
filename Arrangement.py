@@ -1805,7 +1805,7 @@ def main():
             else:
                 if st.session_state.show_arrangements:
                     st.info("ℹ️ 无符合条件的方案")
-        with preprocess_cols[8]:  # 放置按钮的列
+        with preprocess_cols[10]:  # 放置按钮的列
             st.subheader("操作5")  # 操作5区域
 
             # 创建按钮，点击后绘制 k 值曲线
