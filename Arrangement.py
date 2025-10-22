@@ -1620,6 +1620,64 @@ def main():
                     st.warning("⚠️ 尚未生成任何排列组合。请先点击'显示排列'生成排列方案。")
                 
 
+
+        with preprocess_cols[6]:
+            st.subheader("操作4")
+        
+            # 按排列组合处理数据
+            if st.button("开始处理光谱", type="primary", use_container_width=True, key="process_spectra_btn"):
+                # 获取原始光谱数据
+                if st.session_state.get('raw_data'):
+                    wavenumbers, y = st.session_state.raw_data
+                    processed_results = {}
+        
+                    # 处理每个排列组合
+                    for i, perm in enumerate(st.session_state.algorithm_permutations):
+                        # 获取排列组合的算法顺序
+                        algorithm_order = perm.get('order', [])
+        
+                        # 获取每个排列组合中的算法名称和参数
+                        baseline_method = perm.get('params', {}).get('baseline', '无')
+                        scaling_method = perm.get('params', {}).get('scaling', '无')
+                        filtering_method = perm.get('params', {}).get('filtering', '无')
+                        squashing_method = perm.get('params', {}).get('squashing', '无')
+        
+                        # 传递参数给 Preprocessor
+                        baseline_params = perm.get('params', {}).get('baseline_params', {})
+                        scaling_params = perm.get('params', {}).get('scaling_params', {})
+                        filtering_params = perm.get('params', {}).get('filtering_params', {})
+                        squashing_params = perm.get('params', {}).get('squashing_params', {})
+        
+                        # 处理数据
+                        try:
+                            processed_data, method_name = preprocessor.process(
+                                wavenumbers, y,
+                                baseline_method=baseline_method, baseline_params=baseline_params,
+                                squashing_method=squashing_method, squashing_params=squashing_params,
+                                filtering_method=filtering_method, filtering_params=filtering_params,
+                                scaling_method=scaling_method, scaling_params=scaling_params,
+                                algorithm_order=algorithm_order  # 按照排列组合的顺序进行处理
+                            )
+        
+                            # 保存处理结果
+                            arrangement_name = f"排列_{i + 1}"
+                            processed_results[arrangement_name] = {
+                                'data': processed_data, 
+                                'method': " → ".join(method_name)  # 显示处理的步骤
+                            }
+        
+                            st.success(f"✅ 处理完成: {arrangement_name} ({', '.join(method_name)})")
+        
+                        except Exception as e:
+                            st.error(f"❌ 处理失败: {arrangement_name} - 错误: {str(e)}")
+        
+                    # 将处理结果展示为表格
+                    for arrangement_name, result in processed_results.items():
+                        st.write(f"**{arrangement_name} 的处理结果**")
+                        st.dataframe(result['data'])
+        
+                else:
+                    st.warning("⚠️ 请先上传原始光谱数据")
             # 排列方案选择（紧凑显示）
             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
                 # 第一步类型筛选
