@@ -23,13 +23,14 @@ import csv
 
 def generate_all_combinations(current_algorithms):
     """
-    基于 current_algorithms 生成所有预处理组合。
+    基于 current_algorithms 生成所有预处理组合，
+    并按不同的排列顺序对其进行排列组合。
     
     参数：
-    - current_algorithms: 包含每个预处理方法的选择项的字典。
+    - current_algorithms: 包含每个预处理方法选择项的字典。
     
     返回：
-    - all_combinations: 所有可能的预处理组合列表（包括无预处理）。
+    - all_combinations: 所有可能的预处理组合（包括无预处理）。
     """
     
     # 提取每个预处理方法的选择项
@@ -41,7 +42,7 @@ def generate_all_combinations(current_algorithms):
     ]
     
     # 生成所有排列组合
-    all_combinations = list(itertools.product(*choices))
+    all_combinations = list(itertools.permutations(choices))  # 按顺序排列组合
     
     # 添加无预处理选项
     all_combinations.append(('无', '无', '无', '无'))  # 添加无预处理组合
@@ -1608,15 +1609,7 @@ def main():
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
                     all_combinations = generate_all_combinations(current_algorithms)
-                    with open("combinations.csv", "w", newline='') as f:
-                        writer = csv.writer(f)
-                        writer.writerow(["Baseline", "Scaling", "Filtering", "Squashing"])  # CSV 文件的标题行
-                        
-                        # 遍历 all_combinations 并写入每个组合
-                        for combination in all_combinations:
-                            writer.writerow(combination)
-
-                    print("combinations.csv 文件已生成。")
+                   
                 else:
                     st.session_state.filtered_perms = []
 
