@@ -23,7 +23,43 @@ from sklearn.neighbors import KNeighborsClassifier
 
 import io
 import csv
+def prepare_data():
+    labels_input = st.session_state.labels  # 用户输入的标签
+    train_test_ratio = st.session_state.train_test_split_ratio  # 训练集比例
 
+    # 获取所有处理后的光谱数据
+    processed_spectra = st.session_state.processed_spectra  # 65 种预处理后的光谱数据
+
+    # 划分训练集和测试集
+    n_samples = len(labels_input)
+    train_size = int(n_samples * train_test_ratio)
+    indices = np.random.permutation(n_samples)
+    train_indices = indices[:train_size]
+    test_indices = indices[train_size:]
+
+    # 获取训练集和测试集
+    train_data = []
+    train_labels = []
+    test_data = []
+    test_labels = []
+
+    # 填充训练集和测试集
+    for i in range(n_samples):
+        spectrum = processed_spectra[i]  # 获取每个处理后的光谱
+        if i in train_indices:
+            train_data.append(spectrum)
+            train_labels.append(labels_input[i])
+        else:
+            test_data.append(spectrum)
+            test_labels.append(labels_input[i])
+
+    # 转换为 numpy 数组
+    train_data = np.array(train_data)
+    train_labels = np.array(train_labels)
+    test_data = np.array(test_data)
+    test_labels = np.array(test_labels)
+
+    return train_data, train_labels, test_data, test_labels
 
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
