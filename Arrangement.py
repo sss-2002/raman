@@ -1668,7 +1668,7 @@ def main():
             st.write("当前的排列组合：")
             st.dataframe(df)  # 使用 st.dataframe() 展示为表格
     
-            else:
+         else:
             # 如果没有排列组合，给出提示
             st.warning("⚠️ 尚未生成任何排列组合。请先点击'显示排列'生成排列方案。")
         
