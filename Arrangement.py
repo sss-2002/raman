@@ -21,7 +21,44 @@ from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 import csv
 import pandas as pd
+def knn_classification_on_processed_data(processed_results):
+    """对所有处理后的光谱数据进行KNN分类并返回精确度排序"""
+    
+    if st.session_state.labels is None:
+        st.warning("⚠️ 请先输入标签")
+        return
 
+    # 获取标签
+    labels = st.session_state.labels
+    accuracy_results = []
+
+    # 遍历所有的预处理组合结果
+    for result_key, processed_data in processed_results.items():
+        # 划分训练集和测试集
+        X_train, X_test, y_train, y_test = train_test_split(processed_data.T, labels, test_size=0.2, random_state=42)
+        
+        # KNN分类器
+        knn = KNeighborsClassifier(n_neighbors=5)
+        knn.fit(X_train, y_train)
+        
+        # 预测
+        y_pred = knn.predict(X_test)
+
+        # 计算精确度
+        accuracy = accuracy_score(y_test, y_pred)
+        
+        # 将精确度和对应的处理组合存入列表
+        accuracy_results.append((result_key, accuracy))
+
+    # 按照精确度从高到低排序
+    accuracy_results.sort(key=lambda x: x[1], reverse=True)
+
+    # 输出排序后的精确度
+    st.subheader("分类精确度排序")
+    for result_key, accuracy in accuracy_results:
+        st.write(f"组合: {result_key} - 精确度: {accuracy:.4f}")
+
+    return accuracy_results
 def process_all_combinations():
     """处理所有预处理组合并保存结果"""
     all_combinations = generate_all_combinations(st.session_state.current_algorithms)
@@ -1658,12 +1695,16 @@ def main():
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
+                    
                     all_combinations = generate_all_combinations(current_algorithms)
+                    results = knn_classification_on_processed_data(st.session_state.processed_results)
                     if st.button("处理所有预处理组合并保存", type="primary", use_container_width=True):
                         results = process_all_combinations()
                         if results:
                             st.info("所有预处理组合处理完成并保存！")
-                   
+                    
+                   all_combinations = generate_all_combinations(current_algorithms)
+                   results_end = knn_classification_on_processed_data(st.session_state.processed_results)
                    
                 else:
                     st.session_state.filtered_perms = []
