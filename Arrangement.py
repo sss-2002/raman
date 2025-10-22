@@ -21,120 +21,10 @@ from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 import csv
 import pandas as pd
-def knn_classification_on_processed_data(processed_results):
-    """对所有处理后的光谱数据进行KNN分类并返回精确度排序"""
-    
-    if st.session_state.labels is None:
-        st.warning("⚠️ 请先输入标签")
-        return
 
-    # 获取标签
-    labels = st.session_state.labels
-    accuracy_results = []
 
-    # 遍历所有的预处理组合结果
-    for result_key, processed_data in processed_results.items():
-        # 划分训练集和测试集
-        X_train, X_test, y_train, y_test = train_test_split(processed_data.T, labels, test_size=0.2, random_state=42)
-        
-        # KNN分类器
-        knn = KNeighborsClassifier(n_neighbors=5)
-        knn.fit(X_train, y_train)
-        
-        # 预测
-        y_pred = knn.predict(X_test)
 
-        # 计算精确度
-        accuracy = accuracy_score(y_test, y_pred)
-        
-        # 将精确度和对应的处理组合存入列表
-        accuracy_results.append((result_key, accuracy))
 
-    # 按照精确度从高到低排序
-    accuracy_results.sort(key=lambda x: x[1], reverse=True)
-
-    # 输出排序后的精确度
-    st.subheader("分类精确度排序")
-    for result_key, accuracy in accuracy_results:
-        st.write(f"组合: {result_key} - 精确度: {accuracy:.4f}")
-
-    return accuracy_results
-def process_all_combinations():
-    """处理所有预处理组合并保存结果"""
-    all_combinations = generate_all_combinations(st.session_state.current_algorithms)
-    
-    # 获取原始光谱数据
-    if st.session_state.raw_data is None:
-        st.warning("⚠️ 请先上传数据")
-        return
-
-    wavenumbers, y = st.session_state.raw_data
-    processed_results = {}
-
-    # 对每个组合应用预处理
-    for idx, combination in enumerate(all_combinations):
-        # 设置当前组合的预处理方法
-        baseline_method, scaling_method, filtering_method, squashing_method = combination
-        baseline_params = st.session_state.current_algorithms['baseline_params']
-        scaling_params = st.session_state.current_algorithms['scaling_params']
-        filtering_params = st.session_state.current_algorithms['filtering_params']
-        squashing_params = st.session_state.current_algorithms['squashing_params']
-        
-        try:
-            # 处理光谱数据
-            preprocessor = Preprocessor()
-            processed_data, method_name = preprocessor.process(
-                wavenumbers, y,
-                baseline_method=baseline_method,
-                baseline_params=baseline_params,
-                squashing_method=squashing_method,
-                squashing_params=squashing_params,
-                filtering_method=filtering_method,
-                filtering_params=filtering_params,
-                scaling_method=scaling_method,
-                scaling_params=scaling_params
-            )
-
-            # 保存每个组合的处理结果
-            result_key = f"组合_{idx + 1}_{'_'.join(combination)}"
-            processed_results[result_key] = processed_data
-            
-            # 保存到文件
-            file_handler.export_data(f"{result_key}.txt", processed_data)
-            st.success(f"✅ 处理并保存组合 {result_key}")
-
-        except Exception as e:
-            st.error(f"❌ 处理组合 {combination} 失败: {str(e)}")
-
-    return processed_results
-
-def generate_all_combinations(current_algorithms):
-    """
-    基于 current_algorithms 生成所有预处理组合，
-    并按不同的排列顺序对其进行排列组合。
-    
-    参数：
-    - current_algorithms: 包含每个预处理方法选择项的字典。
-    
-    返回：
-    - all_combinations: 所有可能的预处理组合（包括无预处理）。
-    """
-    
-    # 提取每个预处理方法的选择项
-    choices = [
-        current_algorithms['baseline'],  # 基线校正的选择
-        current_algorithms['scaling'],   # 缩放的选择
-        current_algorithms['filtering'], # 滤波的选择
-        current_algorithms['squashing']  # 挤压的选择
-    ]
-    
-    # 生成所有排列组合
-    all_combinations = list(itertools.permutations(choices))  # 按顺序排列组合
-    
-    # 添加无预处理选项
-    all_combinations.append(('无', '无', '无', '无'))  # 添加无预处理组合
-    
-    return all_combinations
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
@@ -1083,7 +973,6 @@ def IModPoly(wavenumbers, originalRaman, polyorder, max_iter=100, tolerance=0.00
     return corrected.T if transposed_back else corrected
 
 
-
 # 移动窗口平均（MWA）滤波算法
 def MWA(arr, n=6, it=1, mode="full"):
     row = arr.shape[0]
@@ -1692,46 +1581,64 @@ def main():
                         'filtering': filtering_method,
                         'squashing': squashing_method
                     }
+
+                    # 生成排列组合并存储
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
-                    st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
-                    
-                   
-           
-                   
+                    st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
+
+                    # 获取原始光谱数据并进行处理
+                    if st.session_state.get('raw_data'):
+                        wavenumbers, y = st.session_state.raw_data
+                        processed_results = []  # 用来存储处理结果
+
+                        # 显示处理进度条
+                        progress_bar = st.progress(0)
+                        total_permutations = len(st.session_state.algorithm_permutations)
+
+                        # 处理每个排列组合
+                        for i, perm in enumerate(st.session_state.algorithm_permutations):
+                            try:
+                                algorithm_order = perm.get('order', [])
+                                baseline_method = perm.get('params', {}).get('baseline', '无')
+                                scaling_method = perm.get('params', {}).get('scaling', '无')
+                                filtering_method = perm.get('params', {}).get('filtering', '无')
+                                squashing_method = perm.get('params', {}).get('squashing', '无')
+
+                                # 传递参数给 Preprocessor
+                                processed_data, method_name = preprocessor.process(
+                                    wavenumbers, y,
+                                    baseline_method=baseline_method, baseline_params=baseline_params,
+                                    squashing_method=squashing_method, squashing_params=squashing_params,
+                                    filtering_method=filtering_method, filtering_params=filtering_params,
+                                    scaling_method=scaling_method, scaling_params=scaling_params,
+                                    algorithm_order=algorithm_order
+                                )
+
+                                # 将处理结果存储到列表中
+                                processed_results.append({
+                                    'arrangement_name': f"排列_{i + 1}",
+                                    'method': " → ".join(method_name),
+                                    'data': processed_data.tolist()  # 将数据转为列表形式以便保存
+                                })
+
+                                # 更新进度条
+                                progress_bar.progress((i + 1) / total_permutations)
+
+                            except Exception as e:
+                                st.error(f"❌ 处理失败: 排列_{i + 1} - 错误: {str(e)}")
+
+                        # 保存处理后的数据为CSV文件
+                        result_df = pd.DataFrame(processed_results)
+                        csv_file = "processed_spectra_results.csv"
+                        result_df.to_csv(csv_file, index=False)
+                        st.success(f"✅ 处理结果已保存为 {csv_file}！")
+                    else:
+                        st.warning("⚠️ 请先上传原始光谱数据")
                 else:
                     st.session_state.filtered_perms = []
 
-                st.rerun()
-
-            # 排列方案选择（紧凑显示）
-            if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
-                # 第一步类型筛选
-                try:
-                    all_first_step_types = list({
-                        perm.get("first_step_type", "未知")
-                        for perm in st.session_state.algorithm_permutations
-                    })
-                    all_first_step_types.sort()
-                except Exception as e:
-                    st.error(f"❌ 筛选错误: {str(e)}")
-                    all_first_step_types = ["全部", "无预处理", "基线校准", "缩放", "滤波", "挤压"]
-
-                selected_first_step = st.selectbox(
-                    "第一步类型",
-                    ["全部"] + all_first_step_types,
-                    key="first_step_filter",
-                    label_visibility="collapsed"
-                )
-
-                # 筛选排列
-                if selected_first_step == "全部":
-                    st.session_state.filtered_perms = st.session_state.algorithm_permutations
-                else:
-                    st.session_state.filtered_perms = [
-                        p for p in st.session_state.algorithm_permutations
-                        if p.get("first_step_type") == selected_first_step
-                    ]
+                st.rerun()  # 重新运行以更新页面
 
         # 7. 排列选择与应用
         with preprocess_cols[6]:
@@ -1758,28 +1665,28 @@ def main():
                         else:
                             try:
                                 algos = {
-                                'baseline': baseline_method,
-                                'baseline_params': baseline_params,
-                                'squashing': squashing_method,
-                                'squashing_params': squashing_params,
-                                'filtering': filtering_method,
-                                'filtering_params': filtering_params,
-                                'scaling': scaling_method,
-                                'scaling_params': scaling_params,
-                                                                }
+                                    'baseline': baseline_method,
+                                    'baseline_params': baseline_params,
+                                    'squashing': squashing_method,
+                                    'squashing_params': squashing_params,
+                                    'filtering': filtering_method,
+                                    'filtering_params': filtering_params,
+                                    'scaling': scaling_method,
+                                    'scaling_params': scaling_params,
+                                }
                                 wavenumbers, y = st.session_state.raw_data
                                 processed_data, method_name = preprocessor.process(
-                                wavenumbers, y,
-                                baseline_method=baseline_method,
-                                baseline_params=baseline_params,
-                                squashing_method=squashing_method,
-                                squashing_params=squashing_params,
-                                filtering_method=filtering_method,
-                                filtering_params=filtering_params,
-                                scaling_method=scaling_method,
-                                scaling_params=scaling_params,
-                                algorithm_order=selected_perm.get('order', [])
-                                                                                )
+                                    wavenumbers, y,
+                                    baseline_method=baseline_method,
+                                    baseline_params=baseline_params,
+                                    squashing_method=squashing_method,
+                                    squashing_params=squashing_params,
+                                    filtering_method=filtering_method,
+                                    filtering_params=filtering_params,
+                                    scaling_method=scaling_method,
+                                    scaling_params=scaling_params,
+                                    algorithm_order=selected_perm.get('order', [])
+                                )
 
                                 arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
                                 st.session_state.arrangement_results.append(arr_name)
@@ -1938,7 +1845,6 @@ def main():
                     '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
                     unsafe_allow_html=True)
 
-
             # 3. k值曲线区域（第二行第一列）
         with viz_row2[0]:
             st.subheader("k值曲线", divider="gray")
@@ -1949,14 +1855,14 @@ def main():
                     arr_data = st.session_state.arrangement_details[selected_arr]['data']
                     wavenumbers, y = st.session_state.raw_data
                     arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
-                    
+
                     if arr_order:  # 只有应用了预处理才有k值曲线
                         idx1 = 0 if arr_data.shape[1] > 0 else 0
                         k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
                         k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
                         # 关键：删除height=None，使用Streamlit默认高度（不指定height参数）
                         st.line_chart(k_data1)
-                        
+
                         # 显示更多k值曲线（折叠面板）
                         if y.shape[1] > 1:
                             with st.expander("查看更多k值曲线", expanded=False):
@@ -1973,7 +1879,7 @@ def main():
                     st.markdown(
                         '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
                         unsafe_allow_html=True)
-        
+
             # 4. 混淆矩阵区域（第二行第二列）
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
@@ -1991,17 +1897,17 @@ def main():
                 }
                 </style>
             """, unsafe_allow_html=True)
-            
+
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
-        
+
                 # 精确匹配k值曲线高度的图表尺寸
                 fig, ax = plt.subplots(figsize=(2.5, 1.5))  # 3.5英寸≈200px，与k值曲线默认高度匹配
                 sns.heatmap(
-                    results['confusion_matrix'], 
-                    annot=True, 
-                    fmt='d', 
-                    cmap='Blues', 
+                    results['confusion_matrix'],
+                    annot=True,
+                    fmt='d',
+                    cmap='Blues',
                     ax=ax,
                     annot_kws={"size": 4},
                     cbar_kws={"shrink": 0.9}
