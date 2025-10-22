@@ -23,8 +23,6 @@ import csv
 import pandas as pd
 
 
-
-
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
@@ -1570,6 +1568,7 @@ def main():
         # 6. 显示排列与筛选
         with preprocess_cols[5]:
             st.subheader("操作2")
+
             # 显示排列按钮
             if st.button("🔍 显示排列", type="secondary", use_container_width=True, key="show_perm_btn"):
                 st.session_state.show_arrangements = not st.session_state.show_arrangements
@@ -1591,10 +1590,6 @@ def main():
                     if st.session_state.get('raw_data'):
                         wavenumbers, y = st.session_state.raw_data
                         processed_results = []  # 用来存储处理结果
-
-                        # 显示处理进度条
-                        progress_bar = st.progress(0)
-                        total_permutations = len(st.session_state.algorithm_permutations)
 
                         # 处理每个排列组合
                         for i, perm in enumerate(st.session_state.algorithm_permutations):
@@ -1622,24 +1617,26 @@ def main():
                                     'data': processed_data.tolist()  # 将数据转为列表形式以便保存
                                 })
 
-                                # 更新进度条
-                                progress_bar.progress((i + 1) / total_permutations)
-
                             except Exception as e:
                                 st.error(f"❌ 处理失败: 排列_{i + 1} - 错误: {str(e)}")
 
-                        # 保存处理后的数据为CSV文件
+                        # 保存处理后的数据为CSV文件（作为中间结果）
                         result_df = pd.DataFrame(processed_results)
                         csv_file = "processed_spectra_results.csv"
-                        result_df.to_csv(csv_file, index=False)
-                        st.success(f"✅ 处理结果已保存为 {csv_file}！")
+
+                        # 保存文件到当前工作目录（可以改为自定义路径）
+                        file_path = os.path.join(os.getcwd(), csv_file)
+                        result_df.to_csv(file_path, index=False)
+
+                        # 提示文件保存
+                        st.success(f"✅ 处理结果已保存为中间文件: {file_path}")
+
                     else:
                         st.warning("⚠️ 请先上传原始光谱数据")
                 else:
                     st.session_state.filtered_perms = []
 
                 st.rerun()  # 重新运行以更新页面
-
         # 7. 排列选择与应用
         with preprocess_cols[6]:
             st.subheader("操作3")
