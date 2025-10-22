@@ -1621,15 +1621,15 @@ def main():
                 
 
 
-        with preprocess_cols[6]:
+       with preprocess_cols[6]:
             st.subheader("操作4")
-        
+            
             # 按排列组合处理数据
             if st.button("开始处理光谱", type="primary", use_container_width=True, key="process_spectra_btn"):
                 # 获取原始光谱数据
                 if st.session_state.get('raw_data'):
                     wavenumbers, y = st.session_state.raw_data
-                    processed_results = {}
+                    processed_results = {}  # 用来存储处理结果
         
                     # 处理每个排列组合
                     for i, perm in enumerate(st.session_state.algorithm_permutations):
@@ -1659,23 +1659,25 @@ def main():
                                 algorithm_order=algorithm_order  # 按照排列组合的顺序进行处理
                             )
         
-                            # 保存处理结果
+                            # 存储处理结果到 st.session_state 中
                             arrangement_name = f"排列_{i + 1}"
-                            processed_results[arrangement_name] = {
+                            st.session_state[arrangement_name] = {
                                 'data': processed_data, 
-                                'method': " → ".join(method_name)  # 显示处理的步骤
+                                'method': " → ".join(method_name)  # 保存处理的步骤
                             }
         
                             st.success(f"✅ 处理完成: {arrangement_name} ({', '.join(method_name)})")
         
                         except Exception as e:
-                            st.error(f"❌ 处理失败: {arrangement_name} - 错误: {str(e)}")
-        
-                    # 将处理结果展示为表格
-                    for arrangement_name, result in processed_results.items():
-                        st.write(f"**{arrangement_name} 的处理结果**")
-                        st.dataframe(result['data'])
-        
+                            st.error(f"❌ 处理失败: 排列_{i + 1} - 错误: {str(e)}")
+                    
+                    # 所有排列组合的处理结果存储完成后，统一展示结果
+                    st.subheader("处理后的所有光谱数据")
+                    for arrangement_name, result in st.session_state.items():
+                        if arrangement_name.startswith("排列_"):  # 确保只展示排列组合的结果
+                            st.write(f"**{arrangement_name} 的处理结果**")
+                            st.dataframe(result['data'])
+                
                 else:
                     st.warning("⚠️ 请先上传原始光谱数据")
             # 排列方案选择（紧凑显示）
