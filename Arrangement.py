@@ -1604,10 +1604,32 @@ def main():
                     st.session_state.filtered_perms = []
 
                 st.rerun()
-             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
-                # 使用 st.download_button 提供下载功能
-                    csv_data = get_csv_file(st.session_state.algorithm_permutations)
-                    st.download_button("下载排列方案", csv_data, "arrangements.csv", mime="text/csv")
+        with preprocess_cols[6]:
+            st.subheader("操作3")
+        
+            # 添加展示排列组合的按钮
+            if st.button("展示排列组合", type="secondary", use_container_width=True, key="show_combinations_btn"):
+                # 检查是否已经生成排列组合
+                if st.session_state.get('algorithm_permutations'):
+                    # 如果有排列组合，构建 DataFrame 来展示
+                    data = []
+                    for perm in st.session_state.algorithm_permutations:
+                        name = perm.get('name', '未知')
+                        order = ", ".join(map(str, perm.get('order', [])))
+                        params = ", ".join(map(str, perm.get('params', {}).items()))
+                        data.append([name, order, params])
+        
+                    # 创建 DataFrame
+                    df = pd.DataFrame(data, columns=["排列名称", "算法顺序", "算法参数"])
+        
+                    # 展示 DataFrame
+                    st.write("当前的排列组合：")
+                    st.dataframe(df)  # 使用 st.dataframe() 展示为表格
+        
+                else:
+                    # 如果没有排列组合，给出提示
+                    st.warning("⚠️ 尚未生成任何排列组合。请先点击'显示排列'生成排列方案。")
+                
 
             # 排列方案选择（紧凑显示）
             if st.session_state.show_arrangements and st.session_state.algorithm_permutations:
