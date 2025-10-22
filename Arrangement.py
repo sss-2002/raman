@@ -1588,12 +1588,17 @@ def main():
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
 
-                    # 获取用户输入的标签（如：0,0,1,1）
-                    labels_input = st.text_input("标签（请勿分隔， 与光谱顺序一致）", "0,0,1,1")
+                    # 获取用户输入的标签（确保标签长度与光谱数据一致）
+                    labels_input = st.text_input("标签（请勿分隔， 与光谱顺序一致）", "0,0,1,1,0")
                     try:
                         # 将用户输入的标签转换为列表
                         labels = list(map(int, labels_input.split(',')))
                         st.write("标签已加载：", labels)
+
+                        # 确保标签数量与光谱样本数量一致
+                        if len(labels) != 5:  # 只有 5 条光谱数据
+                            st.error(f"❌ 标签的数量（{len(labels)}）与光谱样本的数量（5）不一致！")
+                            return
                     except Exception as e:
                         st.error("标签格式错误，请确保标签为用逗号分隔的整数，例如：0,0,1,1")
                         return
@@ -1603,41 +1608,47 @@ def main():
                         wavenumbers, y = st.session_state.raw_data
                         processed_results = []  # 用来存储处理结果
 
-                        # 处理每个排列组合
-                        for i, perm in enumerate(st.session_state.algorithm_permutations):
-                            try:
-                                algorithm_order = perm.get('order', [])
-                                baseline_method = perm.get('params', {}).get('baseline', '无')
-                                scaling_method = perm.get('params', {}).get('scaling', '无')
-                                filtering_method = perm.get('params', {}).get('filtering', '无')
-                                squashing_method = perm.get('params', {}).get('squashing', '无')
+                        # 处理每条光谱数据，5条光谱，每条光谱通过 65 种预处理
+                        for j in range(5):  # 5 条光谱
+                            for i, perm in enumerate(st.session_state.algorithm_permutations):
+                                try:
+                                    algorithm_order = perm.get('order', [])
+                                    baseline_method = perm.get('params', {}).get('baseline', '无')
+                                    scaling_method = perm.get('params', {}).get('scaling', '无')
+                                    filtering_method = perm.get('params', {}).get('filtering', '无')
+                                    squashing_method = perm.get('params', {}).get('squashing', '无')
 
-                                # 传递参数给 Preprocessor
-                                processed_data, method_name = preprocessor.process(
-                                    wavenumbers, y,
-                                    baseline_method=baseline_method, baseline_params=baseline_params,
-                                    squashing_method=squashing_method, squashing_params=squashing_params,
-                                    filtering_method=filtering_method, filtering_params=filtering_params,
-                                    scaling_method=scaling_method, scaling_params=scaling_params,
-                                    algorithm_order=algorithm_order
-                                )
+                                    # 传递参数给 Preprocessor
+                                    processed_data, method_name = preprocessor.process(
+                                        wavenumbers, y[j],  # 针对每条光谱的处理
+                                        baseline_method=baseline_method, baseline_params=baseline_params,
+                                        squashing_method=squashing_method, squashing_params=squashing_params,
+                                        filtering_method=filtering_method, filtering_params=filtering_params,
+                                        scaling_method=scaling_method, scaling_params=scaling_params,
+                                        algorithm_order=algorithm_order
+                                    )
 
-                                # 将处理结果存储到列表中
-                                processed_results.append({
-                                    'arrangement_name': f"排列_{i + 1}",
-                                    'method': " → ".join(method_name),
-                                    'data': processed_data.tolist()  # 将数据转为列表形式以便处理
-                                })
+                                    # 将处理结果存储到列表中
+                                    processed_results.append({
+                                        'arrangement_name': f"光谱_{j + 1}_排列_{i + 1}",
+                                        'method': " → ".join(method_name),
+                                        'data': processed_data.tolist()  # 将数据转为列表形式以便处理
+                                    })
 
-                            except Exception as e:
-                                st.error(f"❌ 处理失败: 排列_{i + 1} - 错误: {str(e)}")
+                                except Exception as e:
+                                    st.error(f"❌ 处理失败: 光谱_{j + 1}_排列_{i + 1} - 错误: {str(e)}")
 
                         # 将处理结果直接存储在一个变量中（内存中的数据）
                         processed_data_df = pd.DataFrame(processed_results)
 
                         # 获取特征 X 和标签 y
                         X = processed_data_df['data'].apply(pd.Series)  # 将每个光谱的列表数据展开成DataFrame
-                        y = np.array(labels)  # 使用用户输入的标签作为目标变量
+                        y = np.array(labels * 65)  # 标签数量与样本数量一致，5条光谱，每条65个处理结果
+
+                        # 确保 X 和 y 的样本数量一致
+                        if X.shape[0] != len(y):
+                            st.error(f"❌ 特征样本数（{X.shape[0]}）与标签样本数（{len(y)}）不一致！")
+                            return
 
                         # 划分训练集和测试集
                         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
