@@ -1704,29 +1704,7 @@ def main():
             else:
                 if st.session_state.show_arrangements:
                     st.info("ℹ️ 无符合条件的方案")
-        with preprocess_cols[10]:  # 放置按钮的列
-            st.subheader("操作5")  # 操作5区域
-
-            # 创建按钮，点击后绘制 k 值曲线
-            if st.button("绘制 K 值准确率曲线", type="primary", use_container_width=True, key="plot_k_curve_btn"):
-                if st.session_state.raw_data is None:
-                    st.warning("⚠️ 请先上传数据")
-                elif st.session_state.labels is None:
-                    st.warning("⚠️ 请先输入标签")
-                elif st.session_state.train_indices is None:
-                    st.warning("⚠️ 无法划分训练集")
-                else:
-                    # 获取已处理的光谱数据、标签和训练集索引
-                    processed_spectra = st.session_state.processed_spectra  # 65 种预处理后的光谱数据
-                    labels_input = st.session_state.labels  # 用户输入的标签
-                    train_test_ratio = st.session_state.train_test_split_ratio  # 训练集比例
-
-                    # 准备训练集和测试集数据
-                    train_data, train_labels, test_data, test_labels = prepare_data()  # 从 prepare_data 函数获取数据
-
-                    # 调用 knn 分类和投票功能，绘制 k 值准确率曲线
-                    knn_classification_and_voting(train_data, train_labels, test_data, test_labels)
-
+      
         # 8. 分类测试参数（已移除"分类测试"文本）
         with preprocess_cols[7]:
             st.subheader("操作4")
