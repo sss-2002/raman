@@ -83,7 +83,7 @@ def main():
         'test_indices': None  # 测试集索引
     }
     file_handler = FileHandler()
-    preprocessor = Preprocessor()
+    # preprocessor = Preprocessor()
     # 初始化 current_algorithms 字典
     current_algorithms = {
         'baseline': '无',  # 默认基线校正方法
