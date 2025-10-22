@@ -20,6 +20,7 @@ import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 import csv
+import pandas as pd
 
 def generate_all_combinations(current_algorithms):
     """
@@ -1609,9 +1610,12 @@ def main():
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
                     all_combinations = generate_all_combinations(current_algorithms)
-                    st.write("前10个组合:")
-                    for combination in all_combinations[:10]:  # 显示前10个组合
-                        st.write(combination)
+                    df = pd.DataFrame(all_combinations, columns=["Baseline", "Scaling", "Filtering", "Squeezing"])
+
+                    # 保存为 Excel 文件
+                    df.to_excel("combinations.xlsx", index=False)
+                    
+                    st.success("combinations.xlsx 文件已生成，可以下载查看！")
                    
                 else:
                     st.session_state.filtered_perms = []
