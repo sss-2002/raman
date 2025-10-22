@@ -1456,6 +1456,9 @@ def main():
                 key="baseline_method",
                 label_visibility="collapsed"
             )
+            if baseline_method != "无" and "基线校准" not in st.session_state['algorithm_order']:
+                        st.session_state['algorithm_order'].append("基线校准")
+            
 
             # 基线参数
             baseline_params = {}
@@ -1505,6 +1508,8 @@ def main():
                 key="scaling_method",
                 label_visibility="collapsed"
             )
+            if scaling_method != "无" and "缩放" not in st.session_state['algorithm_order']:
+                    st.session_state['algorithm_order'].append("缩放")
 
             # 缩放参数
             scaling_params = {}
@@ -1526,6 +1531,8 @@ def main():
                 key="filtering_method",
                 label_visibility="collapsed"
             )
+            if filtering_method != "无" and "滤波" not in st.session_state['algorithm_order']:
+                st.session_state['algorithm_order'].append("滤波")
 
             # 滤波参数
             filtering_params = {}
@@ -1592,6 +1599,8 @@ def main():
                 key="squashing_method",
                 label_visibility="collapsed"
             )
+            if squashing_method != "无" and "挤压" not in st.session_state['algorithm_order']:
+                st.session_state['algorithm_order'].append("挤压")
 
             # 挤压参数
             squashing_params = {}
@@ -1629,6 +1638,32 @@ def main():
                     st.warning("⚠️ 请先上传数据")
                 else:
                     try:
+                         # 初始化 algorithm_order
+                        algorithm_order = []
+        
+                        # 如果选择了基线校正方法，则将其添加到 algorithm_order
+                        if baseline_method != "无":
+                            algorithm_order.append("基线校准")
+                        
+                        # 如果选择了缩放方法，则将其添加到 algorithm_order
+                        if scaling_method != "无":
+                            algorithm_order.append("缩放")
+                        
+                        # 如果选择了滤波方法，则将其添加到 algorithm_order
+                        if filtering_method != "无":
+                            algorithm_order.append("滤波")
+                        
+                        # 如果选择了挤压方法，则将其添加到 algorithm_order
+                        if squashing_method != "无":
+                            algorithm_order.append("挤压")
+                        
+                        # 确保 algorithm_order 不为空
+                        if len(algorithm_order) == 0:
+                            st.warning("⚠️ 请至少选择一个预处理算法")
+                        else:
+                            # 更新 session_state 中的 algorithm_order
+                            st.session_state['algorithm_order'] = algorithm_order
+
 
                         wavenumbers, y = st.session_state.raw_data
                         processed_data, method_name = preprocessor.process(
