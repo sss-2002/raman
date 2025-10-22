@@ -1603,8 +1603,8 @@ def main():
                         st.success("✅ 排列组合已成功存储！")
                     else:
                         st.warning("⚠️ 还未生成排列组合，请先生成排列组合。")
-                                with preprocess_cols[6]:
-                                    st.subheader("操作4")
+        with preprocess_cols[6]:
+                st.subheader("操作4")
 
                         # 按排列组合处理数据
                         if st.button("开始处理光谱", type="primary", use_container_width=True,
