@@ -1620,16 +1620,24 @@ def main():
                             except Exception as e:
                                 st.error(f"❌ 处理失败: 排列_{i + 1} - 错误: {str(e)}")
 
-                        # 保存处理后的数据为CSV文件（作为中间结果）
+                        # 确保文件保存路径明确
                         result_df = pd.DataFrame(processed_results)
                         csv_file = "processed_spectra_results.csv"
 
                         # 保存文件到当前工作目录（可以改为自定义路径）
                         file_path = os.path.join(os.getcwd(), csv_file)
+
+                        # 打印文件路径帮助调试
+                        st.write(f"文件将保存到: {file_path}")
+
+                        # 保存数据
                         result_df.to_csv(file_path, index=False)
 
-                        # 提示文件保存
-                        st.success(f"✅ 处理结果已保存为中间文件: {file_path}")
+                        # 确保文件保存成功
+                        if os.path.exists(file_path):
+                            st.success(f"✅ 处理结果已保存为中间文件: {file_path}")
+                        else:
+                            st.error("❌ 文件保存失败，请检查路径或权限问题。")
 
                     else:
                         st.warning("⚠️ 请先上传原始光谱数据")
