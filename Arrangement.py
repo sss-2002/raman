@@ -20,7 +20,32 @@ import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 
-
+def generate_all_combinations(current_algorithms):
+    """
+    基于 current_algorithms 生成所有预处理组合。
+    
+    参数：
+    - current_algorithms: 包含每个预处理方法的选择项的字典。
+    
+    返回：
+    - all_combinations: 所有可能的预处理组合列表（包括无预处理）。
+    """
+    
+    # 提取每个预处理方法的选择项
+    choices = [
+        current_algorithms['baseline'],  # 基线校正的选择
+        current_algorithms['scaling'],   # 缩放的选择
+        current_algorithms['filtering'], # 滤波的选择
+        current_algorithms['squashing']  # 挤压的选择
+    ]
+    
+    # 生成所有排列组合
+    all_combinations = list(itertools.product(*choices))
+    
+    # 添加无预处理选项
+    all_combinations.append(('无', '无', '无', '无'))  # 添加无预处理组合
+    
+    return all_combinations
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
@@ -1581,6 +1606,7 @@ def main():
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
+                    all_combinations = generate_all_combinations(current_algorithms)
                 else:
                     st.session_state.filtered_perms = []
 
