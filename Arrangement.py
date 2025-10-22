@@ -1680,13 +1680,16 @@ def main():
                         st.write("按准确率排序后的k值：")
                         st.dataframe(accuracies_df_sorted)
 
-                        # 绘制 K 值曲线（排序后的准确率）
+                        # 显示准确率与k值的关系
+                        st.write("K 值与准确率的关系：")
+                        st.dataframe(accuracies_df)
+
+                        # 绘制 K 值曲线（k 从 1 到 65）
                         plt.figure(figsize=(10, 6))
-                        plt.plot(accuracies_df_sorted['k'], accuracies_df_sorted['accuracy'], marker='o', linestyle='-',
-                                 color='b')
-                        plt.title("KNN: k 值曲线（按准确率排序）")
-                        plt.xlabel("k 值")
-                        plt.ylabel("准确率")
+                        plt.plot(accuracies_df['k'], accuracies_df['accuracy'], marker='o', linestyle='-', color='b')
+                        plt.title("KNN: k 值与准确率的关系")
+                        plt.xlabel("k 值")  # 横坐标为 k 值
+                        plt.ylabel("准确率")  # 纵坐标为准确率
                         st.pyplot(plt)
 
                         # 保存排序后的准确率到Excel文件
