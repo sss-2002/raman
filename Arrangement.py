@@ -23,14 +23,13 @@ from sklearn.neighbors import KNeighborsClassifier
 
 # 准备数据函数，假设你已经有了训练集和测试集
 def prepare_data():
-    # 从st.session_state中获取处理后的光谱数据
     processed_spectra = st.session_state.processed_spectra  # 65 种预处理后的光谱数据
     labels_input = st.session_state.labels  # 用户输入的标签
     train_test_ratio = st.session_state.train_test_split_ratio  # 训练集比例
 
     # 确保 processed_spectra 是二维数组（样本数 x 特征数）
     processed_spectra = np.array(processed_spectra)
-    
+
     # 如果数据是三维的 (n_samples x n_features x 1)，我们可以通过 reshape 将它变为二维
     if processed_spectra.ndim == 3:
         processed_spectra = processed_spectra.reshape(processed_spectra.shape[0], -1)
@@ -67,11 +66,7 @@ def prepare_data():
     return train_data, train_labels, test_data, test_labels
 
 
-
-
-# KNN 分类和投票函数
 def knn_classification_and_voting(train_data, train_labels, test_data, test_labels):
-    # 动态调整 n_neighbors，确保不超过样本数量
     n_neighbors = min(5, len(train_data))  # 设置 n_neighbors 为训练集样本数的最小值
 
     # 确保输入数据是二维的
@@ -89,10 +84,12 @@ def knn_classification_and_voting(train_data, train_labels, test_data, test_labe
     accuracy = accuracy_score(test_labels, predictions)
     st.write(f"分类准确率: {accuracy * 100:.2f}%")
 
-    # 投票机制（按k值投票）
     def vote_predictions(predictions, k):
         """对每个光谱的预测结果进行投票"""
-        selected_predictions = predictions[:, :k]  # 选择前k个预测
+        if predictions.ndim == 1:
+            selected_predictions = predictions  # 一维数组，直接使用
+        else:
+            selected_predictions = predictions[:, :k]  # 二维数组，选择前k个预测
         final_predictions = []
         for row in selected_predictions:
             most_common = np.bincount(row).argmax()  # 投票机制：选择出现最多的类别
