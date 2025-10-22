@@ -1609,6 +1609,9 @@ def main():
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成{len(st.session_state.algorithm_permutations)}种方案")
                     all_combinations = generate_all_combinations(current_algorithms)
+                    st.write("前10个组合:")
+                    for combination in all_combinations[:10]:  # 显示前10个组合
+                        st.write(combination)
                    
                 else:
                     st.session_state.filtered_perms = []
