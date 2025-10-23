@@ -1270,7 +1270,11 @@ def main():
     # ===== 左侧：数据管理模块（移除光谱条数和数据点数）=====
     with col_left:
         with st.expander("📁 数据管理", expanded=True):
-            # 1. 上传压缩包
+            # 1. 提前初始化train_test_ratio（解决引用前未定义问题）
+            # 先从session_state读取，无则用默认值，确保后续使用时变量已存在
+            train_test_ratio = st.session_state.get('train_test_split_ratio', 0.8)
+    
+            # 2. 上传压缩包
             zip_file = st.file_uploader("上传包含波数和光谱数据的压缩包", type=['zip'], key="zip_file")
             st.caption("压缩包(.zip)需包含波数和光谱数据文件")
     
@@ -1290,7 +1294,7 @@ def main():
                 except Exception as e:
                     st.error(f"❌ 文件加载失败: {str(e)}")
     
-            # 2. 样本标签区域
+            # 3. 样本标签区域
             st.subheader("样本标签")
             num_classes = st.number_input("类别数量", min_value=1, value=2, step=1, key="num_cls")
             
@@ -1307,13 +1311,14 @@ def main():
                 key="labels_in"
             )
     
-            # 标签验证逻辑
+            # 标签验证逻辑（此时train_test_ratio已提前初始化，可安全使用）
             if labels_input and st.session_state.get('raw_data'):
                 try:
                     labels = np.array([int(l.strip()) for l in labels_input.split(',')])
                     if len(labels) == st.session_state.raw_data[1].shape[1]:
                         st.session_state.labels = labels
                         n_samples = len(labels)
+                        # 此处使用提前初始化的train_test_ratio
                         train_size = int(n_samples * train_test_ratio)
                         indices = np.random.permutation(n_samples)
                         st.session_state.train_indices = indices[:train_size]
@@ -1325,25 +1330,27 @@ def main():
                     st.warning(f"⚠️ 标签格式错误: {str(e)}")
                     st.session_state.labels = None
     
-            # 【核心调整】数据维度提示移至样本标签区域最后（训练测试划分前）
+            # 数据维度提示（样本标签最后、训练测试划分前，位置不变）
             if st.session_state.get('raw_data'):
                 wavenumbers, y = st.session_state.raw_data
                 st.info(f"📊 数据维度: {y.shape[1]}条 × {y.shape[0]}点")
     
-            # 3. 训练测试划分区域（位于数据维度提示下方）
+            # 4. 训练测试划分区域（滑块值更新train_test_ratio）
             st.subheader("训练测试划分")
+            # 滑块值赋值给train_test_ratio，更新为用户选择的数值
             train_test_ratio = st.slider(
                 "训练集比例",
                 min_value=0.1,
                 max_value=0.9,
-                value=0.8,
+                value=train_test_ratio,  # 用初始化的值作为默认值
                 step=0.1,
                 format="%.1f",
                 key="train_ratio"
             )
+            # 更新session_state中的值，保持状态一致
             st.session_state.train_test_split_ratio = train_test_ratio
     
-            # 训练集:测试集提示（训练集比例下方）
+            # 训练集:测试集提示（训练集比例下方，位置不变）
             st.info(f"🔢 训练集:{train_test_ratio:.1f} | 测试集:{1 - train_test_ratio:.1f}")
     
         # 处理流程提示
