@@ -1806,33 +1806,52 @@ def main():
         
         # 【修改】操作4：显示k值结果（第7列）
         with preprocess_cols[7]:
-            st.subheader("k值结果为")  # 文本改为"k值结果为"
-            # 获取k值结果（无结果时显示"未计算"）
-            calc_k_result = st.session_state.get('calc_k_result', "未计算")
+            st.subheader("k值结果为")  # 文本保持"k值结果为"
             
-            # 自定义CSS：顶紧标题、文本左对齐+上对齐、增大文本
+            # 自定义CSS：调整标题间距、设置输入框样式（只读、无边框、背景色等）
             st.markdown("""
             <style>
-            /* 消除subheader与结果文本之间的默认间距，实现顶紧效果 */
+            /* 消除subheader与输入框之间的默认间距，实现顶紧效果 */
             .k-result-container .stSubheader {
                 margin-bottom: 0.1rem !important;  /* 极小间距，接近顶紧 */
             }
-            .k-result-text {
-                font-size: 1.10rem;  /* 文本放大至1.10rem */
-                font-weight: 500;  /* 增加字重，让文本更醒目 */
-                color: #31333F;  /* 保持文字色，确保可读性 */
-                text-align: left;  /* 文本左对齐 */
-                padding: 0.1rem 0 0.5rem 0;  /* 仅上下轻微内边距，左对齐无左侧内边距 */
-                display: inline-block;  /* 让容器紧贴文本，实现上对齐视觉效果 */
-                vertical-align: top;  /* 确保文本在容器内上对齐 */
+            /* 自定义只读输入框样式，模拟结果展示框 */
+            .k-result-input input {
+                font-size: 1.10rem !important;  /* 文本放大至1.10rem */
+                font-weight: 500 !important;  /* 增加字重，文本更醒目 */
+                color: #31333F !important;  /* 文字色，确保可读性 */
+                background-color: #F0F2F6 !important;  /* 浅灰色背景，区别于可输入框 */
+                border: 1px solid #DCDCDC !important;  /* 细边框，模拟输入框外观 */
+                border-radius: 0.25rem !important;  /* 轻微圆角，符合Streamlit风格 */
+                padding: 0.5rem 0.75rem !important;  /* 内边距，确保文本不贴边 */
+                cursor: default !important;  /* 鼠标指针为默认样式，提示不可编辑 */
+            }
+            /* 隐藏输入框聚焦时的边框高亮（只读状态无需聚焦） */
+            .k-result-input input:focus {
+                box-shadow: none !important;
+                border-color: #DCDCDC !important;
             }
             </style>
             """, unsafe_allow_html=True)
             
-            # 用容器包裹标题和结果文本，便于CSS控制间距
+            # 用容器包裹标题和结果输入框，便于CSS控制间距
             st.markdown('<div class="k-result-container">', unsafe_allow_html=True)
-            # 显示左对齐、上对齐的k值结果文本
-            st.markdown(f'<div class="k-result-text"> {calc_k_result}</div>', unsafe_allow_html=True)
+            
+            # 获取k值结果（无结果时显示"未计算"）
+            calc_k_result = st.session_state.get('calc_k_result', "未计算")
+            
+            # 创建只读输入框，展示k值结果（label_visibility设为collapsed隐藏默认标签）
+            st.text_input(
+                label="k值结果展示",  # 标签仅用于内部标识，前端隐藏
+                value=str(calc_k_result),  # 显示计算结果，转为字符串确保兼容性
+                disabled=True,  # 禁用输入，设为只读状态
+                key="k_result_display_input",  # 唯一key，避免Streamlit重渲染冲突
+                label_visibility="collapsed",  # 隐藏标签，仅展示输入框
+                help="此为计算出的k值结果，不可编辑",  # 鼠标悬浮提示
+                # 自定义输入框的class，用于CSS样式控制
+                args=({"class": "k-result-input"},)
+            )
+            
             st.markdown('</div>', unsafe_allow_html=True)
         
         # 【新增】操作5：选择k值（第8列，不变）
