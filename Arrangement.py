@@ -1610,6 +1610,9 @@ def main():
                         wavenumbers, y = st.session_state.raw_data
                         processed_results = []  # 用来存储处理结果
 
+                        # 存储原始类别和预测类别
+                        all_predictions = []  # 存储每个光谱的原始类别和预测类别
+
                         # 处理每条光谱数据，5条光谱，每条光谱通过 65 种预处理
                         for j in range(5):  # 5 条光谱
                             for i, perm in enumerate(st.session_state.algorithm_permutations):
@@ -1637,6 +1640,20 @@ def main():
                                         'data': processed_data.tolist()  # 将数据转为列表形式以便处理
                                     })
 
+                                    # 存储原始类别和预测类别
+                                    # 计算准确率
+                                    plc = Perceptron(max_iter=1000, tol=1e-3)
+                                    X_train, X_test, y_train, y_test = train_test_split(processed_data, labels,
+                                                                                        test_size=0.3, random_state=42)
+                                    plc.fit(X_train, y_train)
+                                    y_pred = plc.predict(X_test)
+
+                                    for true_label, predicted_label in zip(y_test, y_pred):
+                                        all_predictions.append({
+                                            'true_label': true_label,
+                                            'predicted_label': predicted_label
+                                        })
+
                                 except Exception as e:
                                     st.error(f"❌ 处理失败: 光谱_{j + 1}_排列_{i + 1} - 错误: {str(e)}")
 
@@ -1655,9 +1672,8 @@ def main():
                         # 划分训练集和测试集
                         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-                        # 初始化准确率列表和原始类别、预测类别的列表
+                        # 初始化准确率列表
                         accuracies = []
-                        all_predictions = []  # 存储原始标签和预测标签
 
                         # 对每个 k 值进行 Perceptron 分类
                         for k in range(1, 66):  # 从k=1到k=65
@@ -1673,18 +1689,11 @@ def main():
                             accuracy = accuracy_score(y_test, y_pred)
                             accuracies.append({'k': k, 'accuracy': accuracy})
 
-                            # 存储原始标签和预测标签
-                            for true_label, predicted_label in zip(y_test, y_pred):
-                                all_predictions.append({
-                                    'true_label': true_label,
-                                    'predicted_label': predicted_label
-                                })
-
                         # 保存准确率和预测结果到变量中
                         accuracies_df = pd.DataFrame(accuracies)
                         predictions_df = pd.DataFrame(all_predictions)
 
-                        # 准确率和预测结果保存在变量中
+                        # 结果保存在变量中
                         result = {
                             "accuracies": accuracies_df,  # 保存准确率
                             "predictions": predictions_df  # 保存原始标签与预测标签
@@ -1697,6 +1706,14 @@ def main():
                         st.write("原始类别与预测类别：")
                         st.dataframe(result["predictions"])
 
+                        # 绘制 K 值曲线（k 从 1 到 65）
+                        plt.figure(figsize=(10, 6))
+                        plt.plot(result["accuracies"]['k'], result["accuracies"]['accuracy'], marker='o', linestyle='-',
+                                 color='b')
+                        plt.title("Perceptron: k 值与准确率的关系")
+                        plt.xlabel("k 值")  # 横坐标为 k 值
+                        plt.ylabel("准确率")  # 纵坐标为准确率
+                        st.pyplot(plt)
 
                     else:
                         st.error(f"❌ 请先上传原始光谱数据")
