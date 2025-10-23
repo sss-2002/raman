@@ -1889,36 +1889,31 @@ def main():
 
         # ===== 光谱可视化与结果导出（在预处理设置下方）=====
         st.subheader("📈 光谱可视化", divider="gray")
-
+        
         # 创建四个固定区域的布局：原始光谱、预处理后光谱、k值曲线、混淆矩阵
         # 第一行：原始光谱和预处理后光谱
         viz_row1 = st.columns(2, gap="medium")
-
+        
         # 第二行：k值曲线和混淆矩阵
         viz_row2 = st.columns(2, gap="medium")
-
-        # 1. 原始光谱区域（第一行第一列）
+        
+        # 1. 原始光谱区域（第一行第一列）- 随机显示一个原始光谱
         with viz_row1[0]:
             st.subheader("原始光谱", divider="gray")
             if st.session_state.get('raw_data'):
                 wavenumbers, y = st.session_state.raw_data
-                idx1 = 0 if y.shape[1] > 0 else 0
-                raw_data1 = pd.DataFrame({"原始光谱1": y[:, idx1]}, index=wavenumbers)
-                st.line_chart(raw_data1, height=250)
-
-                # 显示更多原始光谱（不使用嵌套列）
-                if y.shape[1] > 1:
-                    with st.expander("查看更多原始光谱", expanded=False):
-                        # 不使用嵌套列，而是使用简单的循环
-                        for i in range(1, min(y.shape[1], 5)):
-                            st.subheader(f"原始光谱{i + 1}", divider="gray")
-                            data = pd.DataFrame({f"原始光谱{i + 1}": y[:, i]}, index=wavenumbers)
-                            st.line_chart(data, height=150)
+                # 确保y是二维数组（N×S），取随机列索引
+                num_samples = y.shape[1] if y.ndim == 2 else 1
+                random_idx = np.random.randint(0, num_samples)  # 随机选择一个光谱
+                # 显示随机选择的原始光谱
+                raw_data = pd.DataFrame({f"原始光谱（随机）": y[:, random_idx]}, index=wavenumbers)
+                st.line_chart(raw_data, height=250)
+                st.caption(f"随机展示第 {random_idx + 1}/{num_samples} 条原始光谱")
             else:
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
                     unsafe_allow_html=True)
-
+        
         # 2. 预处理后光谱区域（第一行第二列）
         with viz_row1[1]:
             st.subheader("预处理后的光谱", divider="gray")
@@ -1927,11 +1922,11 @@ def main():
                 arr_data = st.session_state.arrangement_details[selected_arr]['data']
                 arr_method = st.session_state.arrangement_details[selected_arr]['method']
                 st.caption(f"处理方法: {arr_method}")
-
+        
                 idx1 = 0 if arr_data.shape[1] > 0 else 0
                 proc_data1 = pd.DataFrame({"预处理后1": arr_data[:, idx1]}, index=wavenumbers)
                 st.line_chart(proc_data1, height=250)
-
+        
                 # 显示更多预处理后光谱（不使用嵌套列）
                 if arr_data.shape[1] > 1:
                     with st.expander("查看更多预处理后光谱", expanded=False):
@@ -1943,25 +1938,23 @@ def main():
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
                     unsafe_allow_html=True)
-
-            # 3. k值曲线区域（第二行第一列）
+        
+        # 3. k值曲线区域（第二行第一列）
         with viz_row2[0]:
             st.subheader("k值曲线", divider="gray")
-            # 正确的容器语法（不指定height参数，避免None值）
             with st.container():
                 if st.session_state.get('selected_arrangement'):
                     selected_arr = st.session_state.selected_arrangement
                     arr_data = st.session_state.arrangement_details[selected_arr]['data']
                     wavenumbers, y = st.session_state.raw_data
                     arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
-
+        
                     if arr_order:  # 只有应用了预处理才有k值曲线
                         idx1 = 0 if arr_data.shape[1] > 0 else 0
                         k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
                         k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
-                        # 关键：删除height=None，使用Streamlit默认高度（不指定height参数）
                         st.line_chart(k_data1)
-
+        
                         # 显示更多k值曲线（折叠面板）
                         if y.shape[1] > 1:
                             with st.expander("查看更多k值曲线", expanded=False):
@@ -1969,39 +1962,33 @@ def main():
                                     st.subheader(f"k值{i + 1}", divider="gray")
                                     k_vals = np.abs(arr_data[:, i] / (y[:, i] + 1e-8))
                                     data = pd.DataFrame({f"k值{i + 1}": k_vals}, index=wavenumbers)
-                                    # 此处height用具体数值，避免None
                                     st.line_chart(data, height=150)
                     else:
                         st.info("ℹ️ 无预处理（原始光谱），不显示k值曲线")
                 else:
-                    # 空状态占位（固定高度200px，与混淆矩阵统一）
                     st.markdown(
                         '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
                         unsafe_allow_html=True)
-
-            # 4. 混淆矩阵区域（第二行第二列）
+        
+        # 4. 混淆矩阵区域（第二行第二列）
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
-            # 强制高度一致的CSS（修复选择器，确保生效）
             st.markdown("""
                 <style>
-                /* 定位第二行的两列容器，强制高度相同 */
                 [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"] {
                     height: 100% !important;
                 }
-                /* 消除图表内外边距 */
                 [data-testid="stMatplotlibChart"] {
                     margin: 0 !important;
                     padding: 0 !important;
                 }
                 </style>
             """, unsafe_allow_html=True)
-
+        
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
-
-                # 精确匹配k值曲线高度的图表尺寸
-                fig, ax = plt.subplots(figsize=(2.5, 1.5))  # 3.5英寸≈200px，与k值曲线默认高度匹配
+        
+                fig, ax = plt.subplots(figsize=(2.5, 1.5))
                 sns.heatmap(
                     results['confusion_matrix'],
                     annot=True,
@@ -2019,7 +2006,6 @@ def main():
                 plt.tight_layout(pad=0.1)
                 st.pyplot(fig, use_container_width=True)
             else:
-                # 空状态占位（与k值曲线高度一致）
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">请先进行分类测试</div>',
                     unsafe_allow_html=True)
