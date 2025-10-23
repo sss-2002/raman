@@ -1701,15 +1701,7 @@ def main():
                         st.write("准确率、原始标签与预测标签：")
                         st.dataframe(result["accuracies"])
 
-                        # 绘制 K 值曲线（k 从 1 到 65）
-                        plt.figure(figsize=(10, 6))
-                        plt.plot(result["accuracies"].index, result["accuracies"].iloc[:, 0], marker='o', linestyle='-',
-                                 color='b')
-                        plt.title("Perceptron: k 值与准确率的关系")
-                        plt.xlabel("光谱编号")  # 横坐标为光谱编号
-                        plt.ylabel("准确率")  # 纵坐标为准确率
-                        st.pyplot(plt)
-
+                        
                     else:
                         st.error(f"❌ 请先上传原始光谱数据")
                 else:
