@@ -1274,42 +1274,7 @@ def main():
             zip_file = st.file_uploader("上传包含波数和光谱数据的压缩包", type=['zip'], key="zip_file")
             st.caption("压缩包(.zip)需包含波数和光谱数据文件")
     
-            # 数据加载逻辑（从压缩包加载）- 第一个提示位置：压缩包上传下方
-            if zip_file:
-                try:
-                    st.session_state.raw_data = file_handler.load_data_from_zip(
-                        zip_file
-                    )
-    
-                    # 处理标签
-                    if labels_input:
-                        try:
-                            labels = np.array([int(l.strip()) for l in labels_input.split(',')])
-                            if len(labels) == st.session_state.raw_data[1].shape[1]:
-                                st.session_state.labels = labels
-                                n_samples = len(labels)
-                                train_size = int(n_samples * train_test_ratio)
-                                indices = np.random.permutation(n_samples)
-                                st.session_state.train_indices = indices[:train_size]
-                                st.session_state.test_indices = indices[train_size:]
-                                # 第一个提示：数据加载成功（移至压缩包上传下方）
-                                st.success(
-                                    f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{len(np.unique(labels))}类")
-                            else:
-                                st.warning(f"⚠️ 标签数({len(labels)})≠光谱数({st.session_state.raw_data[1].shape[1]})")
-                                st.session_state.labels = None
-                        except Exception as e:
-                            st.warning(f"⚠️ 标签格式错误: {str(e)}")
-                            st.session_state.labels = None
-                    else:
-                        # 第一个提示：数据加载成功（移至压缩包上传下方）
-                        st.success(
-                            f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{st.session_state.raw_data[1].shape[0]}个点")
-                        st.warning("⚠️ 请输入样本标签以进行分类测试")
-                except Exception as e:
-                    st.error(f"❌ 文件加载失败: {str(e)}")
-    
-            # 标签输入
+            # 标签输入（先定义标签输入，再在数据加载逻辑中使用）
             st.subheader("样本标签")
             num_classes = st.number_input("类别数量", min_value=1, value=2, step=1, key="num_cls")
             
@@ -1345,6 +1310,41 @@ def main():
     
             # 第三个提示：训练集:测试集（移至训练集比例下方）
             st.info(f"🔢 训练集:{train_test_ratio:.1f} | 测试集:{1 - train_test_ratio:.1f}")
+    
+            # 数据加载逻辑（从压缩包加载）- 第一个提示位置：压缩包上传下方
+            if zip_file:
+                try:
+                    st.session_state.raw_data = file_handler.load_data_from_zip(
+                        zip_file
+                    )
+    
+                    # 处理标签（此时labels_input已定义，可以安全使用）
+                    if labels_input:
+                        try:
+                            labels = np.array([int(l.strip()) for l in labels_input.split(',')])
+                            if len(labels) == st.session_state.raw_data[1].shape[1]:
+                                st.session_state.labels = labels
+                                n_samples = len(labels)
+                                train_size = int(n_samples * train_test_ratio)
+                                indices = np.random.permutation(n_samples)
+                                st.session_state.train_indices = indices[:train_size]
+                                st.session_state.test_indices = indices[train_size:]
+                                # 第一个提示：数据加载成功（移至压缩包上传下方）
+                                st.success(
+                                    f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{len(np.unique(labels))}类")
+                            else:
+                                st.warning(f"⚠️ 标签数({len(labels)})≠光谱数({st.session_state.raw_data[1].shape[1]})")
+                                st.session_state.labels = None
+                        except Exception as e:
+                            st.warning(f"⚠️ 标签格式错误: {str(e)}")
+                            st.session_state.labels = None
+                    else:
+                        # 第一个提示：数据加载成功（移至压缩包上传下方）
+                        st.success(
+                            f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{st.session_state.raw_data[1].shape[0]}个点")
+                        st.warning("⚠️ 请输入样本标签以进行分类测试")
+                except Exception as e:
+                    st.error(f"❌ 文件加载失败: {str(e)}")
     
         # 移除原系统信息区域的重复提示
         if st.session_state.get('process_method'):
