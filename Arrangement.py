@@ -1807,40 +1807,30 @@ def main():
         # 【修改】操作4：显示k值结果（第7列）
         with preprocess_cols[7]:
             st.subheader("k值结果为")  # 文本改为"k值结果为"
-            # 使用与按钮相同样式的容器显示k值结果
+            # 获取k值结果（无结果时显示"未计算"）
             calc_k_result = st.session_state.get('calc_k_result', "未计算")
             
-            # 自定义CSS：白色背景、顶紧顶部、增大文本
+            # 自定义CSS：顶紧标题、增大文本
             st.markdown("""
             <style>
-            /* 消除subheader与结果框之间的默认间距，实现顶紧效果 */
+            /* 消除subheader与结果文本之间的默认间距，实现顶紧效果 */
             .k-result-container .stSubheader {
-                margin-bottom: 0 !important;  /* 移除标题底部间距 */
+                margin-bottom: 0.25rem !important;  /* 保留极小间距，避免完全贴紧 */
             }
-            .k-result-box {
-                width: 100%;
-                padding: 0.75rem 1rem;  /* 适当增加内边距，配合大文本 */
-                border-radius: 0.25rem;
-                background-color: #FFFFFF;  /* 背景色改为白色 */
-                color: #31333F;  /* 保持文字色，确保可读性 */
-                text-align: center;
+            .k-result-text {
                 font-size: 1.25rem;  /* 文本放大至1.25rem（约20px） */
-                font-weight: 500;  /* 可选：增加字重，让文本更醒目 */
-                box-sizing: border-box;
-                min-height: 46px;  /* 保持与按钮一致的高度 */
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border: 1px solid #E2E8F0;  /* 增加浅灰色边框，白色背景下更易识别 */
-                margin-top: 0 !important;  /* 确保结果框顶部无间距 */
+                font-weight: 500;  /* 增加字重，让文本更醒目 */
+                color: #31333F;  /* 保持文字色，确保可读性 */
+                text-align: center;  /* 文本居中显示 */
+                padding: 0.25rem 0;  /* 上下轻微内边距，避免过于紧凑 */
             }
             </style>
             """, unsafe_allow_html=True)
             
-            # 用容器包裹标题和结果框，便于CSS精准控制间距
+            # 用容器包裹标题和结果文本，便于CSS控制间距
             st.markdown('<div class="k-result-container">', unsafe_allow_html=True)
-            # 显示格式化的k值结果（应用自定义样式）
-            st.markdown(f'<div class="k-result-box"> {calc_k_result}</div>', unsafe_allow_html=True)
+            # 仅显示k值结果文本（无框样式）
+            st.markdown(f'<div class="k-result-text">📊 {calc_k_result}</div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
         
         # 【新增】操作5：选择k值（第8列，不变）
