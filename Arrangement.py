@@ -1612,8 +1612,7 @@ def main():
                         P = len(st.session_state.algorithm_permutations)
                         N = len(wavenumbers)
 
-                        # --- 1) 构建 (S, P, N) 的三维立方体 ---
-                        import numpy as np
+                       
                         processed_cube = np.empty((S, P, N), dtype=np.float32)
 
                         # 统一取第 j 条光谱为 1D 向量（兼容 y 的两种排布：N×S 或 S×N）
