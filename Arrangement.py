@@ -1808,47 +1808,54 @@ def main():
         with preprocess_cols[7]:
             st.subheader("k值结果为")  # 文本保持"k值结果为"
             
-            # 自定义CSS：调整标题间距、设置输入框样式（只读、无边框、背景色等）
+            # 自定义CSS：压缩间距实现输入框上移，调整输入框内边距
             st.markdown("""
             <style>
-            /* 消除subheader与输入框之间的默认间距，实现顶紧效果 */
+            /* 1. 大幅压缩标题与输入框的间距，实现输入框上移 */
             .k-result-container .stSubheader {
-                margin-bottom: 0.1rem !important;  /* 极小间距，接近顶紧 */
+                margin-bottom: 0rem !important;  /* 间距设为0，完全顶紧 */
+                padding-bottom: 0rem !important;  /* 清除标题自身底部内边距 */
             }
-            /* 自定义只读输入框样式，模拟结果展示框 */
+            /* 2. 自定义只读输入框样式，同步调整内边距配合上移 */
             .k-result-input input {
-                font-size: 1.10rem !important;  /* 文本放大至1.10rem */
-                font-weight: 500 !important;  /* 增加字重，文本更醒目 */
-                color: #31333F !important;  /* 文字色，确保可读性 */
-                background-color: #F0F2F6 !important;  /* 浅灰色背景，区别于可输入框 */
-                border: 1px solid #DCDCDC !important;  /* 细边框，模拟输入框外观 */
-                border-radius: 0.25rem !important;  /* 轻微圆角，符合Streamlit风格 */
-                padding: 0.5rem 0.75rem !important;  /* 内边距，确保文本不贴边 */
-                cursor: default !important;  /* 鼠标指针为默认样式，提示不可编辑 */
+                font-size: 1.10rem !important;  /* 保持文本大小 */
+                font-weight: 500 !important;  /* 保持字重 */
+                color: #31333F !important;  /* 保持文字色 */
+                background-color: #F0F2F6 !important;  /* 保持背景色 */
+                border: 1px solid #DCDCDC !important;  /* 保持边框 */
+                border-radius: 0.25rem !important;  /* 保持圆角 */
+                /* 减小顶部内边距，进一步拉近与标题的距离，视觉上更靠上 */
+                padding: 0.3rem 0.75rem !important;  /* 上下内边距从0.5rem减至0.3rem */
+                cursor: default !important;  /* 保持鼠标样式 */
+                margin-top: 0.1rem !important;  /* 微调顶部外边距，确保不贴边 */
             }
-            /* 隐藏输入框聚焦时的边框高亮（只读状态无需聚焦） */
+            /* 隐藏输入框聚焦高亮 */
             .k-result-input input:focus {
                 box-shadow: none !important;
                 border-color: #DCDCDC !important;
             }
+            /* 3. 清除容器默认内边距，避免额外间距影响上移 */
+            .k-result-container {
+                padding-top: 0rem !important;
+                padding-bottom: 0rem !important;
+            }
             </style>
             """, unsafe_allow_html=True)
             
-            # 用容器包裹标题和结果输入框，便于CSS控制间距
+            # 用容器包裹标题和结果输入框，控制整体间距
             st.markdown('<div class="k-result-container">', unsafe_allow_html=True)
             
             # 获取k值结果（无结果时显示"未计算"）
             calc_k_result = st.session_state.get('calc_k_result', "未计算")
             
-            # 创建只读输入框，展示k值结果（label_visibility设为collapsed隐藏默认标签）
+            # 创建只读输入框，展示k值结果
             st.text_input(
-                label="k值结果展示",  # 标签仅用于内部标识，前端隐藏
-                value=str(calc_k_result),  # 显示计算结果，转为字符串确保兼容性
-                disabled=True,  # 禁用输入，设为只读状态
-                key="k_result_display_input",  # 唯一key，避免Streamlit重渲染冲突
-                label_visibility="collapsed",  # 隐藏标签，仅展示输入框
-                help="此为计算出的k值结果，不可编辑",  # 鼠标悬浮提示
-                # 自定义输入框的class，用于CSS样式控制
+                label="k值结果展示",
+                value=str(calc_k_result),
+                disabled=True,
+                key="k_result_display_input",
+                label_visibility="collapsed",
+                help="此为计算出的k值结果，不可编辑",
                 args=({"class": "k-result-input"},)
             )
             
