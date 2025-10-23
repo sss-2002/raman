@@ -1634,6 +1634,17 @@ def main():
                                         algorithm_order=algorithm_order
                                     )
 
+                                    # 输出每次处理后的数据维度
+                                    st.write(
+                                        f"Processed data for spectrum {j + 1}, arrangement {i + 1}: {len(processed_data)}")
+                                    st.write(
+                                        f"Shape of processed data for spectrum {j + 1}, arrangement {i + 1}: {np.array(processed_data).shape}")
+
+                                    # 确保每个光谱的处理后数据长度为 65
+                                    if len(processed_data) != 65:
+                                        st.error(f"❌ 光谱_{j + 1} 的排列_{i + 1} 预处理后的数据点数不为 65！")
+                                        return
+
                                     # 将处理结果存储到列表中
                                     processed_results.append({
                                         'arrangement_name': f"光谱_{j + 1}_排列_{i + 1}",
@@ -1650,8 +1661,16 @@ def main():
 
                                     # 将数据 reshape 成二维数组
                                     processed_data_2d = np.array(processed_data).reshape(65, -1)  # 确保是 65 个样本
+                                    st.write(
+                                        f"Shape of reshaped processed data for Perceptron: {processed_data_2d.shape}")
+
                                     X_train, X_test, y_train, y_test = train_test_split(processed_data_2d, true_labels,
                                                                                         test_size=0.3, random_state=42)
+
+                                    # 输出训练集和测试集的维度
+                                    st.write(f"X_train shape: {X_train.shape}, y_train shape: {y_train.shape}")
+                                    st.write(f"X_test shape: {X_test.shape}, y_test shape: {y_test.shape}")
+
                                     plc.fit(X_train, y_train)
                                     y_pred = plc.predict(X_test)
 
@@ -1682,7 +1701,14 @@ def main():
                         st.write("准确率、原始标签与预测标签：")
                         st.dataframe(result["accuracies"])
 
-                       
+                        # 绘制 K 值曲线（k 从 1 到 65）
+                        plt.figure(figsize=(10, 6))
+                        plt.plot(result["accuracies"].index, result["accuracies"].iloc[:, 0], marker='o', linestyle='-',
+                                 color='b')
+                        plt.title("Perceptron: k 值与准确率的关系")
+                        plt.xlabel("光谱编号")  # 横坐标为光谱编号
+                        plt.ylabel("准确率")  # 纵坐标为准确率
+                        st.pyplot(plt)
 
                     else:
                         st.error(f"❌ 请先上传原始光谱数据")
