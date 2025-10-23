@@ -1810,28 +1810,38 @@ def main():
             # 使用与按钮相同样式的容器显示k值结果
             calc_k_result = st.session_state.get('calc_k_result', "未计算")
             
-            # 自定义CSS使结果框与按钮大小一致
+            # 自定义CSS：白色背景、顶紧顶部、增大文本
             st.markdown("""
             <style>
+            /* 消除subheader与结果框之间的默认间距，实现顶紧效果 */
+            .k-result-container .stSubheader {
+                margin-bottom: 0 !important;  /* 移除标题底部间距 */
+            }
             .k-result-box {
                 width: 100%;
-                padding: 0.5rem 1rem;
+                padding: 0.75rem 1rem;  /* 适当增加内边距，配合大文本 */
                 border-radius: 0.25rem;
-                background-color: #EEF2F5;  /* 匹配secondary按钮背景色 */
-                color: #31333F;  /* 匹配按钮文字色 */
+                background-color: #FFFFFF;  /* 背景色改为白色 */
+                color: #31333F;  /* 保持文字色，确保可读性 */
                 text-align: center;
-                font-size: 1rem;
+                font-size: 1.25rem;  /* 文本放大至1.25rem（约20px） */
+                font-weight: 500;  /* 可选：增加字重，让文本更醒目 */
                 box-sizing: border-box;
-                min-height: 46px;  /* 匹配Streamlit按钮高度 */
+                min-height: 46px;  /* 保持与按钮一致的高度 */
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                border: 1px solid #E2E8F0;  /* 增加浅灰色边框，白色背景下更易识别 */
+                margin-top: 0 !important;  /* 确保结果框顶部无间距 */
             }
             </style>
             """, unsafe_allow_html=True)
             
-            # 显示格式化的k值结果
+            # 用容器包裹标题和结果框，便于CSS精准控制间距
+            st.markdown('<div class="k-result-container">', unsafe_allow_html=True)
+            # 显示格式化的k值结果（应用自定义样式）
             st.markdown(f'<div class="k-result-box">📊 {calc_k_result}</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
         
         # 【新增】操作5：选择k值（第8列，不变）
         with preprocess_cols[8]:
