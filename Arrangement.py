@@ -1718,7 +1718,47 @@ def main():
                         st.write("[CHECK] pca_acc.shape =", st.session_state.pca_acc.shape)  # 期望 (65,)
                         st.write("[CHECK] top-5 acc =", st.session_state.pca_sorted_acc[:5].round(3).tolist())
                         st.write("[CHECK] top-1 preds =", st.session_state.pca_sorted_pred_matrix[0].tolist())
+                        # ===== 基于前k个方案的投票（k=1..P），逐样本(列)取众数 =====
+                        from scipy.stats import mode  # 若文件顶部已导入，可删掉这一行
 
+                        P2, S2 = st.session_state.pca_sorted_pred_matrix.shape
+                        vote_pred_matrix_by_k = np.empty((P2, S2), dtype=int)  # 第k-1行存“用前k个方案投票”的5条预测
+
+                        for k in range(1, P2 + 1):
+                            topk = st.session_state.pca_sorted_pred_matrix[:k, :]  # (k, S)
+                            voted = mode(topk, axis=0, keepdims=False).mode  # (S,)
+                            vote_pred_matrix_by_k[k - 1, :] = voted
+
+                        st.session_state.vote_pred_matrix_by_k = vote_pred_matrix_by_k  # 形状 (P, S)
+
+                        # 可选：每个k的训练内准确度，便于画k值曲线
+                        vote_acc_by_k = (vote_pred_matrix_by_k == st.session_state.labels.reshape(1, S2)).mean(
+                            axis=1).astype(np.float32)
+                        st.session_state.vote_acc_by_k = vote_acc_by_k  # 形状 (P,)
+
+                        # 简短校验输出
+                        st.write("[CHECK] vote_pred_matrix_by_k.shape =",
+                                 st.session_state.vote_pred_matrix_by_k.shape)  # 期望 (P, 5)
+                        st.write("[CHECK] vote_acc_by_k[:5] =", st.session_state.vote_acc_by_k[:5].round(3).tolist())
+                        st.write("[CHECK] k=5 voted preds =",st.session_state.vote_pred_matrix_by_k[4].tolist() if P2 >= 5 else "P<5")
+                        k_vals = np.arange(1, st.session_state.vote_acc_by_k.shape[0] + 1)
+                        best_k = int(k_vals[np.argmax(st.session_state.vote_acc_by_k)])
+                        best_acc = float(st.session_state.vote_acc_by_k.max())
+
+                        import matplotlib.pyplot as plt
+                        fig, ax = plt.subplots()
+                        ax.plot(k_vals, st.session_state.vote_acc_by_k, marker='o')
+                        ax.set_xlabel('k（前k个方案投票）')
+                        ax.set_ylabel('Accuracy')
+                        ax.set_title(f'k值曲线（最佳k={best_k}, acc={best_acc:.3f}）')
+                        ax.set_xlim(1, k_vals[-1])
+                        ax.set_ylim(0, 1)
+                        ax.grid(True, linestyle='--', alpha=0.4)
+                        st.pyplot(fig)
+
+                        # 看一眼最佳k对应的5条预测（可留可删）
+                        st.write("[CHECK] best k =", best_k, "; preds =",
+                                 st.session_state.vote_pred_matrix_by_k[best_k - 1].tolist())
                         st.success(
                             f"✅ 已构建立方体 processed_cube 形状 = {processed_cube.shape}，并完成 {P} 个方案的 PCA 评估（同批训练-预测，已排序并带预测标签）。"
                         )
