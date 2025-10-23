@@ -1676,38 +1676,52 @@ def main():
                         st.write("[CHECK] len(wavenumbers) =", len(st.session_state.wavenumbers))
                         st.write("[CHECK] processed_cube in ss ->", st.session_state.processed_cube.shape)
                         # --- 3) PLA：对每个方案在 5 条样本上训练并在同样 5 条上评估（无排序）---
-                        from sklearn.linear_model import Perceptron
+                        from sklearn.decomposition import PCA
+                        from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+
                         X_labels = st.session_state.labels
-                        pla_pred_matrix = np.empty((P, S), dtype=int)
-                        pla_acc = np.empty(P, dtype=np.float32)
+                        pca_pred_matrix = np.empty((P, S), dtype=int)
+                        pca_acc = np.empty(P, dtype=np.float32)
 
                         for p in range(P):
                             X_p = processed_cube[:, p, :]  # 形状 (S, N)
-                            clf = Perceptron(max_iter=1000, tol=1e-3, random_state=0)
-                            clf.fit(X_p, X_labels)
-                            y_hat = clf.predict(X_p)  # 训练内评估
-                            pla_pred_matrix[p, :] = y_hat
-                            pla_acc[p] = (y_hat == X_labels).mean().astype(np.float32)
 
-                        st.session_state.pla_pred_matrix = pla_pred_matrix  # (P,S)
-                        st.session_state.pla_acc = pla_acc  # (P,)
-                        st.write("[CHECK] pla_pred_matrix.shape =",st.session_state.pla_pred_matrix.shape)  # 期望 (65, 5)
-                        st.write("[CHECK] pla_acc.shape =", st.session_state.pla_acc.shape)  # 期望 (65,)
-                        S_ = st.session_state.processed_cube.shape[0]
-                        acc_from_preds = (st.session_state.pla_pred_matrix == st.session_state.labels.reshape(1, S_)).mean(axis=1).astype(np.float32)
-                        st.write("[CHECK] pla_acc equals recomputed?",bool(np.allclose(acc_from_preds, st.session_state.pla_acc)))
-                        sorted_idx = np.argsort(-st.session_state.pla_acc, kind="mergesort")
+                            # PCA：成分数不超过 S-1 且不超过特征维
+                            n_components = min(max(1, S - 1), X_p.shape[1])
+                            pca = PCA(n_components=n_components, svd_solver="auto", random_state=0)
+                            Z = pca.fit_transform(X_p)  # (S, n_components)
 
-                        # 排序后的“准确度 + 预测标签（每行5个）”
-                        st.session_state.pla_sorted_perm_indices = sorted_idx  # (P,)
-                        st.session_state.pla_sorted_acc = st.session_state.pla_acc[sorted_idx]  # (P,)
-                        st.session_state.pla_sorted_pred_matrix = st.session_state.pla_pred_matrix[sorted_idx]  # (P,S)
+                            # LDA 在 PCA 子空间里分类（训练=预测同批5条）
+                            if np.unique(X_labels).size < 2:
+                                y_hat = np.full(S, int(X_labels[0]), dtype=int)  # 只有1类时兜底
+                            else:
+                                clf = LDA(solver="lsqr")
+                                clf.fit(Z, X_labels)
+                                y_hat = clf.predict(Z)
 
-                        # （可选，仅查看）打印前几项核对
-                        st.write("[CHECK] top-5 acc =", st.session_state.pla_sorted_acc[:5].round(3).tolist())
-                        st.write("[CHECK] top-1 preds =", st.session_state.pla_sorted_pred_matrix[0].tolist())
+                            pca_pred_matrix[p, :] = y_hat
+                            pca_acc[p] = (y_hat == X_labels).mean().astype(np.float32)
+
+                        # 写入会话状态（未排序与已排序）
+                        st.session_state.pca_pred_matrix = pca_pred_matrix  # (P, S)
+                        st.session_state.pca_acc = pca_acc  # (P,)
+
+                        # ===== 按准确度降序排序（并列保持原序）=====
+                        sorted_idx = np.argsort(-st.session_state.pca_acc, kind="mergesort")
+                        st.session_state.pca_sorted_perm_indices = sorted_idx
+                        st.session_state.pca_sorted_acc = st.session_state.pca_acc[sorted_idx]
+                        st.session_state.pca_sorted_pred_matrix = st.session_state.pca_pred_matrix[sorted_idx]
+
+                        # 最小检查（只看形状与前几项）
+                        st.write("[CHECK] pca_pred_matrix.shape =",
+                                 st.session_state.pca_pred_matrix.shape)  # 期望 (65, 5)
+                        st.write("[CHECK] pca_acc.shape =", st.session_state.pca_acc.shape)  # 期望 (65,)
+                        st.write("[CHECK] top-5 acc =", st.session_state.pca_sorted_acc[:5].round(3).tolist())
+                        st.write("[CHECK] top-1 preds =", st.session_state.pca_sorted_pred_matrix[0].tolist())
+
                         st.success(
-                            f"✅ 已构建立方体 processed_cube 形状 = {processed_cube.shape}，并完成 {P} 个方案的 PLA 评估（无排序）。")
+                            f"✅ 已构建立方体 processed_cube 形状 = {processed_cube.shape}，并完成 {P} 个方案的 PCA 评估（同批训练-预测，已排序并带预测标签）。"
+                        )
                     else:
                         st.error("❌ 请先上传原始光谱数据")
             else:
