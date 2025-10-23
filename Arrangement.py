@@ -1691,7 +1691,12 @@ def main():
 
                         st.session_state.pla_pred_matrix = pla_pred_matrix  # (P,S)
                         st.session_state.pla_acc = pla_acc  # (P,)
-
+                        st.write("[CHECK] pla_pred_matrix.shape =",
+                                 st.session_state.pla_pred_matrix.shape)  # 期望 (65, 5)
+                        st.write("[CHECK] pla_acc.shape =", st.session_state.pla_acc.shape)  # 期望 (65,)
+                        S_ = st.session_state.processed_cube.shape[0]
+                        acc_from_preds = (st.session_state.pla_pred_matrix == st.session_state.labels.reshape(1, S_)).mean(axis=1).astype(np.float32)
+                        st.write("[CHECK] pla_acc equals recomputed?",bool(np.allclose(acc_from_preds, st.session_state.pla_acc)))
                         st.success(
                             f"✅ 已构建立方体 processed_cube 形状 = {processed_cube.shape}，并完成 {P} 个方案的 PLA 评估（无排序）。")
                     else:
