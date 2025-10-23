@@ -1369,8 +1369,8 @@ def main():
         # ===== 预处理设置（横向排列在光谱可视化上方，与四种算法在同一行）=====
         st.subheader("⚙️ 预处理设置", divider="gray")
         
-        # 布局列数从8列调整为9列（新增1列用于“计算k值”）
-        preprocess_cols = st.columns([1, 1, 1, 1, 1.2, 1.2, 1.2, 1.2, 1.2], gap="small")
+        # 布局列数从9列调整为10列（新增1列用于“选择k值”）
+        preprocess_cols = st.columns([1, 1, 1, 1, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2], gap="small")
         
         # 1. 基线校准（第一列，不变）
         with preprocess_cols[0]:
@@ -1543,7 +1543,7 @@ def main():
                 elif squashing_method == "逻辑函数":
                     st.caption("无额外参数")
         
-        # 5-9列：操作相关内容（新增“计算k值”列，原操作2-4依次后移）
+        # 5-10列：操作相关内容（新增“选择k值”列，原操作5后移）
         # 原操作2 → 新操作1：显示排列与筛选（移至第4列）
         with preprocess_cols[4]:
             st.subheader("操作1")
@@ -1804,9 +1804,11 @@ def main():
                 st.session_state.calc_k_result = 5  # 示例默认值，实际需替换为计算逻辑
                 st.success("✅ k值计算完成")
             
-            # 显示k值结果提示及结果（合并为一行显示）
+            # 显示k值结果提示
+            st.caption("k值为：")
+            # 显示计算结果（无结果时显示“未计算”）
             calc_k_result = st.session_state.get('calc_k_result', "未计算")
-            st.caption(f"k值为：{calc_k_result}")
+            st.info(f"📊 {calc_k_result}")
         
         # 原操作4 → 新操作4：分类测试参数（移至第7列）
         with preprocess_cols[7]:
@@ -1825,9 +1827,21 @@ def main():
                 st.session_state.k_value = k_value
                 st.success(f"k={k_value}")
         
-        # 原操作5 → 新操作5：测试按钮（移至第8列）
+        # 【新增】操作5：选择k值（插入到操作4与操作5之间，第8列）
         with preprocess_cols[8]:
             st.subheader("操作5")
+            # 选择k值按钮（逻辑后续补充，先占位）
+            if st.button("📌 选择k值", type="secondary", use_container_width=True, key="select_k_btn"):
+                # 暂存选择状态（示例逻辑，实际需替换）
+                st.session_state.selected_k = st.session_state.get('calc_k_result', st.session_state.k_value)
+                st.success(f"✅ 已选择k值：{st.session_state.selected_k}")
+            # 可选：显示当前选择的k值
+            selected_k = st.session_state.get('selected_k', "未选择")
+            st.caption(f"当前选择：{selected_k}")
+        
+        # 原操作5 → 新操作6：测试按钮（移至第9列）
+        with preprocess_cols[9]:
+            st.subheader("操作6")
             # 测试按钮（原逻辑不变）
             if st.button("测试", type="primary", use_container_width=True, key="test_btn"):
                 if st.session_state.raw_data is None:
