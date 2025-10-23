@@ -1273,16 +1273,63 @@ def main():
             # 上传文件夹压缩包
             zip_file = st.file_uploader("上传包含波数和光谱数据的压缩包", type=['zip'], key="zip_file")
             st.caption("压缩包(.zip)需包含波数和光谱数据文件")
-
+    
+            # 数据加载逻辑（从压缩包加载）- 第一个提示位置：压缩包上传下方
+            if zip_file:
+                try:
+                    st.session_state.raw_data = file_handler.load_data_from_zip(
+                        zip_file
+                    )
+    
+                    # 处理标签
+                    if labels_input:
+                        try:
+                            labels = np.array([int(l.strip()) for l in labels_input.split(',')])
+                            if len(labels) == st.session_state.raw_data[1].shape[1]:
+                                st.session_state.labels = labels
+                                n_samples = len(labels)
+                                train_size = int(n_samples * train_test_ratio)
+                                indices = np.random.permutation(n_samples)
+                                st.session_state.train_indices = indices[:train_size]
+                                st.session_state.test_indices = indices[train_size:]
+                                # 第一个提示：数据加载成功（移至压缩包上传下方）
+                                st.success(
+                                    f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{len(np.unique(labels))}类")
+                            else:
+                                st.warning(f"⚠️ 标签数({len(labels)})≠光谱数({st.session_state.raw_data[1].shape[1]})")
+                                st.session_state.labels = None
+                        except Exception as e:
+                            st.warning(f"⚠️ 标签格式错误: {str(e)}")
+                            st.session_state.labels = None
+                    else:
+                        # 第一个提示：数据加载成功（移至压缩包上传下方）
+                        st.success(
+                            f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{st.session_state.raw_data[1].shape[0]}个点")
+                        st.warning("⚠️ 请输入样本标签以进行分类测试")
+                except Exception as e:
+                    st.error(f"❌ 文件加载失败: {str(e)}")
+    
             # 标签输入
             st.subheader("样本标签")
             num_classes = st.number_input("类别数量", min_value=1, value=2, step=1, key="num_cls")
+            
+            # 第四个提示：类别分布（移至类别数量下方）
+            if st.session_state.get('raw_data') and st.session_state.get('labels') is not None:
+                class_counts = np.bincount(st.session_state.labels)
+                st.info(
+                    f"🏷️ 类别分布: {', '.join([f'类{i}:{count}个' for i, count in enumerate(class_counts) if count > 0])}")
+    
             labels_input = st.text_input(
                 "标签（逗号分隔，与光谱顺序一致）",
                 placeholder="例：0,0,1,1",
                 key="labels_in"
             )
-
+    
+            # 第二个提示：数据维度（移至标签输入下方）
+            if st.session_state.get('raw_data'):
+                wavenumbers, y = st.session_state.raw_data
+                st.info(f"📊 数据维度: {y.shape[1]}条 × {y.shape[0]}点")
+    
             # 训练测试比例
             st.subheader("训练测试划分")
             train_test_ratio = st.slider(
@@ -1295,52 +1342,14 @@ def main():
                 key="train_ratio"
             )
             st.session_state.train_test_split_ratio = train_test_ratio
-
-            # 数据加载逻辑（从压缩包加载）
-            if zip_file:
-                try:
-                    st.session_state.raw_data = file_handler.load_data_from_zip(
-                        zip_file
-                    )
-
-                    # 处理标签
-                    if labels_input:
-                        try:
-                            labels = np.array([int(l.strip()) for l in labels_input.split(',')])
-                            if len(labels) == st.session_state.raw_data[1].shape[1]:
-                                st.session_state.labels = labels
-                                n_samples = len(labels)
-                                train_size = int(n_samples * train_test_ratio)
-                                indices = np.random.permutation(n_samples)
-                                st.session_state.train_indices = indices[:train_size]
-                                st.session_state.test_indices = indices[train_size:]
-                                st.success(
-                                    f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{len(np.unique(labels))}类")
-                            else:
-                                st.warning(f"⚠️ 标签数({len(labels)})≠光谱数({st.session_state.raw_data[1].shape[1]})")
-                                st.session_state.labels = None
-                        except Exception as e:
-                            st.warning(f"⚠️ 标签格式错误: {str(e)}")
-                            st.session_state.labels = None
-                    else:
-                        st.success(
-                            f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{st.session_state.raw_data[1].shape[0]}个点")
-                        st.warning("⚠️ 请输入样本标签以进行分类测试")
-                except Exception as e:
-                    st.error(f"❌ 文件加载失败: {str(e)}")
-
-        # 系统信息
-        if st.session_state.get('raw_data'):
-            wavenumbers, y = st.session_state.raw_data
-            st.info(f"📊 数据维度: {y.shape[1]}条 × {y.shape[0]}点")
+    
+            # 第三个提示：训练集:测试集（移至训练集比例下方）
             st.info(f"🔢 训练集:{train_test_ratio:.1f} | 测试集:{1 - train_test_ratio:.1f}")
-            if st.session_state.get('labels') is not None:
-                class_counts = np.bincount(st.session_state.labels)
-                st.info(
-                    f"🏷️ 类别分布: {', '.join([f'类{i}:{count}个' for i, count in enumerate(class_counts) if count > 0])}")
-            if st.session_state.get('process_method'):
-                st.success(f"🛠️ 处理流程: {st.session_state.process_method}")
-
+    
+        # 移除原系统信息区域的重复提示
+        if st.session_state.get('process_method'):
+            st.success(f"🛠️ 处理流程: {st.session_state.process_method}")
+    
         # 使用说明
         with st.expander("ℹ️ 使用指南", expanded=False):
             st.markdown("""
