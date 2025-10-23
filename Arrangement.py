@@ -1806,31 +1806,34 @@ def main():
         
         # 【修改】操作4：显示k值结果（第7列）
         with preprocess_cols[7]:
-            # 用列布局将标题和结果分开，确保结果与按钮左对齐
-            title_col, result_col = st.columns([0.3, 0.7])
-            with title_col:
-                st.subheader("k值结果为")  # 标题保持左对齐
-            with result_col:
-                # 获取k值结果（无结果时显示"未计算"）
-                calc_k_result = st.session_state.get('calc_k_result', "未计算")
-                
-                # 自定义CSS：与按钮左对齐、文本样式
-                st.markdown("""
-                <style>
-                .k-result-text {
-                    font-size: 1.10rem;  /* 文本大小 */
-                    font-weight: 500;   /* 字重 */
-                    color: #31333F;     /* 文字颜色 */
-                    text-align: left;   /* 左对齐 */
-                    display: inline-block; 
-                    vertical-align: top;
-                    margin-top: 0.25rem; /* 与按钮垂直对齐微调 */
-                }
-                </style>
-                """, unsafe_allow_html=True)
-                
-                # 显示左对齐的k值结果文本，与“计算k值”按钮左对齐
-                st.markdown(f'<div class="k-result-text"> {calc_k_result}</div>', unsafe_allow_html=True)
+            st.subheader("k值结果为")  # 文本改为"k值结果为"
+            # 获取k值结果（无结果时显示"未计算"）
+            calc_k_result = st.session_state.get('calc_k_result', "未计算")
+            
+            # 自定义CSS：顶紧标题、文本左对齐+上对齐、增大文本
+            st.markdown("""
+            <style>
+            /* 消除subheader与结果文本之间的默认间距，实现顶紧效果 */
+            .k-result-container .stSubheader {
+                margin-bottom: 0.1rem !important;  /* 极小间距，接近顶紧 */
+            }
+            .k-result-text {
+                font-size: 1.10rem;  /* 文本放大至1.10rem */
+                font-weight: 500;  /* 增加字重，让文本更醒目 */
+                color: #31333F;  /* 保持文字色，确保可读性 */
+                text-align: left;  /* 文本左对齐 */
+                padding: 0.1rem 0 0.5rem 0;  /* 仅上下轻微内边距，左对齐无左侧内边距 */
+                display: inline-block;  /* 让容器紧贴文本，实现上对齐视觉效果 */
+                vertical-align: top;  /* 确保文本在容器内上对齐 */
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            # 用容器包裹标题和结果文本，便于CSS控制间距
+            st.markdown('<div class="k-result-container">', unsafe_allow_html=True)
+            # 显示左对齐、上对齐的k值结果文本
+            st.markdown(f'<div class="k-result-text"> {calc_k_result}</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
         
         # 【新增】操作5：选择k值（第8列，不变）
         with preprocess_cols[8]:
