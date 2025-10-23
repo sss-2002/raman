@@ -1807,9 +1807,31 @@ def main():
         # 【修改】操作4：显示k值结果（第7列）
         with preprocess_cols[7]:
             st.subheader("k值结果为")  # 文本改为"k值结果为"
-            # 移除k值设置输入框和确定按钮，仅显示计算后的k值
+            # 使用与按钮相同样式的容器显示k值结果
             calc_k_result = st.session_state.get('calc_k_result', "未计算")
-            st.info(f"📊 {calc_k_result}")
+            
+            # 自定义CSS使结果框与按钮大小一致
+            st.markdown("""
+            <style>
+            .k-result-box {
+                width: 100%;
+                padding: 0.5rem 1rem;
+                border-radius: 0.25rem;
+                background-color: #EEF2F5;  /* 匹配secondary按钮背景色 */
+                color: #31333F;  /* 匹配按钮文字色 */
+                text-align: center;
+                font-size: 1rem;
+                box-sizing: border-box;
+                min-height: 46px;  /* 匹配Streamlit按钮高度 */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            # 显示格式化的k值结果
+            st.markdown(f'<div class="k-result-box">📊 {calc_k_result}</div>', unsafe_allow_html=True)
         
         # 【新增】操作5：选择k值（第8列，不变）
         with preprocess_cols[8]:
