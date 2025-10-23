@@ -1806,60 +1806,10 @@ def main():
         
         # 【修改】操作4：显示k值结果（第7列）
         with preprocess_cols[7]:
-            st.subheader("k值结果为")  # 文本保持"k值结果为"
-            
-            # 自定义CSS：压缩间距实现输入框上移，调整输入框内边距
-            st.markdown("""
-            <style>
-            /* 1. 大幅压缩标题与输入框的间距，实现输入框上移 */
-            .k-result-container .stSubheader {
-                margin-bottom: 0rem !important;  /* 间距设为0，完全顶紧 */
-                padding-bottom: 0rem !important;  /* 清除标题自身底部内边距 */
-            }
-            /* 2. 自定义只读输入框样式，同步调整内边距配合上移 */
-            .k-result-input input {
-                font-size: 1.10rem !important;  /* 保持文本大小 */
-                font-weight: 500 !important;  /* 保持字重 */
-                color: #31333F !important;  /* 保持文字色 */
-                background-color: #F0F2F6 !important;  /* 保持背景色 */
-                border: 1px solid #DCDCDC !important;  /* 保持边框 */
-                border-radius: 0.25rem !important;  /* 保持圆角 */
-                /* 减小顶部内边距，进一步拉近与标题的距离，视觉上更靠上 */
-                padding: 0.3rem 0.75rem !important;  /* 上下内边距从0.5rem减至0.3rem */
-                cursor: default !important;  /* 保持鼠标样式 */
-                margin-top: 0.1rem !important;  /* 微调顶部外边距，确保不贴边 */
-            }
-            /* 隐藏输入框聚焦高亮 */
-            .k-result-input input:focus {
-                box-shadow: none !important;
-                border-color: #DCDCDC !important;
-            }
-            /* 3. 清除容器默认内边距，避免额外间距影响上移 */
-            .k-result-container {
-                padding-top: 0rem !important;
-                padding-bottom: 0rem !important;
-            }
-            </style>
-            """, unsafe_allow_html=True)
-            
-            # 用容器包裹标题和结果输入框，控制整体间距
-            st.markdown('<div class="k-result-container">', unsafe_allow_html=True)
-            
-            # 获取k值结果（无结果时显示"未计算"）
+            st.subheader("k值结果为")  # 文本改为"k值结果为"
+            # 移除k值设置输入框和确定按钮，仅显示计算后的k值
             calc_k_result = st.session_state.get('calc_k_result', "未计算")
-            
-            # 创建只读输入框，展示k值结果
-            st.text_input(
-                label="k值结果展示",
-                value=str(calc_k_result),
-                disabled=True,
-                key="k_result_display_input",
-                label_visibility="collapsed",
-                help="此为计算出的k值结果，不可编辑",
-                args=({"class": "k-result-input"},)
-            )
-            
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.info(f" {calc_k_result}")
         
         # 【新增】操作5：选择k值（第8列，不变）
         with preprocess_cols[8]:
