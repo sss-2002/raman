@@ -20,7 +20,6 @@ import pywt
 from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 import csv
-import pandas as pd
 from sklearn.linear_model import Perceptron
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
@@ -1611,8 +1610,9 @@ def main():
                         S = len(labels)  # 由用户输入标签确定光谱条数（此处应为 5）
                         P = len(st.session_state.algorithm_permutations)
                         N = len(wavenumbers)
-
-                       
+                        st.write("[CHECK] S, P, N =", S, P, N)
+                        st.write("[CHECK] raw_data shapes -> y:", np.asarray(y).shape, "; wavenumbers:", len(wavenumbers))
+                        # --- 1) 构建 (S, P, N) 的三维立方体 ---
                         processed_cube = np.empty((S, P, N), dtype=np.float32)
 
                         # 统一取第 j 条光谱为 1D 向量（兼容 y 的两种排布：N×S 或 S×N）
@@ -1656,7 +1656,8 @@ def main():
                                 if arr.shape[0] != N:
                                     raise ValueError(f"排列 {i + 1} 处理后长度 {arr.shape[0]} 与 N={N} 不一致。")
                                 processed_cube[j, i, :] = arr
-
+                        st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
+                        st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5])
                         # --- 2) 元信息写入 ---
                         st.session_state.wavenumbers = np.asarray(wavenumbers)
                         st.session_state.labels = np.asarray(labels, dtype=int)
@@ -1669,7 +1670,11 @@ def main():
                             for i, perm in enumerate(st.session_state.algorithm_permutations)
                         ]
                         st.session_state.processed_cube = processed_cube  # (S,P,N)
-
+                        st.write("[CHECK] len(labels) =", len(st.session_state.labels))
+                        st.write("[CHECK] unique labels =", np.unique(st.session_state.labels))
+                        st.write("[CHECK] len(perm_info) =", len(st.session_state.perm_info))
+                        st.write("[CHECK] len(wavenumbers) =", len(st.session_state.wavenumbers))
+                        st.write("[CHECK] processed_cube in ss ->", st.session_state.processed_cube.shape)
                         # --- 3) PLA：对每个方案在 5 条样本上训练并在同样 5 条上评估（无排序）---
                         from sklearn.linear_model import Perceptron
                         X_labels = st.session_state.labels
