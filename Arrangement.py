@@ -1840,7 +1840,7 @@ def main():
             # 用容器包裹标题和结果框，便于CSS精准控制间距
             st.markdown('<div class="k-result-container">', unsafe_allow_html=True)
             # 显示格式化的k值结果（应用自定义样式）
-            st.markdown(f'<div class="k-result-box">📊 {calc_k_result}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="k-result-box"> {calc_k_result}</div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
         
         # 【新增】操作5：选择k值（第8列，不变）
