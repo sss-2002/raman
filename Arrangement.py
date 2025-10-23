@@ -21,7 +21,9 @@ from sklearn.linear_model import LinearRegression  # 用于MSC
 import scipy.signal as signal  # 导入scipy.signal用于MWM函数
 import csv
 import pandas as pd
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import Perceptron
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 cloud_storage_dir = "/mnt/data/processed_spectra"  # 临时目录，用于存储文件
 
@@ -1653,50 +1655,48 @@ def main():
                         # 划分训练集和测试集
                         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-                        # 初始化准确率列表
+                        # 初始化准确率列表和原始类别、预测类别的列表
                         accuracies = []
+                        all_predictions = []  # 存储原始标签和预测标签
 
-                        # 对每个 k 值进行KNN分类和投票
+                        # 对每个 k 值进行 Perceptron 分类
                         for k in range(1, 66):  # 从k=1到k=65
-                            knn = KNeighborsClassifier(n_neighbors=k)
+                            plc = Perceptron(max_iter=1000, tol=1e-3)  # 创建 Perceptron 分类器
 
-                            # 训练KNN分类器
-                            knn.fit(X_train, y_train)
+                            # 训练 Perceptron 分类器
+                            plc.fit(X_train, y_train)
 
                             # 预测测试集
-                            y_pred = knn.predict(X_test)
+                            y_pred = plc.predict(X_test)
 
                             # 计算准确率
                             accuracy = accuracy_score(y_test, y_pred)
                             accuracies.append({'k': k, 'accuracy': accuracy})
 
-                        # 将准确率列表转换为DataFrame
+                            # 存储原始标签和预测标签
+                            for true_label, predicted_label in zip(y_test, y_pred):
+                                all_predictions.append({
+                                    'true_label': true_label,
+                                    'predicted_label': predicted_label
+                                })
+
+                        # 保存准确率和预测结果到变量中
                         accuracies_df = pd.DataFrame(accuracies)
+                        predictions_df = pd.DataFrame(all_predictions)
 
-                        # 按照准确率从高到低排序
-                        accuracies_df_sorted = accuracies_df.sort_values(by='accuracy', ascending=False)
+                        # 准确率和预测结果保存在变量中
+                        result = {
+                            "accuracies": accuracies_df,  # 保存准确率
+                            "predictions": predictions_df  # 保存原始标签与预测标签
+                        }
 
-                        # 显示排序后的准确率
-                        st.write("按准确率排序后的k值：")
-                        st.dataframe(accuracies_df_sorted)
-
-                        # 显示准确率与k值的关系
+                        # 显示结果变量中的数据
                         st.write("K 值与准确率的关系：")
-                        st.dataframe(accuracies_df)
+                        st.dataframe(result["accuracies"])
 
-                        # 绘制 K 值曲线（k 从 1 到 65）
-                        plt.figure(figsize=(10, 6))
-                        plt.plot(accuracies_df['k'], accuracies_df['accuracy'], marker='o', linestyle='-', color='b')
-                        plt.title("KNN: k 值与准确率的关系")
-                        plt.xlabel("k 值")  # 横坐标为 k 值
-                        plt.ylabel("准确率")  # 纵坐标为准确率
-                        st.pyplot(plt)
+                        st.write("原始类别与预测类别：")
+                        st.dataframe(result["predictions"])
 
-                        # 保存排序后的准确率到Excel文件
-                        sorted_file_path = "/mnt/data/sorted_k_values_accuracy.xlsx"
-                        accuracies_df_sorted.to_excel(sorted_file_path, index=False)
-
-                        st.write(f"✅ 排序后的准确率数据已保存为：{sorted_file_path}")
 
                     else:
                         st.error(f"❌ 请先上传原始光谱数据")
