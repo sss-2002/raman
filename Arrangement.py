@@ -1647,8 +1647,9 @@ def main():
 
                                     # 创建 Perceptron 模型进行预测
                                     plc = Perceptron(max_iter=1000, tol=1e-3)
-                                    X_train, X_test, y_train, y_test = train_test_split(processed_data, true_labels,
-                                                                                        test_size=0.3, random_state=42)
+                                    X_train, X_test, y_train, y_test = train_test_split(
+                                        np.array(processed_data).reshape(1, -1), true_labels, test_size=0.3,
+                                        random_state=42)
                                     plc.fit(X_train, y_train)
                                     y_pred = plc.predict(X_test)
 
@@ -1679,8 +1680,7 @@ def main():
                         st.write("准确率、原始标签与预测标签：")
                         st.dataframe(result["accuracies"])
 
-                      
-
+                    
                     else:
                         st.error(f"❌ 请先上传原始光谱数据")
                 else:
