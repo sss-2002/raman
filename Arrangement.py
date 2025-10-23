@@ -1608,55 +1608,92 @@ def main():
                     # 获取原始光谱数据并进行处理
                     if st.session_state.get('raw_data'):
                         wavenumbers, y = st.session_state.raw_data
-                        processed_results = []  # 用来存储处理结果
+                        S = len(labels)  # 由用户输入标签确定光谱条数（此处应为 5）
+                        P = len(st.session_state.algorithm_permutations)
+                        N = len(wavenumbers)
 
-                        # 处理每条光谱数据，5条光谱，每条光谱通过 65 种预处理
-                        for j in range(5):  # 5 条光谱
+                        # --- 1) 构建 (S, P, N) 的三维立方体 ---
+                        import numpy as np
+                        processed_cube = np.empty((S, P, N), dtype=np.float32)
+
+                        # 统一取第 j 条光谱为 1D 向量（兼容 y 的两种排布：N×S 或 S×N）
+                        y_arr = np.asarray(y)
+
+                        def get_spectrum_j(j_idx: int) -> np.ndarray:
+                            if y_arr.ndim == 2:
+                                if y_arr.shape[0] == N and y_arr.shape[1] == S:  # N×S
+                                    return y_arr[:, j_idx]
+                                elif y_arr.shape[0] == S and y_arr.shape[1] == N:  # S×N
+                                    return y_arr[j_idx, :]
+                                else:
+                                    raise ValueError(
+                                        f"原始光谱矩阵维度不匹配，期望含有 N={N} 与 S={S} 之一的维度，当前形状={y_arr.shape}")
+                            elif y_arr.ndim == 1:
+                                raise ValueError("原始光谱只有 1 条，无法构建 (S,P,N) 立方体。")
+                            else:
+                                raise ValueError(f"不支持的原始光谱维度：{y_arr.ndim}")
+
+                        # 遍历：S 条光谱 × P 个排列，填充立方体
+                        for j in range(S):
+                            spec_j = get_spectrum_j(j).astype(np.float32)
+                            if spec_j.shape[0] != N:
+                                raise ValueError(f"第 {j + 1} 条光谱长度 {spec_j.shape[0]} 与波数长度 N={N} 不一致。")
                             for i, perm in enumerate(st.session_state.algorithm_permutations):
-                                try:
-                                    algorithm_order = perm.get('order', [])
-                                    baseline_method = perm.get('params', {}).get('baseline', '无')
-                                    scaling_method = perm.get('params', {}).get('scaling', '无')
-                                    filtering_method = perm.get('params', {}).get('filtering', '无')
-                                    squashing_method = perm.get('params', {}).get('squashing', '无')
+                                algorithm_order = perm.get('order', [])
+                                bm = perm.get('params', {}).get('baseline', '无')
+                                sm = perm.get('params', {}).get('scaling', '无')
+                                fm = perm.get('params', {}).get('filtering', '无')
+                                qm = perm.get('params', {}).get('squashing', '无')
 
-                                    # 传递参数给 Preprocessor
-                                    processed_data, method_name = preprocessor.process(
-                                        wavenumbers, y[j],  # 针对每条光谱的处理
-                                        baseline_method=baseline_method, baseline_params=baseline_params,
-                                        squashing_method=squashing_method, squashing_params=squashing_params,
-                                        filtering_method=filtering_method, filtering_params=filtering_params,
-                                        scaling_method=scaling_method, scaling_params=scaling_params,
-                                        algorithm_order=algorithm_order
-                                    )
+                                processed_data, _method_name = preprocessor.process(
+                                    wavenumbers, spec_j,
+                                    baseline_method=bm, baseline_params=baseline_params,
+                                    squashing_method=qm, squashing_params=squashing_params,
+                                    filtering_method=fm, filtering_params=filtering_params,
+                                    scaling_method=sm, scaling_params=scaling_params,
+                                    algorithm_order=algorithm_order
+                                )
+                                arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
+                                if arr.shape[0] != N:
+                                    raise ValueError(f"排列 {i + 1} 处理后长度 {arr.shape[0]} 与 N={N} 不一致。")
+                                processed_cube[j, i, :] = arr
 
-                                    # 输出每条光谱的处理结果
-                                    st.write(f"Processed data for spectrum {j + 1}, arrangement {i + 1}:")
-                                    st.write(f"Processed data (first 5 values): {processed_data[:5]}")  # 输出前5个数据点
-                                    st.write(
-                                        f"Shape of processed data for spectrum {j + 1}, arrangement {i + 1}: {np.array(processed_data).shape}")
+                        # --- 2) 元信息写入 ---
+                        st.session_state.wavenumbers = np.asarray(wavenumbers)
+                        st.session_state.labels = np.asarray(labels, dtype=int)
+                        st.session_state.perm_info = [
+                            {
+                                "name": perm.get("name", f"方案{i + 1}"),
+                                "order": perm.get("order", []),
+                                "params": perm.get("params", {})
+                            }
+                            for i, perm in enumerate(st.session_state.algorithm_permutations)
+                        ]
+                        st.session_state.processed_cube = processed_cube  # (S,P,N)
 
-                                    # 将处理结果存储到列表中
-                                    processed_results.append({
-                                        'arrangement_name': f"光谱_{j + 1}_排列_{i + 1}",
-                                        'method': " → ".join(method_name),
-                                        'data': processed_data.tolist()  # 将数据转为列表形式以便处理
-                                    })
+                        # --- 3) PLA：对每个方案在 5 条样本上训练并在同样 5 条上评估（无排序）---
+                        from sklearn.linear_model import Perceptron
+                        X_labels = st.session_state.labels
+                        pla_pred_matrix = np.empty((P, S), dtype=int)
+                        pla_acc = np.empty(P, dtype=np.float32)
 
-                                except Exception as e:
-                                    st.error(f"❌ 处理失败: 光谱_{j + 1}_排列_{i + 1} - 错误: {str(e)}")
+                        for p in range(P):
+                            X_p = processed_cube[:, p, :]  # 形状 (S, N)
+                            clf = Perceptron(max_iter=1000, tol=1e-3, random_state=0)
+                            clf.fit(X_p, X_labels)
+                            y_hat = clf.predict(X_p)  # 训练内评估
+                            pla_pred_matrix[p, :] = y_hat
+                            pla_acc[p] = (y_hat == X_labels).mean().astype(np.float32)
 
-                        # 将处理结果直接存储在一个变量中（内存中的数据）
-                        processed_data_df = pd.DataFrame(processed_results)
+                        st.session_state.pla_pred_matrix = pla_pred_matrix  # (P,S)
+                        st.session_state.pla_acc = pla_acc  # (P,)
 
-                        # 显示处理后的数据
-                        st.write("处理后的数据：")
-                        st.dataframe(processed_data_df)  # 展示所有处理结果
-
+                        st.success(
+                            f"✅ 已构建立方体 processed_cube 形状 = {processed_cube.shape}，并完成 {P} 个方案的 PLA 评估（无排序）。")
                     else:
-                        st.error(f"❌ 请先上传原始光谱数据")
-                else:
-                    st.session_state.filtered_perms = []
+                        st.error("❌ 请先上传原始光谱数据")
+            else:
+                st.session_state.filtered_perms = []
         # 7. 排列选择与应用
         with preprocess_cols[6]:
             st.subheader("操作3")
