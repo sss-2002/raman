@@ -1641,9 +1641,10 @@ def main():
                                     })
 
                                     # 存储原始类别和预测类别
-                                    # 计算准确率
+                                    # 确保数据是二维数组
+                                    processed_data_2d = np.array(processed_data).reshape(1, -1)  # 转换为二维数组
                                     plc = Perceptron(max_iter=1000, tol=1e-3)
-                                    X_train, X_test, y_train, y_test = train_test_split(processed_data, labels,
+                                    X_train, X_test, y_train, y_test = train_test_split(processed_data_2d, labels,
                                                                                         test_size=0.3, random_state=42)
                                     plc.fit(X_train, y_train)
                                     y_pred = plc.predict(X_test)
@@ -1706,14 +1707,7 @@ def main():
                         st.write("原始类别与预测类别：")
                         st.dataframe(result["predictions"])
 
-                        # 绘制 K 值曲线（k 从 1 到 65）
-                        plt.figure(figsize=(10, 6))
-                        plt.plot(result["accuracies"]['k'], result["accuracies"]['accuracy'], marker='o', linestyle='-',
-                                 color='b')
-                        plt.title("Perceptron: k 值与准确率的关系")
-                        plt.xlabel("k 值")  # 横坐标为 k 值
-                        plt.ylabel("准确率")  # 纵坐标为准确率
-                        st.pyplot(plt)
+                       
 
                     else:
                         st.error(f"❌ 请先上传原始光谱数据")
