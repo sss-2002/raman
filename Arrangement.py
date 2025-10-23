@@ -1657,7 +1657,7 @@ def main():
                                     raise ValueError(f"排列 {i + 1} 处理后长度 {arr.shape[0]} 与 N={N} 不一致。")
                                 processed_cube[j, i, :] = arr
                         st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
-                        st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5])
+                        st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5].tolist())
                         # --- 2) 元信息写入 ---
                         st.session_state.wavenumbers = np.asarray(wavenumbers)
                         st.session_state.labels = np.asarray(labels, dtype=int)
@@ -1671,7 +1671,7 @@ def main():
                         ]
                         st.session_state.processed_cube = processed_cube  # (S,P,N)
                         st.write("[CHECK] len(labels) =", len(st.session_state.labels))
-                        st.write("[CHECK] unique labels =", np.unique(st.session_state.labels))
+                        st.write("[CHECK] unique labels =", np.unique(st.session_state.labels).tolist())
                         st.write("[CHECK] len(perm_info) =", len(st.session_state.perm_info))
                         st.write("[CHECK] len(wavenumbers) =", len(st.session_state.wavenumbers))
                         st.write("[CHECK] processed_cube in ss ->", st.session_state.processed_cube.shape)
