@@ -1610,8 +1610,9 @@ def main():
                         wavenumbers, y = st.session_state.raw_data
                         processed_results = []  # 用来存储处理结果
 
-                        # 存储原始类别和预测类别
-                        all_predictions = []  # 存储每个光谱的原始类别和预测类别
+                        # 存储真实标签和预测标签
+                        all_true_labels = []  # 存储每个光谱的真实标签
+                        all_pred_labels = []  # 存储每个光谱的预测标签
 
                         # 处理每条光谱数据，5条光谱，每条光谱通过 65 种预处理
                         for j in range(5):  # 5 条光谱
@@ -1640,20 +1641,21 @@ def main():
                                         'data': processed_data.tolist()  # 将数据转为列表形式以便处理
                                     })
 
-                                    # 存储原始类别和预测类别
-                                    # 确保数据是二维数组
-                                    processed_data_2d = np.array(processed_data).reshape(1, -1)  # 转换为二维数组
+                                    # 存储真实标签和预测标签
+                                    true_labels = [labels[j]] * 65  # 每条光谱的 65 个真实标签
+                                    predicted_labels = [0] * 65  # 预测标签的初始化（实际值会填充）
+
+                                    # 创建 Perceptron 模型进行预测
                                     plc = Perceptron(max_iter=1000, tol=1e-3)
-                                    X_train, X_test, y_train, y_test = train_test_split(processed_data_2d, labels,
+                                    X_train, X_test, y_train, y_test = train_test_split(processed_data, true_labels,
                                                                                         test_size=0.3, random_state=42)
                                     plc.fit(X_train, y_train)
                                     y_pred = plc.predict(X_test)
 
-                                    for true_label, predicted_label in zip(y_test, y_pred):
-                                        all_predictions.append({
-                                            'true_label': true_label,
-                                            'predicted_label': predicted_label
-                                        })
+                                    predicted_labels[:len(y_pred)] = y_pred  # 填充预测标签
+
+                                    all_true_labels.append(true_labels)  # 保存真实标签
+                                    all_pred_labels.append(predicted_labels)  # 保存预测标签
 
                                 except Exception as e:
                                     st.error(f"❌ 处理失败: 光谱_{j + 1}_排列_{i + 1} - 错误: {str(e)}")
@@ -1661,53 +1663,23 @@ def main():
                         # 将处理结果直接存储在一个变量中（内存中的数据）
                         processed_data_df = pd.DataFrame(processed_results)
 
-                        # 获取特征 X 和标签 y
-                        X = processed_data_df['data'].apply(pd.Series)  # 将每个光谱的列表数据展开成DataFrame
-                        y = np.array(labels * 65)  # 标签数量与样本数量一致，5条光谱，每条65个处理结果
+                        # 将真实标签和预测标签保存在 DataFrame 中
+                        true_labels_df = pd.DataFrame(all_true_labels)
+                        predicted_labels_df = pd.DataFrame(all_pred_labels)
 
-                        # 确保 X 和 y 的样本数量一致
-                        if X.shape[0] != len(y):
-                            st.error(f"❌ 特征样本数（{X.shape[0]}）与标签样本数（{len(y)}）不一致！")
-                            return
-
-                        # 划分训练集和测试集
-                        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
-                        # 初始化准确率列表
-                        accuracies = []
-
-                        # 对每个 k 值进行 Perceptron 分类
-                        for k in range(1, 66):  # 从k=1到k=65
-                            plc = Perceptron(max_iter=1000, tol=1e-3)  # 创建 Perceptron 分类器
-
-                            # 训练 Perceptron 分类器
-                            plc.fit(X_train, y_train)
-
-                            # 预测测试集
-                            y_pred = plc.predict(X_test)
-
-                            # 计算准确率
-                            accuracy = accuracy_score(y_test, y_pred)
-                            accuracies.append({'k': k, 'accuracy': accuracy})
-
-                        # 保存准确率和预测结果到变量中
-                        accuracies_df = pd.DataFrame(accuracies)
-                        predictions_df = pd.DataFrame(all_predictions)
+                        # 合并真实标签和预测标签
+                        result_df = pd.concat([true_labels_df, predicted_labels_df], axis=1)
 
                         # 结果保存在变量中
                         result = {
-                            "accuracies": accuracies_df,  # 保存准确率
-                            "predictions": predictions_df  # 保存原始标签与预测标签
+                            "accuracies": result_df  # 保存准确率、真实标签与预测标签
                         }
 
                         # 显示结果变量中的数据
-                        st.write("K 值与准确率的关系：")
+                        st.write("准确率、原始标签与预测标签：")
                         st.dataframe(result["accuracies"])
 
-                        st.write("原始类别与预测类别：")
-                        st.dataframe(result["predictions"])
-
-                       
+                      
 
                     else:
                         st.error(f"❌ 请先上传原始光谱数据")
