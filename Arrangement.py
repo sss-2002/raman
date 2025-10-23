@@ -1274,7 +1274,7 @@ def main():
             zip_file = st.file_uploader("上传包含波数和光谱数据的压缩包", type=['zip'], key="zip_file")
             st.caption("压缩包(.zip)需包含波数和光谱数据文件")
     
-            # 数据加载逻辑（放在压缩包上传后、样本标签前）
+            # 数据加载逻辑（压缩包上传后、样本标签前）
             if zip_file:
                 try:
                     st.session_state.raw_data = file_handler.load_data_from_zip(zip_file)
@@ -1294,7 +1294,7 @@ def main():
             st.subheader("样本标签")
             num_classes = st.number_input("类别数量", min_value=1, value=2, step=1, key="num_cls")
             
-            # 类别分布提示
+            # 类别分布提示（类别数量下方）
             if st.session_state.get('raw_data') and st.session_state.get('labels') is not None:
                 class_counts = np.bincount(st.session_state.labels)
                 st.info(
@@ -1307,7 +1307,30 @@ def main():
                 key="labels_in"
             )
     
-            # 3. 训练测试比例（提前定义，确保在标签验证前可用）
+            # 标签验证逻辑
+            if labels_input and st.session_state.get('raw_data'):
+                try:
+                    labels = np.array([int(l.strip()) for l in labels_input.split(',')])
+                    if len(labels) == st.session_state.raw_data[1].shape[1]:
+                        st.session_state.labels = labels
+                        n_samples = len(labels)
+                        train_size = int(n_samples * train_test_ratio)
+                        indices = np.random.permutation(n_samples)
+                        st.session_state.train_indices = indices[:train_size]
+                        st.session_state.test_indices = indices[train_size:]
+                    else:
+                        st.warning(f"⚠️ 标签数({len(labels)})≠光谱数({st.session_state.raw_data[1].shape[1]})")
+                        st.session_state.labels = None
+                except Exception as e:
+                    st.warning(f"⚠️ 标签格式错误: {str(e)}")
+                    st.session_state.labels = None
+    
+            # 【核心调整】数据维度提示移至样本标签区域最后（训练测试划分前）
+            if st.session_state.get('raw_data'):
+                wavenumbers, y = st.session_state.raw_data
+                st.info(f"📊 数据维度: {y.shape[1]}条 × {y.shape[0]}点")
+    
+            # 3. 训练测试划分区域（位于数据维度提示下方）
             st.subheader("训练测试划分")
             train_test_ratio = st.slider(
                 "训练集比例",
@@ -1320,32 +1343,8 @@ def main():
             )
             st.session_state.train_test_split_ratio = train_test_ratio
     
-            # 训练集:测试集提示
+            # 训练集:测试集提示（训练集比例下方）
             st.info(f"🔢 训练集:{train_test_ratio:.1f} | 测试集:{1 - train_test_ratio:.1f}")
-    
-            # 4. 标签验证逻辑（放在train_test_ratio定义之后）
-            if labels_input and st.session_state.get('raw_data'):
-                try:
-                    labels = np.array([int(l.strip()) for l in labels_input.split(',')])
-                    if len(labels) == st.session_state.raw_data[1].shape[1]:
-                        st.session_state.labels = labels
-                        n_samples = len(labels)
-                        # 此时train_test_ratio已定义，可安全使用
-                        train_size = int(n_samples * train_test_ratio)
-                        indices = np.random.permutation(n_samples)
-                        st.session_state.train_indices = indices[:train_size]
-                        st.session_state.test_indices = indices[train_size:]
-                    else:
-                        st.warning(f"⚠️ 标签数({len(labels)})≠光谱数({st.session_state.raw_data[1].shape[1]})")
-                        st.session_state.labels = None
-                except Exception as e:
-                    st.warning(f"⚠️ 标签格式错误: {str(e)}")
-                    st.session_state.labels = None
-    
-            # 数据维度提示（标签输入下方）
-            if st.session_state.get('raw_data'):
-                wavenumbers, y = st.session_state.raw_data
-                st.info(f"📊 数据维度: {y.shape[1]}条 × {y.shape[0]}点")
     
         # 处理流程提示
         if st.session_state.get('process_method'):
