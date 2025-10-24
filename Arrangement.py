@@ -27,7 +27,59 @@ from sklearn.model_selection import train_test_split
 
 cloud_storage_dir = "/mnt/data/processed_spectra"  # 临时目录，用于存储文件
 
+def generate_permutations(algorithms):
+    """生成完整的算法排列组合，排列名称不包含编号"""
+    algorithm_list = [
+        ('baseline', algorithms['baseline'], algorithms['baseline_params']),
+        ('scaling', algorithms['scaling'], algorithms['scaling_params']),
+        ('filtering', algorithms['filtering'], algorithms['filtering_params']),
+        ('squashing', algorithms['squashing'], algorithms['squashing_params'])
+    ]
 
+    all_permutations = []
+    # 0. 添加无预处理（原始光谱）选项
+    all_permutations.append([])  # 空列表表示不使用任何算法
+
+    # 1. 生成使用1种算法的排列
+    for algo in algorithm_list:
+        if algo[1] != "无":  # 只包含已选择的算法
+            all_permutations.append([algo])
+
+    # 2. 生成使用2种算法的排列
+    for perm in itertools.permutations(algorithm_list, 2):
+        if perm[0][1] != "无" and perm[1][1] != "无":
+            all_permutations.append(list(perm))
+
+    # 3. 生成使用3种算法的排列
+    for perm in itertools.permutations(algorithm_list, 3):
+        if perm[0][1] != "无" and perm[1][1] != "无" and perm[2][1] != "无":
+            all_permutations.append(list(perm))
+
+    # 4. 生成使用4种算法的排列
+    for perm in itertools.permutations(algorithm_list, 4):
+        if perm[0][1] != "无" and perm[1][1] != "无" and perm[2][1] != "无" and perm[3][1] != "无":
+            all_permutations.append(list(perm))
+
+    formatted_perms = []
+    for i, perm in enumerate(all_permutations):
+        perm_dict = {
+            "name": "",
+            "order": [],
+            "params": [],
+        }
+        if not perm:  # 无预处理
+            perm_dict["name"] = "无预处理（原始光谱）"
+        else:
+            for step in perm:
+                method_name = step[0]
+                params = step[2]  # 获取参数
+                perm_dict["order"].append(method_name)
+                perm_dict["params"].append(params)
+                perm_dict["name"] += f"{method_name}({params}) → "
+
+        formatted_perms.append(perm_dict)
+
+    return formatted_perms
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
