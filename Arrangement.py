@@ -1772,7 +1772,7 @@ def main():
                     #              st.session_state.vote_pred_matrix_by_k[best_k - 1].tolist())
                     #     st.success(
                     #         f"✅ 已构建立方体 processed_cube 形状 = {processed_cube.shape}，并完成 {P} 个方案的 PCA 评估。"
-                        )
+                    
                     else:
                         st.error("❌ 请先上传原始光谱数据")
             else:
