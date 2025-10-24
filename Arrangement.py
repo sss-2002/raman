@@ -27,7 +27,43 @@ from sklearn.model_selection import train_test_split
 
 cloud_storage_dir = "/mnt/data/processed_spectra"  # 临时目录，用于存储文件
 
+def generate_all_combinations(baseline_methods, baseline_params,
+                               scaling_methods, scaling_params,
+                               filtering_methods, filtering_params,
+                               squashing_methods, squashing_params):
+    """
+    生成所有预处理方法及其参数的排列组合
+    
+    参数：
+    - baseline_methods: 基线校正方法列表
+    - baseline_params: 基线校正方法对应的参数
+    - scaling_methods: 缩放方法列表
+    - scaling_params: 缩放方法对应的参数
+    - filtering_methods: 滤波方法列表
+    - filtering_params: 滤波方法对应的参数
+    - squashing_methods: 挤压方法列表
+    - squashing_params: 挤压方法对应的参数
+    
+    返回：
+    - all_combinations: 包含所有排列组合的列表
+    """
+    # 定义每个方法与其参数的组合
+    current_algorithms = {
+        'baseline': list(zip(baseline_methods, baseline_params)),
+        'scaling': list(zip(scaling_methods, scaling_params)),
+        'filtering': list(zip(filtering_methods, filtering_params)),
+        'squashing': list(zip(squashing_methods, squashing_params))
+    }
 
+    # 生成所有排列组合
+    all_combinations = list(itertools.product(
+        current_algorithms['baseline'],
+        current_algorithms['scaling'],
+        current_algorithms['filtering'],
+        current_algorithms['squashing']
+    ))
+
+return all_combinations
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
@@ -1610,7 +1646,7 @@ def main():
                     }
 
                     # 生成排列组合并存储（原逻辑不变）
-                    st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
+                    st.session_state.algorithm_permutations = generate_all_combinations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
                     for idx, perm in enumerate(st.session_state.algorithm_permutations):
