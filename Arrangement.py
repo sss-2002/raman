@@ -1127,10 +1127,10 @@ def generate_permutations(algorithms):
     """生成完整的算法排列组合，排列名称不包含编号"""
     # 为四种算法分配编号1-4（二阶差分归类到基线校准中）
     algorithm_list = [
-        (1, "基线校准", algorithms['baseline']),
-        (2, "缩放", algorithms['scaling']),
-        (3, "滤波", algorithms['filtering']),
-        (4, "挤压", algorithms['squashing'])
+        (1, "基线校准", algorithms['baseline']['method'], algorithms['baseline']['params']),
+        (2, "缩放", algorithms['scaling']['method'], algorithms['scaling']['params']),
+        (3, "滤波", algorithms['filtering']['method'], algorithms['filtering']['params']),
+        (4, "挤压", algorithms['squashing']['method'], algorithms['squashing']['params'])
     ]
 
     all_permutations = []
@@ -1162,30 +1162,26 @@ def generate_permutations(algorithms):
                 perm[2][2] != "无" and perm[3][2] != "无"):
             all_permutations.append(list(perm))
 
-    # 格式化排列结果，确保每种排列都有first_step_type，且名称不包含编号
     formatted_perms = []
     for i, perm in enumerate(all_permutations):
-        # 初始化默认值，确保属性存在
         perm_dict = {
             "name": "",
             "order": [],
             "details": perm,
             "count": len(perm),
-            "first_step_type": "未知"  # 默认值，确保属性存在
+            "first_step_type": "未知"
         }
 
         if not perm:  # 无预处理情况
             perm_dict["name"] = "无预处理（原始光谱）"
             perm_dict["first_step_type"] = "无预处理"
         else:
-            # 获取第一步算法的类型名称
             first_step_type = perm[0][1] if perm and len(perm) > 0 else "未知"
             perm_dict["first_step_type"] = first_step_type
 
-            # 生成排列名称，不包含编号
             perm_details = []
             for step in perm:
-                perm_details.append(f"{step[0]}.{step[1]}({step[2]})")
+                perm_details.append(f"{step[1]}({step[2]})")
             perm_dict["name"] = " → ".join(perm_details)
             perm_dict["order"] = [step[0] for step in perm]
 
@@ -1612,7 +1608,6 @@ def main():
                             'params': squashing_params
                         }
                     }
-                    st.write("当前选择的算法和参数:", selected_algorithms)
 
                     # 生成排列组合并存储（原逻辑不变）
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
