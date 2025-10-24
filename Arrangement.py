@@ -1610,9 +1610,9 @@ def main():
                     }
                     st.write("selected_algorithms: ", selected_algorithms)
                     # 生成排列组合并存储（原逻辑不变）
-                    st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
-                    st.session_state.filtered_perms = st.session_state.algorithm_permutations
-                    st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
+                    # st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
+                    # st.session_state.filtered_perms = st.session_state.algorithm_permutations
+                    # st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
                     # st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
 
                     # 获取用户输入的标签（原逻辑不变）
@@ -1621,7 +1621,7 @@ def main():
                         return
 
                     labels = st.session_state.labels  # 获取已存储的标签
-                    st.write("标签已加载：", labels)
+                    # st.write("标签已加载：", labels)
 
                     # 获取原始光谱数据并进行处理（原逻辑不变）
                     if st.session_state.get('raw_data'):
@@ -1677,25 +1677,25 @@ def main():
                                 st.write(f"Processed Spectrum for Arrangement {i + 1}, Sample {j + 1}: {arr[:5]} ...")  # 输出前5个数据
                                 processed_cube[j, i, :] = arr
 
-                        st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
-                        st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5].tolist())
-                        # --- 2) 元信息写入 ---
-                        st.session_state.wavenumbers = np.asarray(wavenumbers)
-                        st.session_state.labels = np.asarray(labels, dtype=int)
-                        st.session_state.perm_info = [
-                            {
-                                "name": perm.get("name", f"方案{i + 1}"),
-                                "order": perm.get("order", []),
-                                "params": perm.get("params", {})
-                            }
-                            for i, perm in enumerate(st.session_state.algorithm_permutations)
-                        ]
-                        st.session_state.processed_cube = processed_cube
-                        st.write("[CHECK] len(labels) =", len(st.session_state.labels))
-                        st.write("[CHECK] unique labels =", np.unique(st.session_state.labels).tolist())
-                        st.write("[CHECK] len(perm_info) =", len(st.session_state.perm_info))
-                        st.write("[CHECK] len(wavenumbers) =", len(st.session_state.wavenumbers))
-                        st.write("[CHECK] processed_cube in ss ->", st.session_state.processed_cube.shape)
+                        # st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
+                        # st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5].tolist())
+                        # # --- 2) 元信息写入 ---
+                        # st.session_state.wavenumbers = np.asarray(wavenumbers)
+                        # st.session_state.labels = np.asarray(labels, dtype=int)
+                        # st.session_state.perm_info = [
+                        #     {
+                        #         "name": perm.get("name", f"方案{i + 1}"),
+                        #         "order": perm.get("order", []),
+                        #         "params": perm.get("params", {})
+                        #     }
+                        #     for i, perm in enumerate(st.session_state.algorithm_permutations)
+                        # ]
+                        # st.session_state.processed_cube = processed_cube
+                        # st.write("[CHECK] len(labels) =", len(st.session_state.labels))
+                        # st.write("[CHECK] unique labels =", np.unique(st.session_state.labels).tolist())
+                        # st.write("[CHECK] len(perm_info) =", len(st.session_state.perm_info))
+                        # st.write("[CHECK] len(wavenumbers) =", len(st.session_state.wavenumbers))
+                        # st.write("[CHECK] processed_cube in ss ->", st.session_state.processed_cube.shape)
                         # --- 3) PCA+LDA评估（原逻辑不变）
                         # from sklearn.decomposition import PCA
                         # from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
