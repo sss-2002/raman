@@ -1549,6 +1549,41 @@ def main():
         # 原操作2 → 新操作1：显示排列与筛选（第4列，不变）
         with preprocess_cols[4]:
             st.subheader("操作1")
+            # 应用处理按钮（移除了推荐应用按钮）
+            if st.button("🚀 应用处理", type="primary", use_container_width=True, key="apply_btn"):
+                if st.session_state.raw_data is None:
+                    st.warning("⚠️ 请先上传数据")
+                else:
+                    try:
+                        wavenumbers, y = st.session_state.raw_data
+                        processed_data, method_name = preprocessor.process(
+                            wavenumbers, y,
+                            baseline_method=baseline_method,
+                            baseline_params=baseline_params,
+                            squashing_method=squashing_method,
+                            squashing_params=squashing_params,
+                            filtering_method=filtering_method,
+                            filtering_params=filtering_params,
+                            scaling_method=scaling_method,
+                            scaling_params=scaling_params
+                        )
+
+                        arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
+                        st.session_state.arrangement_results.append(arr_name)
+                        st.session_state.arrangement_details[arr_name] = {
+                            'data': processed_data,
+                            'method': " → ".join(method_name),
+                            'params': current_algorithms
+                        }
+                        st.session_state.selected_arrangement = arr_name
+                        st.session_state.processed_data = (wavenumbers, processed_data)
+                        st.session_state.process_method = " → ".join(method_name)
+                        st.success(f"✅ 处理完成")
+                    except Exception as e:
+                        st.error(f"❌ 处理失败: {str(e)}")
+
+        with preprocess_cols[4]:
+            st.subheader("操作1")
 
             # 显示排列按钮（原逻辑不变）
             if st.button("🔍 显示排列", type="secondary", use_container_width=True, key="show_perm_btn"):
