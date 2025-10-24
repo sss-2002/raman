@@ -24,7 +24,9 @@ from sklearn.linear_model import Perceptron
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
+
 cloud_storage_dir = "/mnt/data/processed_spectra"  # 临时目录，用于存储文件
+
 
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
@@ -1272,16 +1274,16 @@ def main():
         with st.expander("📁 数据管理", expanded=True):
             # 1. 提前初始化train_test_ratio
             train_test_ratio = st.session_state.get('train_test_split_ratio', 0.8)
-    
+
             # 2. 上传压缩包
             zip_file = st.file_uploader("上传包含波数和光谱数据的压缩包", type=['zip'], key="zip_file")
             st.caption("压缩包(.zip)需包含波数和光谱数据文件")
-    
+
             # 数据加载逻辑（压缩包上传后、样本标签前）
             if zip_file:
                 try:
                     st.session_state.raw_data = file_handler.load_data_from_zip(zip_file)
-    
+
                     if st.session_state.get('labels') is not None:
                         st.success(
                             f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{len(np.unique(st.session_state.labels))}类")
@@ -1289,26 +1291,26 @@ def main():
                         st.success(
                             f"✅ 数据加载成功：{st.session_state.raw_data[1].shape[1]}条光谱，{st.session_state.raw_data[1].shape[0]}个点")
                         st.warning("⚠️ 请输入样本标签以进行分类测试")
-    
+
                     # 【调整1：数据维度提示移至数据加载成功提示下方】
                     if st.session_state.get('raw_data'):
                         wavenumbers, y = st.session_state.raw_data
                         st.info(f"📊 数据维度: {y.shape[1]}条 × {y.shape[0]}点")
-    
+
                 except Exception as e:
                     st.error(f"❌ 文件加载失败: {str(e)}")
-    
+
             # 3. 样本标签区域（数据维度提示下方）
             st.subheader("样本标签")
             num_classes = st.number_input("类别数量", min_value=1, value=2, step=1, key="num_cls")
-    
+
             # 定义标签输入
             labels_input = st.text_input(
                 "标签（逗号分隔，与光谱顺序一致）",
                 placeholder="例：0,0,1,1",
                 key="labels_in"
             )
-    
+
             # 标签验证逻辑
             if labels_input and st.session_state.get('raw_data'):
                 try:
@@ -1326,13 +1328,13 @@ def main():
                 except Exception as e:
                     st.warning(f"⚠️ 标签格式错误: {str(e)}")
                     st.session_state.labels = None
-    
+
             # 【调整2：类别分布提示移至原数据维度位置（样本标签区域末尾）】
             if st.session_state.get('raw_data') and st.session_state.get('labels') is not None:
                 class_counts = np.bincount(st.session_state.labels)
                 st.info(
                     f"🏷️ 类别分布: {', '.join([f'类{i}:{count}个' for i, count in enumerate(class_counts) if count > 0])}")
-    
+
             # 4. 训练测试划分区域
             st.subheader("训练测试划分")
             train_test_ratio = st.slider(
@@ -1345,14 +1347,14 @@ def main():
                 key="train_ratio"
             )
             st.session_state.train_test_split_ratio = train_test_ratio
-    
+
             # 训练集:测试集提示
             st.info(f"🔢 训练集:{train_test_ratio:.1f} | 测试集:{1 - train_test_ratio:.1f}")
-    
+
         # 处理流程提示
         if st.session_state.get('process_method'):
             st.success(f"🛠️ 处理流程: {st.session_state.process_method}")
-    
+
         # 使用说明
         with st.expander("ℹ️ 使用指南", expanded=False):
             st.markdown("""
@@ -1368,10 +1370,10 @@ def main():
     with col_right:
         # ===== 预处理设置（横向排列在光谱可视化上方，与四种算法在同一行）=====
         st.subheader("⚙️ 预处理设置", divider="gray")
-        
+
         # 布局列数保持10列
         preprocess_cols = st.columns([1, 1, 1, 1, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2], gap="small")
-        
+
         # 1. 基线校准（第一列，不变）
         with preprocess_cols[0]:
             st.subheader("基线校准")
@@ -1381,7 +1383,7 @@ def main():
                 key="baseline_method",
                 label_visibility="collapsed"
             )
-        
+
             # 基线参数（不变）
             baseline_params = {}
             if baseline_method != "无":
@@ -1420,7 +1422,7 @@ def main():
                     st.caption(f"λ: {lam}")
                 elif baseline_method == "二阶差分(D2)":  # 二阶差分参数说明
                     st.caption("二阶差分可增强光谱特征，抑制基线漂移")
-        
+
         # 2. 缩放处理（第二列，不变）
         with preprocess_cols[1]:
             st.subheader("📏 缩放")
@@ -1430,7 +1432,7 @@ def main():
                 key="scaling_method",
                 label_visibility="collapsed"
             )
-        
+
             # 缩放参数（不变）
             scaling_params = {}
             if scaling_method == "L-范数":
@@ -1439,7 +1441,7 @@ def main():
                 st.caption(f"p: {p}")
             elif scaling_method == "标准化(均值0，方差1)":
                 st.caption("将数据标准化到均值为0，方差为1")
-        
+
         # 3. 滤波处理（第三列，不变）
         with preprocess_cols[2]:
             st.subheader("📶 滤波")
@@ -1451,7 +1453,7 @@ def main():
                 key="filtering_method",
                 label_visibility="collapsed"
             )
-        
+
             # 滤波参数（不变）
             filtering_params = {}
             if filtering_method != "无":
@@ -1506,7 +1508,7 @@ def main():
                                              label_visibility="collapsed")
                     filtering_params["threshold"] = threshold
                     st.caption(f"阈值: {threshold}")
-        
+
         # 4. 挤压处理（第四列，不变）
         with preprocess_cols[3]:
             st.subheader("🧪 挤压")
@@ -1517,7 +1519,7 @@ def main():
                 key="squashing_method",
                 label_visibility="collapsed"
             )
-        
+
             # 挤压参数（不变）
             squashing_params = {}
             if squashing_method != "无":
@@ -1531,7 +1533,7 @@ def main():
                     l = st.selectbox("l", [1, 5], key="l_dtw", label_visibility="collapsed")
                     k1 = st.selectbox("k1", ["T", "F"], key="k1_dtw", label_visibility="collapsed")
                     k2 = st.selectbox("k2", ["T", "F"], key="k2_dtw", label_visibility="collapsed")
-        
+
                     squashing_params["l"] = l
                     squashing_params["k1"] = k1
                     squashing_params["k2"] = k2
@@ -1542,16 +1544,16 @@ def main():
                     st.caption("使用基于余弦的挤压变换，无额外参数")
                 elif squashing_method == "逻辑函数":
                     st.caption("无额外参数")
-        
+
         # 5-10列：操作相关内容
         # 原操作2 → 新操作1：显示排列与筛选（第4列，不变）
         with preprocess_cols[4]:
             st.subheader("操作1")
-        
+
             # 显示排列按钮（原逻辑不变）
             if st.button("🔍 显示排列", type="secondary", use_container_width=True, key="show_perm_btn"):
                 st.session_state.show_arrangements = not st.session_state.show_arrangements
-        
+
                 if st.session_state.show_arrangements:
                     selected_algorithms = {
                         'baseline': baseline_method,
@@ -1559,25 +1561,20 @@ def main():
                         'filtering': filtering_method,
                         'squashing': squashing_method
                     }
-        
+
                     # 生成排列组合并存储（原逻辑不变）
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
-        
+
                     # 获取用户输入的标签（原逻辑不变）
-                    labels_input = st.text_input("标签（请勿分隔， 与光谱顺序一致）", "0,0,1,1,0")
-                    try:
-                        labels = list(map(int, labels_input.split(',')))
-                        st.write("标签已加载：", labels)
-        
-                        if len(labels) != 5:  # 只有 5 条光谱数据
-                            st.error(f"❌ 标签的数量（{len(labels)}）与光谱样本的数量（5）不一致！")
-                            return
-                    except Exception as e:
-                        st.error("标签格式错误，请确保标签为用逗号分隔的整数，例如：0,0,1,1")
+                    if 'labels' not in st.session_state or st.session_state.labels is None:
+                        st.error("❌ 标签尚未设置！请先通过主函数获取并验证标签。")
                         return
-        
+
+                    labels = st.session_state.labels  # 获取已存储的标签
+                    st.write("标签已加载：", labels)
+
                     # 获取原始光谱数据并进行处理（原逻辑不变）
                     if st.session_state.get('raw_data'):
                         wavenumbers, y = st.session_state.raw_data
@@ -1585,11 +1582,13 @@ def main():
                         P = len(st.session_state.algorithm_permutations)
                         N = len(wavenumbers)
                         st.write("[CHECK] S, P, N =", S, P, N)
-                        st.write("[CHECK] raw_data shapes -> y:", np.asarray(y).shape, "; wavenumbers:", len(wavenumbers))
+                        st.write("[CHECK] raw_data shapes -> y:", np.asarray(y).shape, "; wavenumbers:",
+                                 len(wavenumbers))
                         # --- 1) 构建 (S, P, N) 的三维立方体 ---
                         processed_cube = np.empty((S, P, N), dtype=np.float32)
-        
+
                         y_arr = np.asarray(y)
+
                         def get_spectrum_j(j_idx: int) -> np.ndarray:
                             if y_arr.ndim == 2:
                                 if y_arr.shape[0] == N and y_arr.shape[1] == S:  # N×S
@@ -1603,7 +1602,7 @@ def main():
                                 raise ValueError("原始光谱只有 1 条，无法构建 (S,P,N) 立方体。")
                             else:
                                 raise ValueError(f"不支持的原始光谱维度：{y_arr.ndim}")
-        
+
                         # 遍历填充立方体（原逻辑不变）
                         for j in range(S):
                             spec_j = get_spectrum_j(j).astype(np.float32)
@@ -1615,7 +1614,7 @@ def main():
                                 sm = perm.get('params', {}).get('scaling', '无')
                                 fm = perm.get('params', {}).get('filtering', '无')
                                 qm = perm.get('params', {}).get('squashing', '无')
-        
+
                                 processed_data, _method_name = preprocessor.process(
                                     wavenumbers, spec_j,
                                     baseline_method=bm, baseline_params=baseline_params,
@@ -1650,62 +1649,63 @@ def main():
                         # --- 3) PCA+LDA评估（原逻辑不变）
                         from sklearn.decomposition import PCA
                         from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-        
+
                         X_labels = st.session_state.labels
                         pca_pred_matrix = np.empty((P, S), dtype=int)
                         pca_acc = np.empty(P, dtype=np.float32)
-        
+
                         for p in range(P):
                             X_p = processed_cube[:, p, :]
                             n_components = min(max(1, S - 1), X_p.shape[1])
                             pca = PCA(n_components=n_components, svd_solver="auto", random_state=0)
                             Z = pca.fit_transform(X_p)
-        
+
                             if np.unique(X_labels).size < 2:
                                 y_hat = np.full(S, int(X_labels[0]), dtype=int)
                             else:
                                 clf = LDA(solver="lsqr")
                                 clf.fit(Z, X_labels)
                                 y_hat = clf.predict(Z)
-        
+
                             pca_pred_matrix[p, :] = y_hat
                             pca_acc[p] = (y_hat == X_labels).mean().astype(np.float32)
-        
+
                         # 排序与投票（原逻辑不变）
                         st.session_state.pca_pred_matrix = pca_pred_matrix
                         st.session_state.pca_acc = pca_acc
-        
+
                         sorted_idx = np.argsort(-st.session_state.pca_acc, kind="mergesort")
                         st.session_state.pca_sorted_perm_indices = sorted_idx
                         st.session_state.pca_sorted_acc = st.session_state.pca_acc[sorted_idx]
                         st.session_state.pca_sorted_pred_matrix = st.session_state.pca_pred_matrix[sorted_idx]
-        
+
                         st.write("[CHECK] pca_pred_matrix.shape =", st.session_state.pca_pred_matrix.shape)
                         st.write("[CHECK] pca_acc.shape =", st.session_state.pca_acc.shape)
                         st.write("[CHECK] top-5 acc =", st.session_state.pca_sorted_acc[:5].round(3).tolist())
                         st.write("[CHECK] top-1 preds =", st.session_state.pca_sorted_pred_matrix[0].tolist())
-                        
+
                         from scipy.stats import mode
                         P2, S2 = st.session_state.pca_sorted_pred_matrix.shape
                         vote_pred_matrix_by_k = np.empty((P2, S2), dtype=int)
-        
+
                         for k in range(1, P2 + 1):
                             topk = st.session_state.pca_sorted_pred_matrix[:k, :]
                             voted = mode(topk, axis=0, keepdims=False).mode
                             vote_pred_matrix_by_k[k - 1, :] = voted
-        
+
                         st.session_state.vote_pred_matrix_by_k = vote_pred_matrix_by_k
                         vote_acc_by_k = (vote_pred_matrix_by_k == st.session_state.labels.reshape(1, S2)).mean(
                             axis=1).astype(np.float32)
                         st.session_state.vote_acc_by_k = vote_acc_by_k
-        
+
                         st.write("[CHECK] vote_pred_matrix_by_k.shape =", st.session_state.vote_pred_matrix_by_k.shape)
                         st.write("[CHECK] vote_acc_by_k[:5] =", st.session_state.vote_acc_by_k[:5].round(3).tolist())
-                        st.write("[CHECK] k=5 voted preds =",st.session_state.vote_pred_matrix_by_k[4].tolist() if P2 >= 5 else "P<5")
+                        st.write("[CHECK] k=5 voted preds =",
+                                 st.session_state.vote_pred_matrix_by_k[4].tolist() if P2 >= 5 else "P<5")
                         k_vals = np.arange(1, st.session_state.vote_acc_by_k.shape[0] + 1)
                         best_k = int(k_vals[np.argmax(st.session_state.vote_acc_by_k)])
                         best_acc = float(st.session_state.vote_acc_by_k.max())
-        
+
                         import matplotlib.pyplot as plt
                         fig, ax = plt.subplots()
                         ax.plot(k_vals, st.session_state.vote_acc_by_k, marker='o')
@@ -1716,7 +1716,7 @@ def main():
                         ax.set_ylim(0, 1)
                         ax.grid(True, linestyle='--', alpha=0.4)
                         st.pyplot(fig)
-        
+
                         st.write("[CHECK] best k =", best_k, "; preds =",
                                  st.session_state.vote_pred_matrix_by_k[best_k - 1].tolist())
                         st.success(
@@ -1726,7 +1726,7 @@ def main():
                         st.error("❌ 请先上传原始光谱数据")
             else:
                 st.session_state.filtered_perms = []
-        
+
         # 原操作3 → 新操作2：排列选择与应用（第5列，不变）
         with preprocess_cols[5]:
             st.subheader("操作2")
@@ -1740,12 +1740,12 @@ def main():
                     label_visibility="collapsed",
                     help="选择预处理算法顺序"
                 )
-        
+
                 # 应用排列按钮（原逻辑不变）
                 try:
                     selected_perm = st.session_state.filtered_perms[st.session_state.selected_perm_idx]
                     st.caption(f"当前: {selected_perm.get('name', '未知')}")
-        
+
                     if st.button("✅ 应用方案", type="primary", use_container_width=True, key="apply_perm_btn"):
                         if st.session_state.raw_data is None:
                             st.warning("⚠️ 请先上传数据")
@@ -1774,7 +1774,7 @@ def main():
                                     scaling_params=scaling_params,
                                     algorithm_order=selected_perm.get('order', [])
                                 )
-        
+
                                 arr_name = f"排列_{len(st.session_state.arrangement_results) + 1}"
                                 st.session_state.arrangement_results.append(arr_name)
                                 st.session_state.arrangement_details[arr_name] = {
@@ -1794,7 +1794,7 @@ def main():
             else:
                 if st.session_state.show_arrangements:
                     st.info("ℹ️ 无符合条件的方案")
-        
+
         # 【修改】操作3：仅保留计算k值按钮（第6列）
         with preprocess_cols[6]:
             st.subheader("操作3")
@@ -1803,14 +1803,14 @@ def main():
                 # 暂存计算结果（逻辑后续补充）
                 st.session_state.calc_k_result = 5  # 示例默认值
                 st.success("✅ k值计算完成")
-        
+
         # 【修改】操作4：显示k值结果（第7列）
         with preprocess_cols[7]:
             st.subheader("k值结果为")  # 文本改为"k值结果为"
             # 移除k值设置输入框和确定按钮，仅显示计算后的k值
             calc_k_result = st.session_state.get('calc_k_result', "未计算")
             st.info(f" {calc_k_result}")
-        
+
         # 【新增】操作5：选择k值（第8列，不变）
         with preprocess_cols[8]:
             st.subheader("操作5")
@@ -1822,7 +1822,7 @@ def main():
             # 显示当前选择的k值
             selected_k = st.session_state.get('selected_k', "未选择")
             st.caption(f"当前选择：{selected_k}")
-        
+
         # 原操作5 → 新操作6：测试按钮（第9列，不变）
         with preprocess_cols[9]:
             st.subheader("操作6")
@@ -1842,12 +1842,12 @@ def main():
                         processed_data = st.session_state.arrangement_details[selected_arr]['data']
                         train_idx = st.session_state.train_indices
                         test_idx = st.session_state.test_indices
-        
+
                         train_data = processed_data[:, train_idx]
                         test_data = processed_data[:, test_idx]
                         train_labels = st.session_state.labels[train_idx]
                         test_labels = st.session_state.labels[test_idx]
-        
+
                         with st.spinner("测试中..."):
                             # 使用选择的k值进行测试
                             predictions = knn_classify(
@@ -1856,11 +1856,11 @@ def main():
                                 test_data,
                                 k=st.session_state.get('selected_k', 1)  # 优先使用选择的k值
                             )
-        
+
                         accuracy = accuracy_score(test_labels, predictions)
                         kappa = cohen_kappa_score(test_labels, predictions)
                         cm = confusion_matrix(test_labels, predictions)
-        
+
                         st.session_state.test_results = {
                             'accuracy': accuracy,
                             'kappa': kappa,
@@ -1868,12 +1868,12 @@ def main():
                             'predictions': predictions,
                             'test_labels': test_labels
                         }
-        
+
                         st.success("✅ 测试完成！结果在下方")
-        
+
                     except Exception as e:
                         st.error(f"❌ 测试失败: {str(e)}")
-        
+
         # 保存当前选择的算法（不变）
         current_algorithms = {
             'baseline': baseline_method,
@@ -1889,14 +1889,14 @@ def main():
 
         # ===== 光谱可视化与结果导出（在预处理设置下方）=====
         st.subheader("📈 光谱可视化", divider="gray")
-        
+
         # 创建四个固定区域的布局：原始光谱、预处理后光谱、k值曲线、混淆矩阵
         # 第一行：原始光谱和预处理后光谱
         viz_row1 = st.columns(2, gap="medium")
-        
+
         # 第二行：k值曲线和混淆矩阵
         viz_row2 = st.columns(2, gap="medium")
-        
+
         # 1. 原始光谱区域（第一行第一列）- 随机显示一个原始光谱
         with viz_row1[0]:
             st.subheader("原始光谱", divider="gray")
@@ -1913,7 +1913,7 @@ def main():
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">等待加载原始数据</div>',
                     unsafe_allow_html=True)
-        
+
         # 2. 预处理后光谱区域（第一行第二列）
         with viz_row1[1]:
             st.subheader("预处理后的光谱", divider="gray")
@@ -1922,11 +1922,11 @@ def main():
                 arr_data = st.session_state.arrangement_details[selected_arr]['data']
                 arr_method = st.session_state.arrangement_details[selected_arr]['method']
                 st.caption(f"处理方法: {arr_method}")
-        
+
                 idx1 = 0 if arr_data.shape[1] > 0 else 0
                 proc_data1 = pd.DataFrame({"预处理后1": arr_data[:, idx1]}, index=wavenumbers)
                 st.line_chart(proc_data1, height=250)
-        
+
                 # 显示更多预处理后光谱（不使用嵌套列）
                 if arr_data.shape[1] > 1:
                     with st.expander("查看更多预处理后光谱", expanded=False):
@@ -1938,7 +1938,7 @@ def main():
                 st.markdown(
                     '<div style="border:1px dashed #ccc; height:250px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
                     unsafe_allow_html=True)
-        
+
         # 3. k值曲线区域（第二行第一列）
         with viz_row2[0]:
             st.subheader("k值曲线", divider="gray")
@@ -1948,13 +1948,13 @@ def main():
                     arr_data = st.session_state.arrangement_details[selected_arr]['data']
                     wavenumbers, y = st.session_state.raw_data
                     arr_order = st.session_state.arrangement_details[selected_arr].get('order', [])
-        
+
                     if arr_order:  # 只有应用了预处理才有k值曲线
                         idx1 = 0 if arr_data.shape[1] > 0 else 0
                         k_vals1 = np.abs(arr_data[:, 0] / (y[:, 0] + 1e-8)) if y.shape[1] > 0 else np.array([])
                         k_data1 = pd.DataFrame({"k值1": k_vals1}, index=wavenumbers)
                         st.line_chart(k_data1)
-        
+
                         # 显示更多k值曲线（折叠面板）
                         if y.shape[1] > 1:
                             with st.expander("查看更多k值曲线", expanded=False):
@@ -1969,7 +1969,7 @@ def main():
                     st.markdown(
                         '<div style="border:1px dashed #ccc; height:200px; display:flex; align-items:center; justify-content:center;">请先应用预处理方案</div>',
                         unsafe_allow_html=True)
-        
+
         # 4. 混淆矩阵区域（第二行第二列）
         with viz_row2[1]:
             st.subheader("混淆矩阵", divider="gray")
@@ -1984,10 +1984,10 @@ def main():
                 }
                 </style>
             """, unsafe_allow_html=True)
-        
+
             if st.session_state.get('test_results') is not None:
                 results = st.session_state.test_results
-        
+
                 fig, ax = plt.subplots(figsize=(2.5, 1.5))
                 sns.heatmap(
                     results['confusion_matrix'],
