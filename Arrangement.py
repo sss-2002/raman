@@ -1566,8 +1566,12 @@ def main():
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
-                    
-
+                    for idx, perm in enumerate(st.session_state.algorithm_permutations):
+                        bm = perm.get('params', {}).get('baseline', '无')
+                        sm = perm.get('params', {}).get('scaling', '无')
+                        fm = perm.get('params', {}).get('filtering', '无')
+                        qm = perm.get('params', {}).get('squashing', '无')
+                        st.write(f"排列 {idx + 1}: 基线方法={bm}, 缩放方法={sm}, 滤波方法={fm}, 挤压方法={qm}")
                     # 获取用户输入的标签（原逻辑不变）
                     if 'labels' not in st.session_state or st.session_state.labels is None:
                         st.error("❌ 标签尚未设置！请先通过主函数获取并验证标签。")
@@ -1627,9 +1631,10 @@ def main():
                                 arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
                                 if arr.shape[0] != N:
                                     raise ValueError(f"排列 {i + 1} 处理后长度 {arr.shape[0]} 与 N={N} 不一致。")
-                                st.write(f"Processed Spectrum for Arrangement {i+1}, Sample {j+1}: {arr[:5]} ...")  # 输出前5个数据
+                                st.write(
+                                    f"Processed Spectrum for Arrangement {i + 1}, Sample {j + 1}: {arr[:5]} ...")  # 输出前5个数据
                                 processed_cube[j, i, :] = arr
-                                
+
                         st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
                         st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5].tolist())
                         # --- 2) 元信息写入 ---
