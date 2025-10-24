@@ -27,7 +27,30 @@ from sklearn.model_selection import train_test_split
 
 cloud_storage_dir = "/mnt/data/processed_spectra"  # 临时目录，用于存储文件
 
-
+def generate_permutations(selected_algorithms):
+    # 获取每个预处理方法的选择项
+    choices = [
+        selected_algorithms['baseline'],
+        selected_algorithms['scaling'],
+        selected_algorithms['filtering'],
+        selected_algorithms['squashing']
+    ]
+    
+    # 生成所有排列组合
+    permutations = list(itertools.product(*choices))
+    
+    # 将排列组合包装成字典，包含参数
+    perms = []
+    for perm in permutations:
+        perms.append({
+            'params': {
+                'baseline': perm[0],
+                'scaling': perm[1],
+                'filtering': perm[2],
+                'squashing': perm[3]
+            }
+        })
+    return perms
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
