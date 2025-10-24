@@ -1662,7 +1662,7 @@ def main():
                                 sm = perm.get('params', {}).get('scaling', '无')
                                 fm = perm.get('params', {}).get('filtering', '无')
                                 qm = perm.get('params', {}).get('squashing', '无')
-                                st.write(f"Algorithm Order for Arrangement {i + 1}: {algorithm_order}")
+                               
                                 processed_data, _method_name = preprocessor.process(
                                     wavenumbers, spec_j,
                                     baseline_method=bm, baseline_params=baseline_params,
