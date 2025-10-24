@@ -1649,7 +1649,10 @@ def main():
                     }
 
                     # 生成排列组合并存储（原逻辑不变）
-                    st.session_state.algorithm_permutations = generate_all_combinations(selected_algorithms)
+                    st.session_state.algorithm_permutations = generate_all_combinations(baseline_methods, baseline_params,
+                               scaling_methods, scaling_params,
+                               filtering_methods, filtering_params,
+                               squashing_methods, squashing_params)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
                     for idx, perm in enumerate(st.session_state.algorithm_permutations):
