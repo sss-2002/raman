@@ -1595,10 +1595,22 @@ def main():
 
                 if st.session_state.show_arrangements:
                     selected_algorithms = {
-                        'baseline': baseline_method,
-                        'scaling': scaling_method,
-                        'filtering': filtering_method,
-                        'squashing': squashing_method
+                        'baseline': {
+                            'method': baseline_method,
+                            'params': baseline_params
+                        },
+                        'scaling': {
+                            'method': scaling_method,
+                            'params': scaling_params
+                        },
+                        'filtering': {
+                            'method': filtering_method,
+                            'params': filtering_params
+                        },
+                        'squashing': {
+                            'method': squashing_method,
+                            'params': squashing_params
+                        }
                     }
 
                     # 生成排列组合并存储（原逻辑不变）
