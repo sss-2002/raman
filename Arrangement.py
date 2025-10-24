@@ -1588,7 +1588,7 @@ def main():
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
-
+                      st.write("当前选择的算法和参数:", selected_algorithms)
                     # 获取用户输入的标签（确保标签长度与光谱数据一致）
                     labels_input = st.text_input("标签（请勿分隔， 与光谱顺序一致）", "0,0,1,1,0")
                     try:
