@@ -1609,17 +1609,13 @@ def main():
                            
                         }
                     }
-
+                    st.write("selected_algorithms: ", selected_algorithms
                     # 生成排列组合并存储（原逻辑不变）
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
-                    for idx, perm in enumerate(st.session_state.algorithm_permutations):
-                        bm = perm.get('params', {}).get('baseline', '无')
-                        sm = perm.get('params', {}).get('scaling', '无')
-                        fm = perm.get('params', {}).get('filtering', '无')
-                        qm = perm.get('params', {}).get('squashing', '无')
-                        st.write(f"排列 {idx + 1}: 基线方法={bm}, 缩放方法={sm}, 滤波方法={fm}, 挤压方法={qm}")
+                    st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
+                    
                     # 获取用户输入的标签（原逻辑不变）
                     if 'labels' not in st.session_state or st.session_state.labels is None:
                         st.error("❌ 标签尚未设置！请先通过主函数获取并验证标签。")
