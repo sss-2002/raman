@@ -1594,19 +1594,19 @@ def main():
                     selected_algorithms = {
                         'baseline': {
                             'method': baseline_method,
-                            'params': baseline_params
+                            
                         },
                         'scaling': {
                             'method': scaling_method,
-                            'params': scaling_params
+                            
                         },
                         'filtering': {
                             'method': filtering_method,
-                            'params': filtering_params
+                           
                         },
                         'squashing': {
                             'method': squashing_method,
-                            'params': squashing_params
+                           
                         }
                     }
 
