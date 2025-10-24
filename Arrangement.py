@@ -28,7 +28,6 @@ from sklearn.model_selection import train_test_split
 cloud_storage_dir = "/mnt/data/processed_spectra"  # 临时目录，用于存储文件
 
 
-
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
@@ -1594,27 +1593,27 @@ def main():
                     selected_algorithms = {
                         'baseline': {
                             'method': baseline_method,
-                            
+
                         },
                         'scaling': {
                             'method': scaling_method,
-                            
+
                         },
                         'filtering': {
                             'method': filtering_method,
-                           
+
                         },
                         'squashing': {
                             'method': squashing_method,
-                           
+
                         }
                     }
-                    
+                    st.write("selected_algorithms: ", selected_algorithms)
                     # 生成排列组合并存储（原逻辑不变）
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
-                 
+                    st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
                     
                     # 获取用户输入的标签（原逻辑不变）
                     if 'labels' not in st.session_state or st.session_state.labels is None:
