@@ -1612,6 +1612,7 @@ def main():
                             'params': squashing_params
                         }
                     }
+                    st.write("当前选择的算法和参数:", selected_algorithms)
 
                     # 生成排列组合并存储（原逻辑不变）
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
