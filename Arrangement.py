@@ -1592,20 +1592,20 @@ def main():
                 if st.session_state.show_arrangements:
                     selected_algorithms = {
                         'baseline': {
-                            'method': baseline_method,
-
+                            'method': 'ModPoly',
+                            'params': {}  # 添加空的params字段
                         },
                         'scaling': {
-                            'method': scaling_method,
-
+                            'method': 'MSC',
+                            'params': {}  # 添加空的params字段
                         },
                         'filtering': {
-                            'method': filtering_method,
-
+                            'method': 'sgolayfilt滤波器',
+                            'params': {}  # 添加空的params字段
                         },
                         'squashing': {
-                            'method': squashing_method,
-
+                            'method': '逻辑函数',
+                            'params': {}  # 添加空的params字段
                         }
                     }
                     st.write("selected_algorithms: ", selected_algorithms)
