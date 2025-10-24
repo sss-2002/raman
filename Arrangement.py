@@ -1655,7 +1655,6 @@ def main():
                                 arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
                                 if arr.shape[0] != N:
                                     raise ValueError(f"排列 {i + 1} 处理后长度 {arr.shape[0]} 与 N={N} 不一致。")
-                                st.write(f"Processed Spectrum for Arrangement {i + 1}, Sample {j + 1}: {arr[:5]} ...")
                                 processed_cube[j, i, :] = arr
                         st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
                         st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5].tolist())
