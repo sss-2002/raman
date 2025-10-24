@@ -63,7 +63,7 @@ def generate_all_combinations(baseline_methods, baseline_params,
         current_algorithms['squashing']
     ))
 
-return all_combinations
+  return all_combinations
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
