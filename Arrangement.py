@@ -1651,53 +1651,52 @@ def main():
                             else:
                                 raise ValueError(f"不支持的原始光谱维度：{y_arr.ndim}")
 
-                        # # 遍历填充立方体（原逻辑不变）
-                        # for j in range(S):
-                        #     spec_j = get_spectrum_j(j).astype(np.float32)
-                        #     if spec_j.shape[0] != N:
-                        #         raise ValueError(f"第 {j + 1} 条光谱长度 {spec_j.shape[0]} 与波数长度 N={N} 不一致。")
-                        #     for i, perm in enumerate(st.session_state.algorithm_permutations):
-                        #         algorithm_order = perm.get('order', [])
-                        #         bm = perm.get('params', {}).get('baseline', '无')
-                        #         sm = perm.get('params', {}).get('scaling', '无')
-                        #         fm = perm.get('params', {}).get('filtering', '无')
-                        #         qm = perm.get('params', {}).get('squashing', '无')
+                        # 遍历填充立方体（原逻辑不变）
+                        for j in range(S):
+                            spec_j = get_spectrum_j(j).astype(np.float32)
+                            if spec_j.shape[0] != N:
+                                raise ValueError(f"第 {j + 1} 条光谱长度 {spec_j.shape[0]} 与波数长度 N={N} 不一致。")
+                            for i, perm in enumerate(st.session_state.algorithm_permutations):
+                                algorithm_order = perm.get('order', [])
+                                bm = perm.get('params', {}).get('baseline', '无')
+                                sm = perm.get('params', {}).get('scaling', '无')
+                                fm = perm.get('params', {}).get('filtering', '无')
+                                qm = perm.get('params', {}).get('squashing', '无')
 
-                        #         processed_data, _method_name = preprocessor.process(
-                        #             wavenumbers, spec_j,
-                        #             baseline_method=bm, baseline_params=baseline_params,
-                        #             squashing_method=qm, squashing_params=squashing_params,
-                        #             filtering_method=fm, filtering_params=filtering_params,
-                        #             scaling_method=sm, scaling_params=scaling_params,
-                        #             algorithm_order=algorithm_order
-                        #         )
-                        #         arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
-                        #         if arr.shape[0] != N:
-                        #             raise ValueError(f"排列 {i + 1} 处理后长度 {arr.shape[0]} 与 N={N} 不一致。")
-                        #         st.write(
-                        #             f"Processed Spectrum for Arrangement {i + 1}, Sample {j + 1}: {arr[:5]} ...")  # 输出前5个数据
-                        #         processed_cube[j, i, :] = arr
+                                processed_data, _method_name = preprocessor.process(
+                                    wavenumbers, spec_j,
+                                    baseline_method=bm, baseline_params=baseline_params,
+                                    squashing_method=qm, squashing_params=squashing_params,
+                                    filtering_method=fm, filtering_params=filtering_params,
+                                    scaling_method=sm, scaling_params=scaling_params,
+                                    algorithm_order=algorithm_order
+                                )
+                                arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
+                                if arr.shape[0] != N:
+                                    raise ValueError(f"排列 {i + 1} 处理后长度 {arr.shape[0]} 与 N={N} 不一致。")
+                                st.write(f"Processed Spectrum for Arrangement {i + 1}, Sample {j + 1}: {arr[:5]} ...")  # 输出前5个数据
+                                processed_cube[j, i, :] = arr
 
-                        # st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
-                        # st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5].tolist())
-                        # # --- 2) 元信息写入 ---
-                        # st.session_state.wavenumbers = np.asarray(wavenumbers)
-                        # st.session_state.labels = np.asarray(labels, dtype=int)
-                        # st.session_state.perm_info = [
-                        #     {
-                        #         "name": perm.get("name", f"方案{i + 1}"),
-                        #         "order": perm.get("order", []),
-                        #         "params": perm.get("params", {})
-                        #     }
-                        #     for i, perm in enumerate(st.session_state.algorithm_permutations)
-                        # ]
-                        # st.session_state.processed_cube = processed_cube
-                        # st.write("[CHECK] len(labels) =", len(st.session_state.labels))
-                        # st.write("[CHECK] unique labels =", np.unique(st.session_state.labels).tolist())
-                        # st.write("[CHECK] len(perm_info) =", len(st.session_state.perm_info))
-                        # st.write("[CHECK] len(wavenumbers) =", len(st.session_state.wavenumbers))
-                        # st.write("[CHECK] processed_cube in ss ->", st.session_state.processed_cube.shape)
-                        # # --- 3) PCA+LDA评估（原逻辑不变）
+                        st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
+                        st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5].tolist())
+                        # --- 2) 元信息写入 ---
+                        st.session_state.wavenumbers = np.asarray(wavenumbers)
+                        st.session_state.labels = np.asarray(labels, dtype=int)
+                        st.session_state.perm_info = [
+                            {
+                                "name": perm.get("name", f"方案{i + 1}"),
+                                "order": perm.get("order", []),
+                                "params": perm.get("params", {})
+                            }
+                            for i, perm in enumerate(st.session_state.algorithm_permutations)
+                        ]
+                        st.session_state.processed_cube = processed_cube
+                        st.write("[CHECK] len(labels) =", len(st.session_state.labels))
+                        st.write("[CHECK] unique labels =", np.unique(st.session_state.labels).tolist())
+                        st.write("[CHECK] len(perm_info) =", len(st.session_state.perm_info))
+                        st.write("[CHECK] len(wavenumbers) =", len(st.session_state.wavenumbers))
+                        st.write("[CHECK] processed_cube in ss ->", st.session_state.processed_cube.shape)
+                        # --- 3) PCA+LDA评估（原逻辑不变）
                         # from sklearn.decomposition import PCA
                         # from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
