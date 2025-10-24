@@ -1579,6 +1579,7 @@ def main():
                         st.session_state.processed_data = (wavenumbers, processed_data)
                         st.session_state.process_method = " → ".join(method_name)
                         st.success(f"✅ 处理完成")
+                        st.write(f"当前选择的排列: {st.session_state.selected_arrangement}")
                     except Exception as e:
                         st.error(f"❌ 处理失败: {str(e)}")
 
