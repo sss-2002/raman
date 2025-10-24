@@ -1609,170 +1609,170 @@ def main():
                         }
                     }
                     st.write("selected_algorithms: ", selected_algorithms)
-                    # # 生成排列组合并存储（原逻辑不变）
-                    # st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
-                    # st.session_state.filtered_perms = st.session_state.algorithm_permutations
-                    # st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
-                    # st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
-                    
-                    # # 获取用户输入的标签（原逻辑不变）
-                    # if 'labels' not in st.session_state or st.session_state.labels is None:
-                    #     st.error("❌ 标签尚未设置！请先通过主函数获取并验证标签。")
-                    #     return
+                    # 生成排列组合并存储（原逻辑不变）
+                    st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
+                    st.session_state.filtered_perms = st.session_state.algorithm_permutations
+                    st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
+                    st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
 
-                    # labels = st.session_state.labels  # 获取已存储的标签
-                    # st.write("标签已加载：", labels)
+                    # 获取用户输入的标签（原逻辑不变）
+                    if 'labels' not in st.session_state or st.session_state.labels is None:
+                        st.error("❌ 标签尚未设置！请先通过主函数获取并验证标签。")
+                        return
 
-                    # # 获取原始光谱数据并进行处理（原逻辑不变）
-                    # if st.session_state.get('raw_data'):
-                    #     wavenumbers, y = st.session_state.raw_data
-                    #     S = len(labels)
-                    #     P = len(st.session_state.algorithm_permutations)
-                    #     N = len(wavenumbers)
-                    #     st.write("[CHECK] S, P, N =", S, P, N)
-                    #     st.write("[CHECK] raw_data shapes -> y:", np.asarray(y).shape, "; wavenumbers:",
-                    #              len(wavenumbers))
-                    #     # --- 1) 构建 (S, P, N) 的三维立方体 ---
-                    #     processed_cube = np.empty((S, P, N), dtype=np.float32)
+                    labels = st.session_state.labels  # 获取已存储的标签
+                    st.write("标签已加载：", labels)
 
-                    #     y_arr = np.asarray(y)
+                    # 获取原始光谱数据并进行处理（原逻辑不变）
+                    if st.session_state.get('raw_data'):
+                        wavenumbers, y = st.session_state.raw_data
+                        S = len(labels)
+                        P = len(st.session_state.algorithm_permutations)
+                        N = len(wavenumbers)
+                        st.write("[CHECK] S, P, N =", S, P, N)
+                        st.write("[CHECK] raw_data shapes -> y:", np.asarray(y).shape, "; wavenumbers:",
+                                 len(wavenumbers))
+                        # --- 1) 构建 (S, P, N) 的三维立方体 ---
+                        processed_cube = np.empty((S, P, N), dtype=np.float32)
 
-                    #     def get_spectrum_j(j_idx: int) -> np.ndarray:
-                    #         if y_arr.ndim == 2:
-                    #             if y_arr.shape[0] == N and y_arr.shape[1] == S:  # N×S
-                    #                 return y_arr[:, j_idx]
-                    #             elif y_arr.shape[0] == S and y_arr.shape[1] == N:  # S×N
-                    #                 return y_arr[j_idx, :]
-                    #             else:
-                    #                 raise ValueError(
-                    #                     f"原始光谱矩阵维度不匹配，期望含有 N={N} 与 S={S} 之一的维度，当前形状={y_arr.shape}")
-                    #         elif y_arr.ndim == 1:
-                    #             raise ValueError("原始光谱只有 1 条，无法构建 (S,P,N) 立方体。")
-                    #         else:
-                    #             raise ValueError(f"不支持的原始光谱维度：{y_arr.ndim}")
+                        y_arr = np.asarray(y)
 
-                    #     # 遍历填充立方体（原逻辑不变）
-                    #     for j in range(S):
-                    #         spec_j = get_spectrum_j(j).astype(np.float32)
-                    #         if spec_j.shape[0] != N:
-                    #             raise ValueError(f"第 {j + 1} 条光谱长度 {spec_j.shape[0]} 与波数长度 N={N} 不一致。")
-                    #         for i, perm in enumerate(st.session_state.algorithm_permutations):
-                    #             algorithm_order = perm.get('order', [])
-                    #             bm = perm.get('params', {}).get('baseline', '无')
-                    #             sm = perm.get('params', {}).get('scaling', '无')
-                    #             fm = perm.get('params', {}).get('filtering', '无')
-                    #             qm = perm.get('params', {}).get('squashing', '无')
+                        def get_spectrum_j(j_idx: int) -> np.ndarray:
+                            if y_arr.ndim == 2:
+                                if y_arr.shape[0] == N and y_arr.shape[1] == S:  # N×S
+                                    return y_arr[:, j_idx]
+                                elif y_arr.shape[0] == S and y_arr.shape[1] == N:  # S×N
+                                    return y_arr[j_idx, :]
+                                else:
+                                    raise ValueError(
+                                        f"原始光谱矩阵维度不匹配，期望含有 N={N} 与 S={S} 之一的维度，当前形状={y_arr.shape}")
+                            elif y_arr.ndim == 1:
+                                raise ValueError("原始光谱只有 1 条，无法构建 (S,P,N) 立方体。")
+                            else:
+                                raise ValueError(f"不支持的原始光谱维度：{y_arr.ndim}")
 
-                    #             processed_data, _method_name = preprocessor.process(
-                    #                 wavenumbers, spec_j,
-                    #                 baseline_method=bm, baseline_params=baseline_params,
-                    #                 squashing_method=qm, squashing_params=squashing_params,
-                    #                 filtering_method=fm, filtering_params=filtering_params,
-                    #                 scaling_method=sm, scaling_params=scaling_params,
-                    #                 algorithm_order=algorithm_order
-                    #             )
-                    #             arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
-                    #             if arr.shape[0] != N:
-                    #                 raise ValueError(f"排列 {i + 1} 处理后长度 {arr.shape[0]} 与 N={N} 不一致。")
-                    #             st.write(
-                    #                 f"Processed Spectrum for Arrangement {i + 1}, Sample {j + 1}: {arr[:5]} ...")  # 输出前5个数据
-                    #             processed_cube[j, i, :] = arr
+                        # # 遍历填充立方体（原逻辑不变）
+                        # for j in range(S):
+                        #     spec_j = get_spectrum_j(j).astype(np.float32)
+                        #     if spec_j.shape[0] != N:
+                        #         raise ValueError(f"第 {j + 1} 条光谱长度 {spec_j.shape[0]} 与波数长度 N={N} 不一致。")
+                        #     for i, perm in enumerate(st.session_state.algorithm_permutations):
+                        #         algorithm_order = perm.get('order', [])
+                        #         bm = perm.get('params', {}).get('baseline', '无')
+                        #         sm = perm.get('params', {}).get('scaling', '无')
+                        #         fm = perm.get('params', {}).get('filtering', '无')
+                        #         qm = perm.get('params', {}).get('squashing', '无')
 
-                    #     st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
-                    #     st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5].tolist())
-                    #     # --- 2) 元信息写入 ---
-                    #     st.session_state.wavenumbers = np.asarray(wavenumbers)
-                    #     st.session_state.labels = np.asarray(labels, dtype=int)
-                    #     st.session_state.perm_info = [
-                    #         {
-                    #             "name": perm.get("name", f"方案{i + 1}"),
-                    #             "order": perm.get("order", []),
-                    #             "params": perm.get("params", {})
-                    #         }
-                    #         for i, perm in enumerate(st.session_state.algorithm_permutations)
-                    #     ]
-                    #     st.session_state.processed_cube = processed_cube
-                    #     st.write("[CHECK] len(labels) =", len(st.session_state.labels))
-                    #     st.write("[CHECK] unique labels =", np.unique(st.session_state.labels).tolist())
-                    #     st.write("[CHECK] len(perm_info) =", len(st.session_state.perm_info))
-                    #     st.write("[CHECK] len(wavenumbers) =", len(st.session_state.wavenumbers))
-                    #     st.write("[CHECK] processed_cube in ss ->", st.session_state.processed_cube.shape)
-                    #     # --- 3) PCA+LDA评估（原逻辑不变）
-                    #     from sklearn.decomposition import PCA
-                    #     from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+                        #         processed_data, _method_name = preprocessor.process(
+                        #             wavenumbers, spec_j,
+                        #             baseline_method=bm, baseline_params=baseline_params,
+                        #             squashing_method=qm, squashing_params=squashing_params,
+                        #             filtering_method=fm, filtering_params=filtering_params,
+                        #             scaling_method=sm, scaling_params=scaling_params,
+                        #             algorithm_order=algorithm_order
+                        #         )
+                        #         arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
+                        #         if arr.shape[0] != N:
+                        #             raise ValueError(f"排列 {i + 1} 处理后长度 {arr.shape[0]} 与 N={N} 不一致。")
+                        #         st.write(
+                        #             f"Processed Spectrum for Arrangement {i + 1}, Sample {j + 1}: {arr[:5]} ...")  # 输出前5个数据
+                        #         processed_cube[j, i, :] = arr
 
-                    #     X_labels = st.session_state.labels
-                    #     pca_pred_matrix = np.empty((P, S), dtype=int)
-                    #     pca_acc = np.empty(P, dtype=np.float32)
+                        # st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
+                        # st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5].tolist())
+                        # # --- 2) 元信息写入 ---
+                        # st.session_state.wavenumbers = np.asarray(wavenumbers)
+                        # st.session_state.labels = np.asarray(labels, dtype=int)
+                        # st.session_state.perm_info = [
+                        #     {
+                        #         "name": perm.get("name", f"方案{i + 1}"),
+                        #         "order": perm.get("order", []),
+                        #         "params": perm.get("params", {})
+                        #     }
+                        #     for i, perm in enumerate(st.session_state.algorithm_permutations)
+                        # ]
+                        # st.session_state.processed_cube = processed_cube
+                        # st.write("[CHECK] len(labels) =", len(st.session_state.labels))
+                        # st.write("[CHECK] unique labels =", np.unique(st.session_state.labels).tolist())
+                        # st.write("[CHECK] len(perm_info) =", len(st.session_state.perm_info))
+                        # st.write("[CHECK] len(wavenumbers) =", len(st.session_state.wavenumbers))
+                        # st.write("[CHECK] processed_cube in ss ->", st.session_state.processed_cube.shape)
+                        # # --- 3) PCA+LDA评估（原逻辑不变）
+                        # from sklearn.decomposition import PCA
+                        # from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
-                    #     for p in range(P):
-                    #         X_p = processed_cube[:, p, :]
-                    #         n_components = min(max(1, S - 1), X_p.shape[1])
-                    #         pca = PCA(n_components=n_components, svd_solver="auto", random_state=0)
-                    #         Z = pca.fit_transform(X_p)
+                        # X_labels = st.session_state.labels
+                        # pca_pred_matrix = np.empty((P, S), dtype=int)
+                        # pca_acc = np.empty(P, dtype=np.float32)
 
-                    #         if np.unique(X_labels).size < 2:
-                    #             y_hat = np.full(S, int(X_labels[0]), dtype=int)
-                    #         else:
-                    #             clf = LDA(solver="lsqr")
-                    #             clf.fit(Z, X_labels)
-                    #             y_hat = clf.predict(Z)
+                        # for p in range(P):
+                        #     X_p = processed_cube[:, p, :]
+                        #     n_components = min(max(1, S - 1), X_p.shape[1])
+                        #     pca = PCA(n_components=n_components, svd_solver="auto", random_state=0)
+                        #     Z = pca.fit_transform(X_p)
 
-                    #         pca_pred_matrix[p, :] = y_hat
-                    #         pca_acc[p] = (y_hat == X_labels).mean().astype(np.float32)
+                        #     if np.unique(X_labels).size < 2:
+                        #         y_hat = np.full(S, int(X_labels[0]), dtype=int)
+                        #     else:
+                        #         clf = LDA(solver="lsqr")
+                        #         clf.fit(Z, X_labels)
+                        #         y_hat = clf.predict(Z)
 
-                    #     # 排序与投票（原逻辑不变）
-                    #     st.session_state.pca_pred_matrix = pca_pred_matrix
-                    #     st.session_state.pca_acc = pca_acc
+                        #     pca_pred_matrix[p, :] = y_hat
+                        #     pca_acc[p] = (y_hat == X_labels).mean().astype(np.float32)
 
-                    #     sorted_idx = np.argsort(-st.session_state.pca_acc, kind="mergesort")
-                    #     st.session_state.pca_sorted_perm_indices = sorted_idx
-                    #     st.session_state.pca_sorted_acc = st.session_state.pca_acc[sorted_idx]
-                    #     st.session_state.pca_sorted_pred_matrix = st.session_state.pca_pred_matrix[sorted_idx]
+                        # # 排序与投票（原逻辑不变）
+                        # st.session_state.pca_pred_matrix = pca_pred_matrix
+                        # st.session_state.pca_acc = pca_acc
 
-                    #     st.write("[CHECK] pca_pred_matrix.shape =", st.session_state.pca_pred_matrix.shape)
-                    #     st.write("[CHECK] pca_acc.shape =", st.session_state.pca_acc.shape)
-                    #     st.write("[CHECK] top-5 acc =", st.session_state.pca_sorted_acc[:5].round(3).tolist())
-                    #     st.write("[CHECK] top-1 preds =", st.session_state.pca_sorted_pred_matrix[0].tolist())
+                        # sorted_idx = np.argsort(-st.session_state.pca_acc, kind="mergesort")
+                        # st.session_state.pca_sorted_perm_indices = sorted_idx
+                        # st.session_state.pca_sorted_acc = st.session_state.pca_acc[sorted_idx]
+                        # st.session_state.pca_sorted_pred_matrix = st.session_state.pca_pred_matrix[sorted_idx]
 
-                    #     from scipy.stats import mode
-                    #     P2, S2 = st.session_state.pca_sorted_pred_matrix.shape
-                    #     vote_pred_matrix_by_k = np.empty((P2, S2), dtype=int)
+                        # st.write("[CHECK] pca_pred_matrix.shape =", st.session_state.pca_pred_matrix.shape)
+                        # st.write("[CHECK] pca_acc.shape =", st.session_state.pca_acc.shape)
+                        # st.write("[CHECK] top-5 acc =", st.session_state.pca_sorted_acc[:5].round(3).tolist())
+                        # st.write("[CHECK] top-1 preds =", st.session_state.pca_sorted_pred_matrix[0].tolist())
 
-                    #     for k in range(1, P2 + 1):
-                    #         topk = st.session_state.pca_sorted_pred_matrix[:k, :]
-                    #         voted = mode(topk, axis=0, keepdims=False).mode
-                    #         vote_pred_matrix_by_k[k - 1, :] = voted
+                        # from scipy.stats import mode
+                        # P2, S2 = st.session_state.pca_sorted_pred_matrix.shape
+                        # vote_pred_matrix_by_k = np.empty((P2, S2), dtype=int)
 
-                    #     st.session_state.vote_pred_matrix_by_k = vote_pred_matrix_by_k
-                    #     vote_acc_by_k = (vote_pred_matrix_by_k == st.session_state.labels.reshape(1, S2)).mean(
-                    #         axis=1).astype(np.float32)
-                    #     st.session_state.vote_acc_by_k = vote_acc_by_k
+                        # for k in range(1, P2 + 1):
+                        #     topk = st.session_state.pca_sorted_pred_matrix[:k, :]
+                        #     voted = mode(topk, axis=0, keepdims=False).mode
+                        #     vote_pred_matrix_by_k[k - 1, :] = voted
 
-                    #     st.write("[CHECK] vote_pred_matrix_by_k.shape =", st.session_state.vote_pred_matrix_by_k.shape)
-                    #     st.write("[CHECK] vote_acc_by_k[:5] =", st.session_state.vote_acc_by_k[:5].round(3).tolist())
-                    #     st.write("[CHECK] k=5 voted preds =",
-                    #              st.session_state.vote_pred_matrix_by_k[4].tolist() if P2 >= 5 else "P<5")
-                    #     k_vals = np.arange(1, st.session_state.vote_acc_by_k.shape[0] + 1)
-                    #     best_k = int(k_vals[np.argmax(st.session_state.vote_acc_by_k)])
-                    #     best_acc = float(st.session_state.vote_acc_by_k.max())
+                        # st.session_state.vote_pred_matrix_by_k = vote_pred_matrix_by_k
+                        # vote_acc_by_k = (vote_pred_matrix_by_k == st.session_state.labels.reshape(1, S2)).mean(
+                        #     axis=1).astype(np.float32)
+                        # st.session_state.vote_acc_by_k = vote_acc_by_k
 
-                    #     import matplotlib.pyplot as plt
-                    #     fig, ax = plt.subplots()
-                    #     ax.plot(k_vals, st.session_state.vote_acc_by_k, marker='o')
-                    #     ax.set_xlabel('k（前k个方案投票）')
-                    #     ax.set_ylabel('Accuracy')
-                    #     ax.set_title(f'k值曲线（最佳k={best_k}, acc={best_acc:.3f}）')
-                    #     ax.set_xlim(1, k_vals[-1])
-                    #     ax.set_ylim(0, 1)
-                    #     ax.grid(True, linestyle='--', alpha=0.4)
-                    #     st.pyplot(fig)
+                        # st.write("[CHECK] vote_pred_matrix_by_k.shape =", st.session_state.vote_pred_matrix_by_k.shape)
+                        # st.write("[CHECK] vote_acc_by_k[:5] =", st.session_state.vote_acc_by_k[:5].round(3).tolist())
+                        # st.write("[CHECK] k=5 voted preds =",
+                        #          st.session_state.vote_pred_matrix_by_k[4].tolist() if P2 >= 5 else "P<5")
+                        # k_vals = np.arange(1, st.session_state.vote_acc_by_k.shape[0] + 1)
+                        # best_k = int(k_vals[np.argmax(st.session_state.vote_acc_by_k)])
+                        # best_acc = float(st.session_state.vote_acc_by_k.max())
 
-                    #     st.write("[CHECK] best k =", best_k, "; preds =",
-                    #              st.session_state.vote_pred_matrix_by_k[best_k - 1].tolist())
-                    #     st.success(
-                    #         f"✅ 已构建立方体 processed_cube 形状 = {processed_cube.shape}，并完成 {P} 个方案的 PCA 评估。"
-                    
+                        # import matplotlib.pyplot as plt
+                        # fig, ax = plt.subplots()
+                        # ax.plot(k_vals, st.session_state.vote_acc_by_k, marker='o')
+                        # ax.set_xlabel('k（前k个方案投票）')
+                        # ax.set_ylabel('Accuracy')
+                        # ax.set_title(f'k值曲线（最佳k={best_k}, acc={best_acc:.3f}）')
+                        # ax.set_xlim(1, k_vals[-1])
+                        # ax.set_ylim(0, 1)
+                        # ax.grid(True, linestyle='--', alpha=0.4)
+                        # st.pyplot(fig)
+
+                        # st.write("[CHECK] best k =", best_k, "; preds =",
+                        #          st.session_state.vote_pred_matrix_by_k[best_k - 1].tolist())
+                        # st.success(
+                        #     f"✅ 已构建立方体 processed_cube 形状 = {processed_cube.shape}，并完成 {P} 个方案的 PCA 评估。")
+
                     else:
                         st.error("❌ 请先上传原始光谱数据")
             else:
