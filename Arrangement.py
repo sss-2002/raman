@@ -1724,15 +1724,13 @@ def main():
                             else:
                                 raise ValueError(f"不支持的原始光谱维度：{y_arr.ndim}")
 
-                            # 移除多余的维度，确保 spec_j 为一维数组 (N,)
-                            if spec_j.ndim == 2:  # 如果返回的是二维数组 (1, N)
-                                spec_j = np.squeeze(spec_j)  # 移除多余的维度，使其变为 (N,)
-
-                            # 如果还是二维数组（例如 (1, N)），可以进一步去除多余的维度
-                            if spec_j.ndim == 2 and spec_j.shape[0] == 1:
-                                spec_j = spec_j.flatten()  # 转换为一维数组 (N,)
-
-                            return spec_j  # 返回处理后的光谱数据
+                            # 确保返回的光谱数据是 (N,)
+                            if spec_j.ndim == 2:
+                                spec_j = np.squeeze(spec_j)  # 如果是二维的 (1, N)，去掉多余的维度
+                            if spec_j.ndim == 1:  # 确保是 (N,)
+                                return spec_j
+                            else:
+                                raise ValueError(f"光谱维度错误，预期为 (N,) 当前维度为: {spec_j.shape}")
 
                         # st.write(f"[CHECK] algorithm_permutations:", st.session_state.algorithm_permutations)
 
