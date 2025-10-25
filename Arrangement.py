@@ -454,17 +454,28 @@ class Preprocessor:
 
     # ===== 缩放算法实现 =====
     def peak_norm(self, spectra):
-        # 获取每列的最大值
-        max_values = np.max(spectra, axis=0)
+        # spectra 的形状是 (S, P, N)，我们要对每个样本进行峰值归一化
 
-        # 检查是否存在最大值为零的列，避免除以零
-        if np.any(max_values == 0):
-            st.warning("存在最大值为零的列，峰值归一化会导致 NaN。")
-            # 可以选择替代或者跳过处理这些列
-            max_values[max_values == 0] = 1  # 将最大值为零的列设置为1，避免除以零
+        # 遍历每个样本（即第一维：S）
+        for i in range(spectra.shape[0]):  # 遍历每个样本
+            # 获取当前样本的最大值
+            max_value = np.max(spectra[i, :, :], axis=1)  # 按P维度（预处理方法）找每个样本的最大值
 
-        # 执行归一化
-        return spectra / max_values
+            # 检查是否有最大值为零的情况
+            zero_max_columns = np.where(max_value == 0)[0]
+            if len(zero_max_columns) > 0:
+                st.warning(f"样本 {i} 存在最大值为零的列：{zero_max_columns}. 峰值归一化操作会导致 NaN。")
+                # 打印出零值列的具体信息，方便进一步排查
+                for idx in zero_max_columns:
+                    st.write(f"样本 {i} 列 {idx} 的最大值为 0：", spectra[i, idx, :])
+
+                # 处理：将最大值为零的列设置为 1
+                max_value[zero_max_columns] = 1  # 将最大值为零的列设置为1，避免除以零
+
+            # 对每个样本进行峰值归一化
+            spectra[i, :, :] = spectra[i, :, :] / max_value  # 按列对每个样本进行峰值归一化
+
+        return spectra
     def snv(self, spectra):
         mean = np.mean(spectra, axis=0)
         std = np.std(spectra, axis=0)
