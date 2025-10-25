@@ -1690,12 +1690,19 @@ def main():
                                 fm = next((step[2] for step in perm['details'] if step[1] == '滤波'), '无')
                                 qm = next((step[2] for step in perm['details'] if step[1] == '挤压'), '无')
 
-                                # 获取参数并确保它们是字典
-                                baseline_params = next((step[2] for step in perm['details'] if step[1] == '基线校准'),
-                                                       {})
-                                scaling_params = next((step[2] for step in perm['details'] if step[1] == '缩放'), {})
-                                filtering_params = next((step[2] for step in perm['details'] if step[1] == '滤波'), {})
-                                squashing_params = next((step[2] for step in perm['details'] if step[1] == '挤压'), {})
+                                # 获取参数，并确保它们是字典格式
+                                baseline_params = next(
+                                    (step[3] if isinstance(step[3], dict) else {'k': step[3]} for step in
+                                     perm['details'] if step[1] == '基线校准'), {'k': 8})
+                                scaling_params = next(
+                                    (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
+                                     step[1] == '缩放'), {})
+                                filtering_params = next(
+                                    (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
+                                     step[1] == '滤波'), {})
+                                squashing_params = next(
+                                    (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
+                                     step[1] == '挤压'), {})
 
                                 # 打印出来检查
                                 st.write(f"[CHECK] 基线方法: {bm}, 基线参数: {baseline_params}")
