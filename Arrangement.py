@@ -1724,9 +1724,13 @@ def main():
                             else:
                                 raise ValueError(f"不支持的原始光谱维度：{y_arr.ndim}")
 
-                            # 确保 spec_j 为二维数组 (1, N)
-                            if spec_j.ndim == 1:
-                                spec_j = np.expand_dims(spec_j, axis=0)  # 转换为二维数组 (1, N)
+                            # 移除多余的维度，确保 spec_j 为一维数组 (N,)
+                            if spec_j.ndim == 2:  # 如果返回的是二维数组 (1, N)
+                                spec_j = np.squeeze(spec_j)  # 移除多余的维度，使其变为 (N,)
+
+                            # 如果还是二维数组（例如 (1, N)），可以进一步去除多余的维度
+                            if spec_j.ndim == 2 and spec_j.shape[0] == 1:
+                                spec_j = spec_j.flatten()  # 转换为一维数组 (N,)
 
                             return spec_j  # 返回处理后的光谱数据
 
@@ -1765,7 +1769,7 @@ def main():
                                     (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
                                      step[1] == '挤压'), {})
 
-                                st.write(f"[CHECK] spec_j 的维度: {spec_j.shape}")  # 使用 st.write 打印维度
+                                # st.write(f"[CHECK] spec_j 的维度: {spec_j.shape}")  # 使用 st.write 打印维度
                                 processed_data, _method_name = preprocessor.process(
                                     wavenumbers, spec_j,
                                     baseline_method=bm, baseline_params=baseline_params,
