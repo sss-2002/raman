@@ -1699,16 +1699,31 @@ def main():
                     # 获取原始光谱数据并进行处理（原逻辑不变）
                     if st.session_state.get('raw_data'):
                         wavenumbers, y = st.session_state.raw_data
-                        st.write(f"[CHECK] 原始 y 的维度: {y.shape}")
-                        S = len(labels)
-                        P = len(st.session_state.algorithm_permutations)
-                        N = len(wavenumbers)
-                        # st.write("[CHECK] S, P, N =", S, P, N)
-                        # st.write("[CHECK] raw_data shapes -> y:", np.asarray(y).shape, "; wavenumbers:",len(wavenumbers))
+
+                        # 确保 y 是一维数组
+                        y = np.squeeze(y)  # 移除多余的维度，确保 y 是一维数组 (20,)
+
+                        st.write(f"[CHECK] 原始 y 的维度: {y.shape}")  # 检查维度
+
+                        S = len(labels)  # 样本数
+                        P = len(st.session_state.algorithm_permutations)  # 排列数
+                        N = len(wavenumbers)  # 波数点数
+                        st.write(f"[CHECK] 样本数 S: {S}, 排列数 P: {P}, 波数点数 N: {N}")
+
                         # --- 1) 构建 (S, P, N) 的三维立方体 ---
                         processed_cube = np.empty((S, P, N), dtype=np.float32)
 
+                        # 获取每条光谱数据
                         y_arr = np.asarray(y)
+                        st.write(f"[CHECK] y_arr 的维度: {y_arr.shape}")
+
+                        def get_spectrum_j(j_idx: int) -> np.ndarray:
+                            if y_arr.ndim == 1:  # y_arr 是一维数组
+                                spec_j = y_arr[j_idx]  # 直接取第 j 条光谱
+                            else:
+                                raise ValueError(f"原始光谱维度不匹配，期望为一维数组，当前维度为 {y_arr.ndim}")
+
+                            return spec_j  # 返回一维光谱数据
 
                         def get_spectrum_j(j_idx: int) -> np.ndarray:
                             if y_arr.ndim == 2:
