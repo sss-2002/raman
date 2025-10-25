@@ -1611,7 +1611,7 @@ def main():
                     # st.write("selected_algorithms: ", selected_algorithms)
                     # 生成排列组合并存储（原逻辑不变）
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
-                    
+
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
                     # st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
                     # st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
@@ -1661,14 +1661,16 @@ def main():
                                 raise ValueError(f"第 {j + 1} 条光谱长度 {spec_j.shape[0]} 与波数长度 N={N} 不一致。")
 
                             for i, perm in enumerate(st.session_state.algorithm_permutations):
+                                st.write(f"[CHECK] perm {i}: {perm}")
                                 algorithm_order = perm.get('order', [])
+                                st.write(f"[CHECK] algorithm_order: {algorithm_order}")
                                 bm = perm.get('params', {}).get('baseline', '无')
                                 sm = perm.get('params', {}).get('scaling', '无')
                                 fm = perm.get('params', {}).get('filtering', '无')
                                 qm = perm.get('params', {}).get('squashing', '无')
 
                                 # 输出正在使用的预处理算法和参数
-                                st.write(f"[CHECK] 使用的算法顺序：{algorithm_order}")
+                                # st.write(f"[CHECK] 使用的算法顺序：{algorithm_order}")
                                 st.write(f"[CHECK] 基线={bm}, 缩放={sm}, 滤波={fm}, 挤压={qm}")
 
                                 # 调用预处理函数进行处理
@@ -1682,18 +1684,18 @@ def main():
                                 )
 
                                 # 输出处理后的数据
-                                st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
+                                # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
 
                                 arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
 
                                 # 输出转换后的数据形状
-                                st.write(f"[CHECK] 处理后的数据形状 (排列 {i + 1}): {arr.shape}")
+                                # st.write(f"[CHECK] 处理后的数据形状 (排列 {i + 1}): {arr.shape}")
 
                                 if arr.shape[0] != N:
                                     raise ValueError(f"排列 {i + 1} 处理后长度 {arr.shape[0]} 与 N={N} 不一致。")
 
                                 # 输出当前存储的数据
-                                st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
+                                # st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
 
                         # st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
                         # st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5].tolist())
