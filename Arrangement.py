@@ -1686,12 +1686,12 @@ def main():
                                 #     scaling_method=sm, scaling_params=scaling_params,
                                 #     algorithm_order=algorithm_order
                                 # )
-                                # 
+                                #
                                 # # 输出处理后的数据
                                 # # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
-                                # 
+                                #
                                 # arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
-                                # 
+                                #
                                 # st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
 
                         # st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
