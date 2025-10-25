@@ -1677,20 +1677,20 @@ def main():
                                 # 输出正在使用的预处理算法和参数
                                 st.write(f"[CHECK] 基线={bm}, 缩放={sm}, 滤波={fm}, 挤压={qm}")
 
-                                # 调用预处理函数进行处理
-                                processed_data, _method_name = preprocessor.process(
-                                    wavenumbers, spec_j,
-                                    baseline_method=bm, baseline_params=baseline_params,
-                                    squashing_method=qm, squashing_params=squashing_params,
-                                    filtering_method=fm, filtering_params=filtering_params,
-                                    scaling_method=sm, scaling_params=scaling_params,
-                                    algorithm_order=algorithm_order
-                                )
-
-                                # 输出处理后的数据
-                                # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
-
-                                arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
+                                # # 调用预处理函数进行处理
+                                # processed_data, _method_name = preprocessor.process(
+                                #     wavenumbers, spec_j,
+                                #     baseline_method=bm, baseline_params=baseline_params,
+                                #     squashing_method=qm, squashing_params=squashing_params,
+                                #     filtering_method=fm, filtering_params=filtering_params,
+                                #     scaling_method=sm, scaling_params=scaling_params,
+                                #     algorithm_order=algorithm_order
+                                # )
+                                # 
+                                # # 输出处理后的数据
+                                # # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
+                                # 
+                                # arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
                                 # 输出当前存储的数据
                                 # st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
 
