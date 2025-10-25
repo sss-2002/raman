@@ -64,7 +64,7 @@ def modpoly(wavenumbers, spectra, k):
             fitted = np.polyval(coeffs, wavenumbers)
 
             # 输出拟合结果
-            st.write(f"[CHECK] Fitted values: {fitted[:5]}")  # 只显示前5个值
+            st.write(f"[CHECK] Fitted values: {fitted[:2]}")  # 只显示前5个值
             mask = y < fitted
             y[~mask] = fitted[~mask]
 
@@ -1725,10 +1725,10 @@ def main():
                                     (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
                                      step[1] == '挤压'), {})
 
-                                st.write(f"[CHECK] 基线方法: {bm}, 基线参数: {baseline_params}")
-                                st.write(f"[CHECK] 缩放方法: {sm}, 缩放参数: {scaling_params}")
-                                st.write(f"[CHECK] 滤波方法: {fm}, 滤波参数: {filtering_params}")
-                                st.write(f"[CHECK] 挤压方法: {qm}, 挤压参数: {squashing_params}")
+                                # st.write(f"[CHECK] 基线方法: {bm}, 基线参数: {baseline_params}")
+                                # st.write(f"[CHECK] 缩放方法: {sm}, 缩放参数: {scaling_params}")
+                                # st.write(f"[CHECK] 滤波方法: {fm}, 滤波参数: {filtering_params}")
+                                # st.write(f"[CHECK] 挤压方法: {qm}, 挤压参数: {squashing_params}")
 
 
                                 processed_data, _method_name = preprocessor.process(
