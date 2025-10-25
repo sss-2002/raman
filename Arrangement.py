@@ -1752,6 +1752,7 @@ def main():
                         #遍历填充立方体（原逻辑不变）
                         for j in range(S):
                             spec_j = get_spectrum_j(j).astype(np.float32)
+                            st.write(f"[CHECK] spec_j 的维度: {spec_j.shape}")
                             # st.write(f"[CHECK] 第 {j + 1} 条光谱数据：", spec_j)  # 输出当前光谱数据
                             if spec_j.shape[0] != N:
                                 raise ValueError(f"第 {j + 1} 条光谱长度 {spec_j.shape[0]} 与波数长度 N={N} 不一致。")
