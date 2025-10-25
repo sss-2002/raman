@@ -1662,16 +1662,16 @@ def main():
                                 st.write(f"[CHECK] algorithm_order: {algorithm_order}")
 
                                 # 从 details 中获取每个算法的参数
-                                bm = next((step[3].get('baseline', '无') for step in perm['details'] if
+                                bm = next((step[1] + " (" + step[2] + ")" for step in perm['details'] if
                                            step[1] == '基线校准'), '无')
                                 sm = next(
-                                    (step[3].get('scaling', '无') for step in perm['details'] if step[1] == '缩放'),
+                                    (step[1] + " (" + step[2] + ")" for step in perm['details'] if step[1] == '缩放'),
                                     '无')
                                 fm = next(
-                                    (step[3].get('filtering', '无') for step in perm['details'] if step[1] == '滤波'),
+                                    (step[1] + " (" + step[2] + ")" for step in perm['details'] if step[1] == '滤波'),
                                     '无')
                                 qm = next(
-                                    (step[3].get('squashing', '无') for step in perm['details'] if step[1] == '挤压'),
+                                    (step[1] + " (" + step[2] + ")" for step in perm['details'] if step[1] == '挤压'),
                                     '无')
 
                                 # 输出正在使用的预处理算法和参数
