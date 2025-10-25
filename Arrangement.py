@@ -1608,7 +1608,7 @@ def main():
                             'params': {}  # 添加空的params字段
                         }
                     }
-                    st.write("selected_algorithms: ", selected_algorithms)
+                    # st.write("selected_algorithms: ", selected_algorithms)
                     # 生成排列组合并存储（原逻辑不变）
                     # st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
                     # st.session_state.filtered_perms = st.session_state.algorithm_permutations
@@ -1629,9 +1629,8 @@ def main():
                         S = len(labels)
                         P = len(st.session_state.algorithm_permutations)
                         N = len(wavenumbers)
-                        st.write("[CHECK] S, P, N =", S, P, N)
-                        st.write("[CHECK] raw_data shapes -> y:", np.asarray(y).shape, "; wavenumbers:",
-                                 len(wavenumbers))
+                        # st.write("[CHECK] S, P, N =", S, P, N)
+                        # st.write("[CHECK] raw_data shapes -> y:", np.asarray(y).shape, "; wavenumbers:",len(wavenumbers))
                         # --- 1) 构建 (S, P, N) 的三维立方体 ---
                         processed_cube = np.empty((S, P, N), dtype=np.float32)
 
@@ -1650,6 +1649,8 @@ def main():
                                 raise ValueError("原始光谱只有 1 条，无法构建 (S,P,N) 立方体。")
                             else:
                                 raise ValueError(f"不支持的原始光谱维度：{y_arr.ndim}")
+
+                        st.write(f"[CHECK] algorithm_permutations:", st.session_state.algorithm_permutations)
 
                         # 遍历填充立方体（原逻辑不变）
                         for j in range(S):
