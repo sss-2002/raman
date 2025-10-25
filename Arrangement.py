@@ -247,6 +247,8 @@ class Preprocessor:
             }
             # 按指定顺序创建步骤列表
             steps = [step_mapping[order] for order in algorithm_order]
+            for step in steps:
+                st.write(f"[CHECK] step: {step}")  # 使用 st.write 输出每个步骤的详细信息
         else:
             # 默认顺序：基线 → 挤压 → 滤波 → 缩放（只执行已选择的方法）
             steps = []
@@ -1709,14 +1711,14 @@ def main():
                                 st.write(f"[CHECK] 挤压方法: {qm}, 挤压参数: {squashing_params}")
 
 
-                                # processed_data, _method_name = preprocessor.process(
-                                #     wavenumbers, spec_j,
-                                #     baseline_method=bm, baseline_params=baseline_params,
-                                #     squashing_method=qm, squashing_params=squashing_params,
-                                #     filtering_method=fm, filtering_params=filtering_params,
-                                #     scaling_method=sm, scaling_params=scaling_params,
-                                #     algorithm_order=algorithm_order
-                                # )
+                                processed_data, _method_name = preprocessor.process(
+                                    wavenumbers, spec_j,
+                                    baseline_method=bm, baseline_params=baseline_params,
+                                    squashing_method=qm, squashing_params=squashing_params,
+                                    filtering_method=fm, filtering_params=filtering_params,
+                                    scaling_method=sm, scaling_params=scaling_params,
+                                    algorithm_order=algorithm_order
+                                )
 
                                 # 输出处理后的数据
                                 # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
