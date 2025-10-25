@@ -1172,7 +1172,8 @@ def SGfilter(Intensity, window_length, polyorder):  # 输入均为行
 
 def generate_permutations(algorithms):
     """生成完整的算法排列组合，排列名称不包含编号"""
-    # 为四种算法分配编号1-4
+
+    # 为四种预处理算法分配编号1-4
     algorithm_list = [
         (1, "基线校准", algorithms['baseline']['method'], algorithms['baseline']['params']),
         (2, "缩放", algorithms['scaling']['method'], algorithms['scaling']['params']),
@@ -1180,15 +1181,11 @@ def generate_permutations(algorithms):
         (4, "挤压", algorithms['squashing']['method'], algorithms['squashing']['params'])
     ]
 
-    # 0. 添加"无预处理（原始光谱）"选项，并保持它的有效编号
-    # 无预处理的编号为 5，确保它不会和其他编号冲突
-    algorithm_list.insert(0, (5, "无预处理", "无", {}))  # 将"无预处理"放在最前面，编号为5
-
     all_permutations = []
 
-    # 1. 生成使用1种算法的排列（包括"无预处理"选项）
+    # 1. 生成使用1种算法的排列（包括“无预处理”选项）
     for algo in algorithm_list:
-        all_permutations.append([algo])  # 包含“无预处理”选项
+        all_permutations.append([algo])  # 生成每种预处理的单独排列
 
     # 2. 生成使用2种算法的排列
     for comb in itertools.combinations(algorithm_list, 2):
@@ -1204,6 +1201,9 @@ def generate_permutations(algorithms):
     for comb in itertools.combinations(algorithm_list, 4):
         for perm in itertools.permutations(comb):  # 生成排列
             all_permutations.append(list(perm))
+
+    # 5. 加入“无预处理（原始光谱）”选项
+    all_permutations.append([])  # 空列表表示无预处理
 
     # 格式化排列组合
     formatted_perms = []
@@ -1230,7 +1230,7 @@ def generate_permutations(algorithms):
 
         formatted_perms.append(perm_dict)
 
-    # 检查排列数量
+    # 输出排列数量以验证
     print(f"生成的排列数量: {len(formatted_perms)}")
 
     return formatted_perms
