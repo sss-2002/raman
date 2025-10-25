@@ -40,7 +40,7 @@ def polynomial_fit(wavenumbers, spectra, polyorder):
 
 def modpoly(wavenumbers, spectra, k):
     """Modified Polynomial (ModPoly) 基线校正"""
-    
+
 
     # 确保 spectra 是二维数组
     if spectra.ndim == 1:
@@ -266,9 +266,9 @@ class Preprocessor:
                 4: ("squashing", squashing_method, squashing_params)
             }
             # 按指定顺序创建步骤列表
-            steps = [step_mapping[order] for order in algorithm_order]
-            for step in steps:
-                st.write(f"[CHECK] step: {step}")  # 使用 st.write 输出每个步骤的详细信息
+            # steps = [step_mapping[order] for order in algorithm_order]
+            # for step in steps:
+            #     st.write(f"[CHECK] step: {step}")  # 使用 st.write 输出每个步骤的详细信息
         else:
             # 默认顺序：基线 → 挤压 → 滤波 → 缩放（只执行已选择的方法）
             steps = []
@@ -296,7 +296,7 @@ class Preprocessor:
                     print(f"[CHECK] 执行基线校正方法: {method}, 参数: {params}")  # 输出调试信息
 
                     if method in ["多项式拟合", "ModPoly", "I-ModPoly"]:
-                        st.write(f"[CHECK] params for {method}: {params}")  # 输出params内容
+                        # st.write(f"[CHECK] params for {method}: {params}")  # 输出params内容
                         y_processed = algorithm_func(wavenumbers, y_processed, **params)
                     elif method in ["PLS"]:
                         y_processed = algorithm_func(y_processed, **params)
