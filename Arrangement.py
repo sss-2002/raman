@@ -1680,9 +1680,9 @@ def main():
                             for i, perm in enumerate(st.session_state.algorithm_permutations):
                                 # st.write(f"[CHECK] perm {i}: {perm}")
                                 algorithm_order = perm.get('order', [])  # 获取顺序
-
+                                st.write("[CHECK] algorithm_order: ", algorithm_order)
                                 # 输出顺序
-                                # st.write(f"[CHECK] algorithm_order: {algorithm_order}")
+                                st.write(f"[CHECK] algorithm_order: {algorithm_order}")
 
                                 # 从 details 中获取每个算法的参数
                                 bm = next((step[2] for step in perm['details'] if step[1] == '基线校准'), '无')
@@ -1698,7 +1698,7 @@ def main():
                                 squashing_params = next((step[3] for step in perm['details'] if step[1] == '挤压'),
                                                         None)
                                 # 输出正在使用的预处理算法和参数
-                                # st.write(f"[CHECK] 基线={bm}, 缩放={sm}, 滤波={fm}, 挤压={qm}")
+                                st.write(f"[CHECK] 基线={bm}, 缩放={sm}, 滤波={fm}, 挤压={qm}")
                                 st.write( f"[CHECK] 基线参数={baseline_params}, 缩放参数={scaling_params}, 滤波参数={filtering_params}, 挤压参数={squashing_params}")
 
                                 processed_data, _method_name = preprocessor.process(
