@@ -38,9 +38,9 @@ def polynomial_fit(wavenumbers, spectra, polyorder):
     return spectra - baseline  # 扣除基线
 
 
-def modpoly(wavenumbers, spectra):
+def modpoly(wavenumbers, spectra,k):
     """Modified Polynomial (ModPoly) 基线校正"""
-    k = 5
+    
     baseline = np.zeros_like(spectra)
     n_points = len(wavenumbers)
     for i in range(spectra.shape[1]):
