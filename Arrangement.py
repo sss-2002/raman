@@ -1602,7 +1602,7 @@ def main():
                             'params': {}  # 添加空的params字段
                         }
                     }
-                    # st.write("selected_algorithms: ", selected_algorithms)
+                    st.write("selected_algorithms: ", selected_algorithms)
                     # 生成排列组合并存储（原逻辑不变）
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
 
