@@ -483,7 +483,7 @@ class Preprocessor:
                 # 对每个样本的每个预处理方法排列进行归一化
                 spectra[i, :, :] = spectra[i, :, :] / max_value  # 对每个样本按 P 维度进行峰值归一化
 
-            
+
             return spectra
     def snv(self, spectra):
         mean = np.mean(spectra, axis=0)
@@ -1758,7 +1758,7 @@ def main():
                                     (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
                                      step[1] == '挤压'), {})
 
-
+                                st.write(f"[CHECK] spec_j 的维度: {spec_j.shape}")  # 使用 st.write 打印维度
                                 processed_data, _method_name = preprocessor.process(
                                     wavenumbers, spec_j,
                                     baseline_method=bm, baseline_params=baseline_params,
