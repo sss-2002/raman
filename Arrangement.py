@@ -24,6 +24,7 @@ from sklearn.linear_model import Perceptron
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
+import itertools
 
 cloud_storage_dir = "/mnt/data/processed_spectra"  # 临时目录，用于存储文件
 
@@ -1167,6 +1168,9 @@ def SGfilter(Intensity, window_length, polyorder):  # 输入均为行
 
 
 # 生成排列时不包含编号 - 提前定义此函数以避免引用错误
+
+
+
 def generate_permutations(algorithms):
     """生成完整的算法排列组合，排列名称不包含编号"""
     # 为四种算法分配编号1-4（二阶差分归类到基线校准中）
@@ -1177,14 +1181,15 @@ def generate_permutations(algorithms):
         (4, "挤压", algorithms['squashing']['method'], algorithms['squashing']['params'])
     ]
 
-    all_permutations = []
-
     # 0. 添加"无预处理（原始光谱）"选项（1种）
-    all_permutations.append([])  # 空列表表示不使用任何算法
+    # 即使选择了'无'，仍然要让它参与组合
+    algorithm_list.insert(0, (0, "无预处理", "无", {}))  # 将"无预处理"放在最前面
+
+    all_permutations = []
 
     # 1. 生成使用1种算法的排列
     for algo in algorithm_list:
-        if algo[2] != "无":  # 只包含已选择的算法
+        if algo[2] != "无":  # 只包含已选择的算法，确保‘无’被包括
             all_permutations.append([algo])
 
     # 2. 生成使用2种算法的排列
@@ -1202,6 +1207,7 @@ def generate_permutations(algorithms):
         for perm in itertools.permutations(comb):  # 生成排列
             all_permutations.append(list(perm))
 
+    # 格式化排列组合
     formatted_perms = []
     for i, perm in enumerate(all_permutations):
         perm_dict = {
@@ -1757,77 +1763,77 @@ def main():
                         # #--- 3) PCA+LDA评估（原逻辑不变）
                         # from sklearn.decomposition import PCA
                         # from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-                        # 
+                        #
                         # X_labels = st.session_state.labels
                         # pca_pred_matrix = np.empty((P, S), dtype=int)
                         # pca_acc = np.empty(P, dtype=np.float32)
-                        # 
+                        #
                         # for p in range(P):
                         #     X_p = processed_cube[:, p, :]
                         #     n_components = min(max(1, S - 1), X_p.shape[1])
                         #     pca = PCA(n_components=n_components, svd_solver="auto", random_state=0)
                         #     Z = pca.fit_transform(X_p)
-                        # 
+                        #
                         #     if np.unique(X_labels).size < 2:
                         #         y_hat = np.full(S, int(X_labels[0]), dtype=int)
                         #     else:
                         #         clf = LDA(solver="lsqr")
                         #         clf.fit(Z, X_labels)
                         #         y_hat = clf.predict(Z)
-                        # 
+                        #
                         #     pca_pred_matrix[p, :] = y_hat
                         #     pca_acc[p] = (y_hat == X_labels).mean().astype(np.float32)
 
                         # 排序与投票（原逻辑不变）
-                        st.session_state.pca_pred_matrix = pca_pred_matrix
-                        st.session_state.pca_acc = pca_acc
-
-                        sorted_idx = np.argsort(-st.session_state.pca_acc, kind="mergesort")
-                        st.session_state.pca_sorted_perm_indices = sorted_idx
-                        st.session_state.pca_sorted_acc = st.session_state.pca_acc[sorted_idx]
-                        st.session_state.pca_sorted_pred_matrix = st.session_state.pca_pred_matrix[sorted_idx]
-
-                        st.write("[CHECK] pca_pred_matrix.shape =", st.session_state.pca_pred_matrix.shape)
-                        st.write("[CHECK] pca_acc.shape =", st.session_state.pca_acc.shape)
-                        st.write("[CHECK] top-5 acc =", st.session_state.pca_sorted_acc[:5].round(3).tolist())
-                        st.write("[CHECK] top-1 preds =", st.session_state.pca_sorted_pred_matrix[0].tolist())
-
-                        from scipy.stats import mode
-                        P2, S2 = st.session_state.pca_sorted_pred_matrix.shape
-                        vote_pred_matrix_by_k = np.empty((P2, S2), dtype=int)
-
-                        for k in range(1, P2 + 1):
-                            topk = st.session_state.pca_sorted_pred_matrix[:k, :]
-                            voted = mode(topk, axis=0, keepdims=False).mode
-                            vote_pred_matrix_by_k[k - 1, :] = voted
-
-                        st.session_state.vote_pred_matrix_by_k = vote_pred_matrix_by_k
-                        vote_acc_by_k = (vote_pred_matrix_by_k == st.session_state.labels.reshape(1, S2)).mean(
-                            axis=1).astype(np.float32)
-                        st.session_state.vote_acc_by_k = vote_acc_by_k
-
-                        st.write("[CHECK] vote_pred_matrix_by_k.shape =", st.session_state.vote_pred_matrix_by_k.shape)
-                        st.write("[CHECK] vote_acc_by_k[:5] =", st.session_state.vote_acc_by_k[:5].round(3).tolist())
-                        st.write("[CHECK] k=5 voted preds =",st.session_state.vote_pred_matrix_by_k[4].tolist() if P2 >= 5 else "P<5")
-                        k_vals = np.arange(1, st.session_state.vote_acc_by_k.shape[0] + 1)
-                        best_k = int(k_vals[np.argmax(st.session_state.vote_acc_by_k)])
-                        best_acc = float(st.session_state.vote_acc_by_k.max())
-
-                        import matplotlib.pyplot as plt
-                        fig, ax = plt.subplots()
-                        ax.plot(k_vals, st.session_state.vote_acc_by_k, marker='o')
-                        ax.set_xlabel('k（前k个方案投票）')
-                        ax.set_ylabel('Accuracy')
-                        ax.set_title(f'k值曲线（最佳k={best_k}, acc={best_acc:.3f}）')
-                        ax.set_xlim(1, k_vals[-1])
-                        ax.set_ylim(0, 1)
-                        ax.grid(True, linestyle='--', alpha=0.4)
-                        st.pyplot(fig)
-
-                        st.write("[CHECK] best k =", best_k, "; preds =",
-                                 st.session_state.vote_pred_matrix_by_k[best_k - 1].tolist())
-                        st.success(
-                            f"✅ 已构建立方体 processed_cube 形状 = {processed_cube.shape}，并完成 {P} 个方案的 PCA 评估。")
+                        # st.session_state.pca_pred_matrix = pca_pred_matrix
+                        # st.session_state.pca_acc = pca_acc
+                        # 
+                        # sorted_idx = np.argsort(-st.session_state.pca_acc, kind="mergesort")
+                        # st.session_state.pca_sorted_perm_indices = sorted_idx
+                        # st.session_state.pca_sorted_acc = st.session_state.pca_acc[sorted_idx]
+                        # st.session_state.pca_sorted_pred_matrix = st.session_state.pca_pred_matrix[sorted_idx]
+                        # 
+                        # st.write("[CHECK] pca_pred_matrix.shape =", st.session_state.pca_pred_matrix.shape)
+                        # st.write("[CHECK] pca_acc.shape =", st.session_state.pca_acc.shape)
+                        # st.write("[CHECK] top-5 acc =", st.session_state.pca_sorted_acc[:5].round(3).tolist())
+                        # st.write("[CHECK] top-1 preds =", st.session_state.pca_sorted_pred_matrix[0].tolist())
+                        # 
+                        # from scipy.stats import mode
+                        # P2, S2 = st.session_state.pca_sorted_pred_matrix.shape
+                        # vote_pred_matrix_by_k = np.empty((P2, S2), dtype=int)
+                        # 
+                        # for k in range(1, P2 + 1):
+                        #     topk = st.session_state.pca_sorted_pred_matrix[:k, :]
+                        #     voted = mode(topk, axis=0, keepdims=False).mode
+                        #     vote_pred_matrix_by_k[k - 1, :] = voted
+                        # 
+                        # st.session_state.vote_pred_matrix_by_k = vote_pred_matrix_by_k
+                        # vote_acc_by_k = (vote_pred_matrix_by_k == st.session_state.labels.reshape(1, S2)).mean(
+                        #     axis=1).astype(np.float32)
+                        # st.session_state.vote_acc_by_k = vote_acc_by_k
+                        # 
+                        # st.write("[CHECK] vote_pred_matrix_by_k.shape =", st.session_state.vote_pred_matrix_by_k.shape)
+                        # st.write("[CHECK] vote_acc_by_k[:5] =", st.session_state.vote_acc_by_k[:5].round(3).tolist())
+                        # st.write("[CHECK] k=5 voted preds =",st.session_state.vote_pred_matrix_by_k[4].tolist() if P2 >= 5 else "P<5")
+                        # k_vals = np.arange(1, st.session_state.vote_acc_by_k.shape[0] + 1)
+                        # best_k = int(k_vals[np.argmax(st.session_state.vote_acc_by_k)])
+                        # best_acc = float(st.session_state.vote_acc_by_k.max())
+                        # 
+                        # import matplotlib.pyplot as plt
+                        # fig, ax = plt.subplots()
+                        # ax.plot(k_vals, st.session_state.vote_acc_by_k, marker='o')
+                        # ax.set_xlabel('k（前k个方案投票）')
+                        # ax.set_ylabel('Accuracy')
+                        # ax.set_title(f'k值曲线（最佳k={best_k}, acc={best_acc:.3f}）')
+                        # ax.set_xlim(1, k_vals[-1])
+                        # ax.set_ylim(0, 1)
+                        # ax.grid(True, linestyle='--', alpha=0.4)
+                        # st.pyplot(fig)
+                        # 
+                        # st.write("[CHECK] best k =", best_k, "; preds =",
+                        #          st.session_state.vote_pred_matrix_by_k[best_k - 1].tolist())
+                        # st.success(
+                        #     f"✅ 已构建立方体 processed_cube 形状 = {processed_cube.shape}，并完成 {P} 个方案的 PCA 评估。")
 
                     else:
                         st.error("❌ 请先上传原始光谱数据")
