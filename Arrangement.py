@@ -1610,10 +1610,10 @@ def main():
                     }
                     # st.write("selected_algorithms: ", selected_algorithms)
                     # 生成排列组合并存储（原逻辑不变）
-                    # st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
-                    # st.session_state.filtered_perms = st.session_state.algorithm_permutations
-                    # st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
-                    # st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
+                    st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
+                    st.session_state.filtered_perms = st.session_state.algorithm_permutations
+                    st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
+                    st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
 
                     # 获取用户输入的标签（原逻辑不变）
                     if 'labels' not in st.session_state or st.session_state.labels is None:
