@@ -1740,7 +1740,7 @@ def main():
                                 )
 
                                 # 输出处理后的数据
-                                # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
+                                st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
 
                                 arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
                                 #
