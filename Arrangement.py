@@ -1689,6 +1689,37 @@ def main():
                                 sm = next((step[2] for step in perm['details'] if step[1] == '缩放'), '无')
                                 fm = next((step[2] for step in perm['details'] if step[1] == '滤波'), '无')
                                 qm = next((step[2] for step in perm['details'] if step[1] == '挤压'), '无')
+                                st.write(f"[CHECK] perm['details']: {perm.get('details', '无')}")
+
+                                # 逐步输出每个 step 的内容
+                                for step in perm.get('details', []):
+                                    st.write(f"[CHECK] step: {step}")
+
+                                # 获取算法和对应的参数
+                                bm = next((step[2] for step in perm['details'] if step[1] == '基线校准'), '无')
+                                sm = next((step[2] for step in perm['details'] if step[1] == '缩放'), '无')
+                                fm = next((step[2] for step in perm['details'] if step[1] == '滤波'), '无')
+                                qm = next((step[2] for step in perm['details'] if step[1] == '挤压'), '无')
+
+                                # 获取参数，并确保它们是字典格式
+                                baseline_params = next(
+                                    (step[3] if isinstance(step[3], dict) else {'k': step[3]} for step in
+                                     perm['details'] if step[1] == '基线校准'), {'k': 8})
+                                scaling_params = next(
+                                    (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
+                                     step[1] == '缩放'), {})
+                                filtering_params = next(
+                                    (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
+                                     step[1] == '滤波'), {})
+                                squashing_params = next(
+                                    (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
+                                     step[1] == '挤压'), {})
+
+                                # 打印出来检查
+                                st.write(f"[CHECK] 基线方法: {bm}, 基线参数: {baseline_params}")
+                                st.write(f"[CHECK] 缩放方法: {sm}, 缩放参数: {scaling_params}")
+                                st.write(f"[CHECK] 滤波方法: {fm}, 滤波参数: {filtering_params}")
+                                st.write(f"[CHECK] 挤压方法: {qm}, 挤压参数: {squashing_params}")
 
                                 # 获取参数，并确保它们是字典格式
                                 baseline_params = next(
