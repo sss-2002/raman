@@ -266,7 +266,7 @@ class Preprocessor:
                 4: ("squashing", squashing_method, squashing_params)
             }
             # 按指定顺序创建步骤列表
-            # steps = [step_mapping[order] for order in algorithm_order]
+            steps = [step_mapping[order] for order in algorithm_order]
             # for step in steps:
             #     st.write(f"[CHECK] step: {step}")  # 使用 st.write 输出每个步骤的详细信息
         else:
