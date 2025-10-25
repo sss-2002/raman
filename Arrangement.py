@@ -1613,10 +1613,7 @@ def main():
                         st.session_state.processed_data = (wavenumbers, processed_data)
                         st.session_state.process_method = " → ".join(method_name)
                         st.success(f"✅ 处理完成")
-                        st.write(f"当前选择的基线校正方法: {baseline_method}，参数: {baseline_params}")
-                        st.write(f"当前选择的缩放方法: {scaling_method}，参数: {scaling_params}")
-                        st.write(f"当前选择的滤波方法: {filtering_method}，参数: {filtering_params}")
-                        st.write(f"当前选择的挤压方法: {squashing_method}，参数: {squashing_params}")
+
                     except Exception as e:
                         st.error(f"❌ 处理失败: {str(e)}")
 
@@ -1726,11 +1723,6 @@ def main():
                                     (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
                                      step[1] == '挤压'), {})
 
-                                # st.write(f"[CHECK] 基线方法: {bm}, 基线参数: {baseline_params}")
-                                # st.write(f"[CHECK] 缩放方法: {sm}, 缩放参数: {scaling_params}")
-                                # st.write(f"[CHECK] 滤波方法: {fm}, 滤波参数: {filtering_params}")
-                                # st.write(f"[CHECK] 挤压方法: {qm}, 挤压参数: {squashing_params}")
-
 
                                 processed_data, _method_name = preprocessor.process(
                                     wavenumbers, spec_j,
@@ -1742,54 +1734,49 @@ def main():
                                 )
 
                                 # 输出处理后的数据
-                                # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
+                                st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
 
                                 arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
                                 #
                                 # st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
 
-                        st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
-                        st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5].tolist())
-                        # --- 2) 元信息写入 ---
-                        st.session_state.wavenumbers = np.asarray(wavenumbers)
-                        st.session_state.labels = np.asarray(labels, dtype=int)
-                        st.session_state.perm_info = [
-                            {
-                                "name": perm.get("name", f"方案{i + 1}"),
-                                "order": perm.get("order", []),
-                                "params": perm.get("params", {})
-                            }
-                            for i, perm in enumerate(st.session_state.algorithm_permutations)
-                        ]
-                        st.session_state.processed_cube = processed_cube
-                        st.write("[CHECK] len(labels) =", len(st.session_state.labels))
-                        st.write("[CHECK] unique labels =", np.unique(st.session_state.labels).tolist())
-                        st.write("[CHECK] len(perm_info) =", len(st.session_state.perm_info))
-                        st.write("[CHECK] len(wavenumbers) =", len(st.session_state.wavenumbers))
-                        st.write("[CHECK] processed_cube in ss ->", st.session_state.processed_cube.shape)
-                        #--- 3) PCA+LDA评估（原逻辑不变）
-                        from sklearn.decomposition import PCA
-                        from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-
-                        X_labels = st.session_state.labels
-                        pca_pred_matrix = np.empty((P, S), dtype=int)
-                        pca_acc = np.empty(P, dtype=np.float32)
-
-                        for p in range(P):
-                            X_p = processed_cube[:, p, :]
-                            n_components = min(max(1, S - 1), X_p.shape[1])
-                            pca = PCA(n_components=n_components, svd_solver="auto", random_state=0)
-                            Z = pca.fit_transform(X_p)
-
-                            if np.unique(X_labels).size < 2:
-                                y_hat = np.full(S, int(X_labels[0]), dtype=int)
-                            else:
-                                clf = LDA(solver="lsqr")
-                                clf.fit(Z, X_labels)
-                                y_hat = clf.predict(Z)
-
-                            pca_pred_matrix[p, :] = y_hat
-                            pca_acc[p] = (y_hat == X_labels).mean().astype(np.float32)
+                        # st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
+                        # st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5].tolist())
+                        # # --- 2) 元信息写入 ---
+                        # st.session_state.wavenumbers = np.asarray(wavenumbers)
+                        # st.session_state.labels = np.asarray(labels, dtype=int)
+                        # st.session_state.perm_info = [
+                        #     {
+                        #         "name": perm.get("name", f"方案{i + 1}"),
+                        #         "order": perm.get("order", []),
+                        #         "params": perm.get("params", {})
+                        #     }
+                        #     for i, perm in enumerate(st.session_state.algorithm_permutations)
+                        # ]
+                        # st.session_state.processed_cube = processed_cube
+                        # #--- 3) PCA+LDA评估（原逻辑不变）
+                        # from sklearn.decomposition import PCA
+                        # from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+                        # 
+                        # X_labels = st.session_state.labels
+                        # pca_pred_matrix = np.empty((P, S), dtype=int)
+                        # pca_acc = np.empty(P, dtype=np.float32)
+                        # 
+                        # for p in range(P):
+                        #     X_p = processed_cube[:, p, :]
+                        #     n_components = min(max(1, S - 1), X_p.shape[1])
+                        #     pca = PCA(n_components=n_components, svd_solver="auto", random_state=0)
+                        #     Z = pca.fit_transform(X_p)
+                        # 
+                        #     if np.unique(X_labels).size < 2:
+                        #         y_hat = np.full(S, int(X_labels[0]), dtype=int)
+                        #     else:
+                        #         clf = LDA(solver="lsqr")
+                        #         clf.fit(Z, X_labels)
+                        #         y_hat = clf.predict(Z)
+                        # 
+                        #     pca_pred_matrix[p, :] = y_hat
+                        #     pca_acc[p] = (y_hat == X_labels).mean().astype(np.float32)
 
                         # 排序与投票（原逻辑不变）
                         st.session_state.pca_pred_matrix = pca_pred_matrix
