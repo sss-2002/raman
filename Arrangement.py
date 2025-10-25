@@ -453,29 +453,38 @@ class Preprocessor:
             return waveletlinear(spectra, threshold=threshold)
 
     # ===== 缩放算法实现 =====
+
     def peak_norm(self, spectra):
-        # spectra 的形状是 (S, P, N)，我们要对每个样本进行峰值归一化
+            # 打印 spectra 的维度和内容，检查它的实际结构
+            print(f"spectra shape: {spectra.shape}")  # 打印 spectra 的维度
+            print(f"spectra: {spectra}")  # 打印 spectra 的内容，查看具体数据
 
-        # 遍历每个样本（即第一维：S）
-        for i in range(spectra.shape[0]):  # 遍历每个样本
-            # 获取当前样本的最大值
-            max_value = np.max(spectra[i, :, :], axis=1)  # 按P维度（预处理方法）找每个样本的最大值
+            # 确保 spectra 是三维数组
+            if spectra.ndim != 3:
+                st.error(f"数据应为三维数组，但当前维度为 {spectra.ndim}。")
+                return
 
-            # 检查是否有最大值为零的情况
-            zero_max_columns = np.where(max_value == 0)[0]
-            if len(zero_max_columns) > 0:
-                st.warning(f"样本 {i} 存在最大值为零的列：{zero_max_columns}. 峰值归一化操作会导致 NaN。")
-                # 打印出零值列的具体信息，方便进一步排查
-                for idx in zero_max_columns:
-                    st.write(f"样本 {i} 列 {idx} 的最大值为 0：", spectra[i, idx, :])
+            # 获取每个样本（S 维度）每个预处理排列（P 维度）的最大值
+            for i in range(spectra.shape[0]):  # 遍历每个样本
+                # 获取当前样本的最大值（按 P 维度归一化）
+                max_value = np.max(spectra[i, :, :], axis=1)  # axis=1 按列计算每个样本的最大值
 
-                # 处理：将最大值为零的列设置为 1
-                max_value[zero_max_columns] = 1  # 将最大值为零的列设置为1，避免除以零
+                # 检查是否有最大值为零的列
+                zero_max_columns = np.where(max_value == 0)[0]
+                if len(zero_max_columns) > 0:
+                    st.warning(f"样本 {i} 存在最大值为零的列：{zero_max_columns}. 峰值归一化操作会导致 NaN。")
+                    # 打印出零值列的具体信息，方便进一步排查
+                    for idx in zero_max_columns:
+                        st.write(f"样本 {i} 列 {idx} 的最大值为 0：", spectra[i, idx, :])
 
-            # 对每个样本进行峰值归一化
-            spectra[i, :, :] = spectra[i, :, :] / max_value  # 按列对每个样本进行峰值归一化
+                    # 处理：将最大值为零的列设置为 1
+                    max_value[zero_max_columns] = 1  # 将最大值为零的列设置为1，避免除以零
 
-        return spectra
+                # 对每个样本的每个预处理方法排列进行归一化
+                spectra[i, :, :] = spectra[i, :, :] / max_value  # 对每个样本按 P 维度进行峰值归一化
+
+            
+            return spectra
     def snv(self, spectra):
         mean = np.mean(spectra, axis=0)
         std = np.std(spectra, axis=0)
