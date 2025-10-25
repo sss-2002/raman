@@ -1689,17 +1689,6 @@ def main():
                                 sm = next((step[2] for step in perm['details'] if step[1] == '缩放'), '无')
                                 fm = next((step[2] for step in perm['details'] if step[1] == '滤波'), '无')
                                 qm = next((step[2] for step in perm['details'] if step[1] == '挤压'), '无')
-                                st.write(f"[CHECK] perm['details']: {perm.get('details', '无')}")
-
-                                # 逐步输出每个 step 的内容
-                                for step in perm.get('details', []):
-                                    st.write(f"[CHECK] step: {step}")
-
-                                # 获取算法和对应的参数
-                                bm = next((step[2] for step in perm['details'] if step[1] == '基线校准'), '无')
-                                sm = next((step[2] for step in perm['details'] if step[1] == '缩放'), '无')
-                                fm = next((step[2] for step in perm['details'] if step[1] == '滤波'), '无')
-                                qm = next((step[2] for step in perm['details'] if step[1] == '挤压'), '无')
 
                                 # 获取参数，并确保它们是字典格式
                                 baseline_params = next(
@@ -1714,27 +1703,15 @@ def main():
                                 squashing_params = next(
                                     (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
                                      step[1] == '挤压'), {})
-
-                                # 打印出来检查
-                                st.write(f"[CHECK] 基线方法: {bm}, 基线参数: {baseline_params}")
-                                st.write(f"[CHECK] 缩放方法: {sm}, 缩放参数: {scaling_params}")
-                                st.write(f"[CHECK] 滤波方法: {fm}, 滤波参数: {filtering_params}")
-                                st.write(f"[CHECK] 挤压方法: {qm}, 挤压参数: {squashing_params}")
-
-                                # 获取参数，并确保它们是字典格式
-                                baseline_params = next(
-                                    (step[3] if isinstance(step[3], dict) else {'k': step[3]} for step in
-                                     perm['details'] if step[1] == '基线校准'), {'k': 8})
-                                scaling_params = next(
-                                    (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
-                                     step[1] == '缩放'), {})
-                                filtering_params = next(
-                                    (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
-                                     step[1] == '滤波'), {})
-                                squashing_params = next(
-                                    (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
-                                     step[1] == '挤压'), {})
-
+                                if algorithm_order == [1]:
+                                    # 执行基线校准
+                                    bm = 'ModPoly'
+                                    baseline_params = {'k': 8}  # 通过字典获取基线参数
+                                    # 执行 ModPoly 方法
+                                    y_processed = modpoly(wavenumbers, y_processed, baseline_params['k'])
+                                else:
+                                    # 处理其他步骤
+                                    pass
                                 # 打印出来检查
                                 st.write(f"[CHECK] 基线方法: {bm}, 基线参数: {baseline_params}")
                                 st.write(f"[CHECK] 缩放方法: {sm}, 缩放参数: {scaling_params}")
@@ -1742,14 +1719,14 @@ def main():
                                 st.write(f"[CHECK] 挤压方法: {qm}, 挤压参数: {squashing_params}")
 
 
-                                processed_data, _method_name = preprocessor.process(
-                                    wavenumbers, spec_j,
-                                    baseline_method=bm, baseline_params=baseline_params,
-                                    squashing_method=qm, squashing_params=squashing_params,
-                                    filtering_method=fm, filtering_params=filtering_params,
-                                    scaling_method=sm, scaling_params=scaling_params,
-                                    algorithm_order=algorithm_order
-                                )
+                                # processed_data, _method_name = preprocessor.process(
+                                #     wavenumbers, spec_j,
+                                #     baseline_method=bm, baseline_params=baseline_params,
+                                #     squashing_method=qm, squashing_params=squashing_params,
+                                #     filtering_method=fm, filtering_params=filtering_params,
+                                #     scaling_method=sm, scaling_params=scaling_params,
+                                #     algorithm_order=algorithm_order
+                                # )
 
                                 # 输出处理后的数据
                                 # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
