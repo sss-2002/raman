@@ -49,7 +49,7 @@ def modpoly(wavenumbers, spectra, k):
     n_points = len(wavenumbers)
 
     # 输出调试信息
-    st.write(f"[CHECK] n_points: {n_points}, spectra shape: {spectra.shape}")
+    # st.write(f"[CHECK] n_points: {n_points}, spectra shape: {spectra.shape}")
 
     # 遍历每个样本的光谱
     for i in range(spectra.shape[0]):  # spectra.shape[0] 为样本数量
@@ -64,7 +64,7 @@ def modpoly(wavenumbers, spectra, k):
             fitted = np.polyval(coeffs, wavenumbers)
 
             # 输出拟合结果
-            st.write(f"[CHECK] Fitted values: {fitted[:2]}")  # 只显示前5个值
+            # st.write(f"[CHECK] Fitted values: {fitted[:2]}")  # 只显示前5个值
             mask = y < fitted
             y[~mask] = fitted[~mask]
 
