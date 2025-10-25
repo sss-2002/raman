@@ -1648,52 +1648,52 @@ def main():
                             else:
                                 raise ValueError(f"不支持的原始光谱维度：{y_arr.ndim}")
 
-                        st.write(f"[CHECK] algorithm_permutations:", st.session_state.algorithm_permutations)
+                        # st.write(f"[CHECK] algorithm_permutations:", st.session_state.algorithm_permutations)
 
-                        # # 遍历填充立方体（原逻辑不变）
-                        # for j in range(S):
-                        #     spec_j = get_spectrum_j(j).astype(np.float32)
-                        #     # st.write(f"[CHECK] 第 {j + 1} 条光谱数据：", spec_j)  # 输出当前光谱数据
-                        #     if spec_j.shape[0] != N:
-                        #         raise ValueError(f"第 {j + 1} 条光谱长度 {spec_j.shape[0]} 与波数长度 N={N} 不一致。")
-                        # 
-                        #     for i, perm in enumerate(st.session_state.algorithm_permutations):
-                        #         # st.write(f"[CHECK] perm {i}: {perm}")
-                        #         algorithm_order = perm.get('order', [])  # 获取顺序
-                        # 
-                        #         # 输出顺序
-                        #         # st.write(f"[CHECK] algorithm_order: {algorithm_order}")
-                        # 
-                        #         # 从 details 中获取每个算法的参数
-                        #         bm = next((step[2] for step in perm['details'] if step[1] == '基线校准'), '无')
-                        #         sm = next((step[2] for step in perm['details'] if step[1] == '缩放'), '无')
-                        #         fm = next((step[2] for step in perm['details'] if step[1] == '滤波'), '无')
-                        #         qm = next((step[2] for step in perm['details'] if step[1] == '挤压'), '无')
-                        # 
-                        #         baseline_params = next((step[3] for step in perm['details'] if step[1] == '基线校准'),
-                        #                                None)
-                        #         scaling_params = next((step[3] for step in perm['details'] if step[1] == '缩放'), None)
-                        #         filtering_params = next((step[3] for step in perm['details'] if step[1] == '滤波'),
-                        #                                 None)
-                        #         squashing_params = next((step[3] for step in perm['details'] if step[1] == '挤压'),
-                        #                                 None)
-                        #         # 输出正在使用的预处理算法和参数
-                        #         # st.write(f"[CHECK] 基线={bm}, 缩放={sm}, 滤波={fm}, 挤压={qm}")
-                        #         st.write( f"[CHECK] 基线参数={baseline_params}, 缩放参数={scaling_params}, 滤波参数={filtering_params}, 挤压参数={squashing_params}")
-                                # 调用预处理函数进行处理
-                                # processed_data, _method_name = preprocessor.process(
-                                #     wavenumbers, spec_j,
-                                #     baseline_method=bm, baseline_params=baseline_params,
-                                #     squashing_method=qm, squashing_params=squashing_params,
-                                #     filtering_method=fm, filtering_params=filtering_params,
-                                #     scaling_method=sm, scaling_params=scaling_params,
-                                #     algorithm_order=algorithm_order
-                                # )
-                                #
-                                # # 输出处理后的数据
-                                # # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
-                                #
-                                # arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
+                        # 遍历填充立方体（原逻辑不变）
+                        for j in range(S):
+                            spec_j = get_spectrum_j(j).astype(np.float32)
+                            # st.write(f"[CHECK] 第 {j + 1} 条光谱数据：", spec_j)  # 输出当前光谱数据
+                            if spec_j.shape[0] != N:
+                                raise ValueError(f"第 {j + 1} 条光谱长度 {spec_j.shape[0]} 与波数长度 N={N} 不一致。")
+
+                            for i, perm in enumerate(st.session_state.algorithm_permutations):
+                                # st.write(f"[CHECK] perm {i}: {perm}")
+                                algorithm_order = perm.get('order', [])  # 获取顺序
+
+                                # 输出顺序
+                                # st.write(f"[CHECK] algorithm_order: {algorithm_order}")
+
+                                # 从 details 中获取每个算法的参数
+                                bm = next((step[2] for step in perm['details'] if step[1] == '基线校准'), '无')
+                                sm = next((step[2] for step in perm['details'] if step[1] == '缩放'), '无')
+                                fm = next((step[2] for step in perm['details'] if step[1] == '滤波'), '无')
+                                qm = next((step[2] for step in perm['details'] if step[1] == '挤压'), '无')
+
+                                baseline_params = next((step[3] for step in perm['details'] if step[1] == '基线校准'),
+                                                       None)
+                                scaling_params = next((step[3] for step in perm['details'] if step[1] == '缩放'), None)
+                                filtering_params = next((step[3] for step in perm['details'] if step[1] == '滤波'),
+                                                        None)
+                                squashing_params = next((step[3] for step in perm['details'] if step[1] == '挤压'),
+                                                        None)
+                                # 输出正在使用的预处理算法和参数
+                                # st.write(f"[CHECK] 基线={bm}, 缩放={sm}, 滤波={fm}, 挤压={qm}")
+                                st.write( f"[CHECK] 基线参数={baseline_params}, 缩放参数={scaling_params}, 滤波参数={filtering_params}, 挤压参数={squashing_params}")
+                               
+                                processed_data, _method_name = preprocessor.process(
+                                    wavenumbers, spec_j,
+                                    baseline_method=bm, baseline_params=baseline_params,
+                                    squashing_method=qm, squashing_params=squashing_params,
+                                    filtering_method=fm, filtering_params=filtering_params,
+                                    scaling_method=sm, scaling_params=scaling_params,
+                                    algorithm_order=algorithm_order
+                                )
+
+                                # 输出处理后的数据
+                                # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
+
+                                arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
                                 #
                                 # st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
 
