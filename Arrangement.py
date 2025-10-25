@@ -1699,6 +1699,7 @@ def main():
                     # 获取原始光谱数据并进行处理（原逻辑不变）
                     if st.session_state.get('raw_data'):
                         wavenumbers, y = st.session_state.raw_data
+                        st.write(f"[CHECK] 原始 y 的维度: {y.shape}")
                         S = len(labels)
                         P = len(st.session_state.algorithm_permutations)
                         N = len(wavenumbers)
