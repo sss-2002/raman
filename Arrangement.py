@@ -1758,7 +1758,7 @@ def main():
                                     (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
                                      step[1] == '挤压'), {})
 
-                                st.write(f"[CHECK] spec_j 的维度: {spec_j.shape}")  # 使用 st.write 打印维度
+                                # st.write(f"[CHECK] spec_j 的维度: {spec_j.shape}")  # 使用 st.write 打印维度
                                 processed_data, _method_name = preprocessor.process(
                                     wavenumbers, spec_j,
                                     baseline_method=bm, baseline_params=baseline_params,
@@ -1770,7 +1770,7 @@ def main():
 
                                 # 输出处理后的数据
                                 # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
-
+                                st.write(f"[CHECK] 处理后的 processed_data 的维度: {processed_data.shape}")
                                 arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
                                 #
                                 # st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
