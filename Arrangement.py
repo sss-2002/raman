@@ -1752,6 +1752,8 @@ def main():
                         #遍历填充立方体（原逻辑不变）
                         for j in range(S):
                             spec_j = get_spectrum_j(j).astype(np.float32)
+                            if spec_j.ndim == 2 and spec_j.shape[0] == 1:
+                                spec_j = spec_j.reshape(-1)
                             st.write(f"[CHECK] spec_j 的维度: {spec_j.shape}")
                             # st.write(f"[CHECK] 第 {j + 1} 条光谱数据：", spec_j)  # 输出当前光谱数据
                             if spec_j.shape[0] != N:
@@ -1794,8 +1796,8 @@ def main():
                                 )
 
                                 # 输出处理后的数据
-                                # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
-                                st.write(f"[CHECK] 处理后的 processed_data 的维度: {processed_data.shape}")
+                                st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
+                                # st.write(f"[CHECK] 处理后的 processed_data 的维度: {processed_data.shape}")
                                 arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
                                 #
                                 # st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
