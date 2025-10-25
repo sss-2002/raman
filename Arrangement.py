@@ -454,8 +454,17 @@ class Preprocessor:
 
     # ===== 缩放算法实现 =====
     def peak_norm(self, spectra):
-        return spectra / np.max(spectra, axis=0)
+        # 获取每列的最大值
+        max_values = np.max(spectra, axis=0)
 
+        # 检查是否存在最大值为零的列，避免除以零
+        if np.any(max_values == 0):
+            st.warning("存在最大值为零的列，峰值归一化会导致 NaN。")
+            # 可以选择替代或者跳过处理这些列
+            max_values[max_values == 0] = 1  # 将最大值为零的列设置为1，避免除以零
+
+        # 执行归一化
+        return spectra / max_values
     def snv(self, spectra):
         mean = np.mean(spectra, axis=0)
         std = np.std(spectra, axis=0)
@@ -1740,7 +1749,7 @@ def main():
                                 )
 
                                 # 输出处理后的数据
-                                st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
+                                # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
 
                                 arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
                                 #
