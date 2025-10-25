@@ -1180,7 +1180,7 @@ def generate_permutations(algorithms):
         (4, "挤压", algorithms['squashing']['method'], algorithms['squashing']['params'])
     ]
 
-    # 0. 添加"无预处理（原始光谱）"选项
+    # 0. 添加"无预处理（原始光谱）"选项，并且和其他算法一起参与排列组合
     algorithm_list.insert(0, (0, "无预处理", "无", {}))  # 将"无预处理"放在最前面，编号为0
 
     all_permutations = []
