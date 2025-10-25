@@ -1662,17 +1662,10 @@ def main():
                                 st.write(f"[CHECK] algorithm_order: {algorithm_order}")
 
                                 # 从 details 中获取每个算法的参数
-                                bm = next((step[1] + " (" + step[2] + ")" for step in perm['details'] if
-                                           step[1] == '基线校准'), '无')
-                                sm = next(
-                                    (step[1] + " (" + step[2] + ")" for step in perm['details'] if step[1] == '缩放'),
-                                    '无')
-                                fm = next(
-                                    (step[1] + " (" + step[2] + ")" for step in perm['details'] if step[1] == '滤波'),
-                                    '无')
-                                qm = next(
-                                    (step[1] + " (" + step[2] + ")" for step in perm['details'] if step[1] == '挤压'),
-                                    '无')
+                                bm = next((step[2] for step in perm['details'] if step[1] == '基线校准'), '无')
+                                sm = next((step[2] for step in perm['details'] if step[1] == '缩放'), '无')
+                                fm = next((step[2] for step in perm['details'] if step[1] == '滤波'), '无')
+                                qm = next((step[2] for step in perm['details'] if step[1] == '挤压'), '无')
 
                                 # 输出正在使用的预处理算法和参数
                                 st.write(f"[CHECK] 基线={bm}, 缩放={sm}, 滤波={fm}, 挤压={qm}")
@@ -1691,7 +1684,7 @@ def main():
                                 # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
 
                                 arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
-                                
+
                                 st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
 
                         # st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
