@@ -40,6 +40,7 @@ def polynomial_fit(wavenumbers, spectra, polyorder):
 
 def modpoly(wavenumbers, spectra, k):
     """Modified Polynomial (ModPoly) 基线校正"""
+    
 
     # 确保 spectra 是二维数组
     if spectra.ndim == 1:
@@ -1702,8 +1703,8 @@ def main():
                             for i, perm in enumerate(st.session_state.algorithm_permutations):
                                 # st.write(f"[CHECK] perm {i}: {perm}")
                                 algorithm_order = perm.get('order', [])  # 获取顺序
-                                st.write(f"[CHECK] algorithm_order: {algorithm_order}")
-                                st.write(f"[CHECK] perm['details']: {perm['details']}")
+                                # st.write(f"[CHECK] algorithm_order: {algorithm_order}")
+                                # st.write(f"[CHECK] perm['details']: {perm['details']}")
 
                                 # 从 details 中获取每个算法的参数
                                 bm = next((step[2] for step in perm['details'] if step[1] == '基线校准'), '无')
