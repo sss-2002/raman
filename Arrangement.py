@@ -276,6 +276,7 @@ class Preprocessor:
                     print(f"[CHECK] 执行基线校正方法: {method}, 参数: {params}")  # 输出调试信息
 
                     if method in ["多项式拟合", "ModPoly", "I-ModPoly"]:
+                        st.write(f"[CHECK] params for {method}: {params}")  # 输出params内容
                         y_processed = algorithm_func(wavenumbers, y_processed, **params)
                     elif method in ["PLS"]:
                         y_processed = algorithm_func(y_processed, **params)
