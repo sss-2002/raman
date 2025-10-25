@@ -1694,57 +1694,57 @@ def main():
                             else:
                                 raise ValueError(f"不支持的原始光谱维度：{y_arr.ndim}")
 
-                        st.write(f"[CHECK] algorithm_permutations:", st.session_state.algorithm_permutations)
+                        # st.write(f"[CHECK] algorithm_permutations:", st.session_state.algorithm_permutations)
 
-                        # 遍历填充立方体（原逻辑不变）
-                        # for j in range(S):
-                        #     spec_j = get_spectrum_j(j).astype(np.float32)
-                        #     # st.write(f"[CHECK] 第 {j + 1} 条光谱数据：", spec_j)  # 输出当前光谱数据
-                        #     if spec_j.shape[0] != N:
-                        #         raise ValueError(f"第 {j + 1} 条光谱长度 {spec_j.shape[0]} 与波数长度 N={N} 不一致。")
-                        # 
-                        #     for i, perm in enumerate(st.session_state.algorithm_permutations):
-                        #         # st.write(f"[CHECK] perm {i}: {perm}")
-                        #         algorithm_order = perm.get('order', [])  # 获取顺序
-                        #         # st.write(f"[CHECK] algorithm_order: {algorithm_order}")
-                        #         # st.write(f"[CHECK] perm['details']: {perm['details']}")
-                        # 
-                        #         # 从 details 中获取每个算法的参数
-                        #         bm = next((step[2] for step in perm['details'] if step[1] == '基线校准'), '无')
-                        #         sm = next((step[2] for step in perm['details'] if step[1] == '缩放'), '无')
-                        #         fm = next((step[2] for step in perm['details'] if step[1] == '滤波'), '无')
-                        #         qm = next((step[2] for step in perm['details'] if step[1] == '挤压'), '无')
-                        # 
-                        #         # 获取参数，并确保它们是字典格式
-                        #         baseline_params = next(
-                        #             (step[3] if isinstance(step[3], dict) else {'k': step[3]} for step in
-                        #              perm['details'] if step[1] == '基线校准'), {'k': 8})
-                        #         scaling_params = next(
-                        #             (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
-                        #              step[1] == '缩放'), {})
-                        #         filtering_params = next(
-                        #             (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
-                        #              step[1] == '滤波'), {})
-                        #         squashing_params = next(
-                        #             (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
-                        #              step[1] == '挤压'), {})
-                        # 
-                        # 
-                        #         processed_data, _method_name = preprocessor.process(
-                        #             wavenumbers, spec_j,
-                        #             baseline_method=bm, baseline_params=baseline_params,
-                        #             squashing_method=qm, squashing_params=squashing_params,
-                        #             filtering_method=fm, filtering_params=filtering_params,
-                        #             scaling_method=sm, scaling_params=scaling_params,
-                        #             algorithm_order=algorithm_order
-                        #         )
-                        # 
-                        #         # 输出处理后的数据
-                        #         # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
-                        # 
-                        #         arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
-                        #         #
-                        #         # st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
+                        #遍历填充立方体（原逻辑不变）
+                        for j in range(S):
+                            spec_j = get_spectrum_j(j).astype(np.float32)
+                            # st.write(f"[CHECK] 第 {j + 1} 条光谱数据：", spec_j)  # 输出当前光谱数据
+                            if spec_j.shape[0] != N:
+                                raise ValueError(f"第 {j + 1} 条光谱长度 {spec_j.shape[0]} 与波数长度 N={N} 不一致。")
+
+                            for i, perm in enumerate(st.session_state.algorithm_permutations):
+                                # st.write(f"[CHECK] perm {i}: {perm}")
+                                algorithm_order = perm.get('order', [])  # 获取顺序
+                                # st.write(f"[CHECK] algorithm_order: {algorithm_order}")
+                                # st.write(f"[CHECK] perm['details']: {perm['details']}")
+
+                                # 从 details 中获取每个算法的参数
+                                bm = next((step[2] for step in perm['details'] if step[1] == '基线校准'), '无')
+                                sm = next((step[2] for step in perm['details'] if step[1] == '缩放'), '无')
+                                fm = next((step[2] for step in perm['details'] if step[1] == '滤波'), '无')
+                                qm = next((step[2] for step in perm['details'] if step[1] == '挤压'), '无')
+
+                                # 获取参数，并确保它们是字典格式
+                                baseline_params = next(
+                                    (step[3] if isinstance(step[3], dict) else {'k': step[3]} for step in
+                                     perm['details'] if step[1] == '基线校准'), {'k': 8})
+                                scaling_params = next(
+                                    (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
+                                     step[1] == '缩放'), {})
+                                filtering_params = next(
+                                    (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
+                                     step[1] == '滤波'), {})
+                                squashing_params = next(
+                                    (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
+                                     step[1] == '挤压'), {})
+
+
+                                processed_data, _method_name = preprocessor.process(
+                                    wavenumbers, spec_j,
+                                    baseline_method=bm, baseline_params=baseline_params,
+                                    squashing_method=qm, squashing_params=squashing_params,
+                                    filtering_method=fm, filtering_params=filtering_params,
+                                    scaling_method=sm, scaling_params=scaling_params,
+                                    algorithm_order=algorithm_order
+                                )
+
+                                # 输出处理后的数据
+                                # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
+
+                                arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
+                                #
+                                # st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
 
                         # st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
                         # st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5].tolist())
@@ -1763,62 +1763,62 @@ def main():
                         # #--- 3) PCA+LDA评估（原逻辑不变）
                         # from sklearn.decomposition import PCA
                         # from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-                        # 
+                        #
                         # X_labels = st.session_state.labels
                         # pca_pred_matrix = np.empty((P, S), dtype=int)
                         # pca_acc = np.empty(P, dtype=np.float32)
-                        # 
+                        #
                         # for p in range(P):
                         #     X_p = processed_cube[:, p, :]
                         #     n_components = min(max(1, S - 1), X_p.shape[1])
                         #     pca = PCA(n_components=n_components, svd_solver="auto", random_state=0)
                         #     Z = pca.fit_transform(X_p)
-                        # 
+                        #
                         #     if np.unique(X_labels).size < 2:
                         #         y_hat = np.full(S, int(X_labels[0]), dtype=int)
                         #     else:
                         #         clf = LDA(solver="lsqr")
                         #         clf.fit(Z, X_labels)
                         #         y_hat = clf.predict(Z)
-                        # 
+                        #
                         #     pca_pred_matrix[p, :] = y_hat
                         #     pca_acc[p] = (y_hat == X_labels).mean().astype(np.float32)
-                        # 
+                        #
                         # #排序与投票（原逻辑不变）
                         # st.session_state.pca_pred_matrix = pca_pred_matrix
                         # st.session_state.pca_acc = pca_acc
-                        # 
+                        #
                         # sorted_idx = np.argsort(-st.session_state.pca_acc, kind="mergesort")
                         # st.session_state.pca_sorted_perm_indices = sorted_idx
                         # st.session_state.pca_sorted_acc = st.session_state.pca_acc[sorted_idx]
                         # st.session_state.pca_sorted_pred_matrix = st.session_state.pca_pred_matrix[sorted_idx]
-                        # 
+                        #
                         # st.write("[CHECK] pca_pred_matrix.shape =", st.session_state.pca_pred_matrix.shape)
                         # st.write("[CHECK] pca_acc.shape =", st.session_state.pca_acc.shape)
                         # st.write("[CHECK] top-5 acc =", st.session_state.pca_sorted_acc[:5].round(3).tolist())
                         # st.write("[CHECK] top-1 preds =", st.session_state.pca_sorted_pred_matrix[0].tolist())
-                        # 
+                        #
                         # from scipy.stats import mode
                         # P2, S2 = st.session_state.pca_sorted_pred_matrix.shape
                         # vote_pred_matrix_by_k = np.empty((P2, S2), dtype=int)
-                        # 
+                        #
                         # for k in range(1, P2 + 1):
                         #     topk = st.session_state.pca_sorted_pred_matrix[:k, :]
                         #     voted = mode(topk, axis=0, keepdims=False).mode
                         #     vote_pred_matrix_by_k[k - 1, :] = voted
-                        # 
+                        #
                         # st.session_state.vote_pred_matrix_by_k = vote_pred_matrix_by_k
                         # vote_acc_by_k = (vote_pred_matrix_by_k == st.session_state.labels.reshape(1, S2)).mean(
                         #     axis=1).astype(np.float32)
                         # st.session_state.vote_acc_by_k = vote_acc_by_k
-                        # 
+                        #
                         # st.write("[CHECK] vote_pred_matrix_by_k.shape =", st.session_state.vote_pred_matrix_by_k.shape)
                         # st.write("[CHECK] vote_acc_by_k[:5] =", st.session_state.vote_acc_by_k[:5].round(3).tolist())
                         # st.write("[CHECK] k=5 voted preds =",st.session_state.vote_pred_matrix_by_k[4].tolist() if P2 >= 5 else "P<5")
                         # k_vals = np.arange(1, st.session_state.vote_acc_by_k.shape[0] + 1)
                         # best_k = int(k_vals[np.argmax(st.session_state.vote_acc_by_k)])
                         # best_acc = float(st.session_state.vote_acc_by_k.max())
-                        # 
+                        #
                         # import matplotlib.pyplot as plt
                         # fig, ax = plt.subplots()
                         # ax.plot(k_vals, st.session_state.vote_acc_by_k, marker='o')
@@ -1829,7 +1829,7 @@ def main():
                         # ax.set_ylim(0, 1)
                         # ax.grid(True, linestyle='--', alpha=0.4)
                         # st.pyplot(fig)
-                        # 
+                        #
                         # st.write("[CHECK] best k =", best_k, "; preds =",
                         #          st.session_state.vote_pred_matrix_by_k[best_k - 1].tolist())
                         # st.success(
