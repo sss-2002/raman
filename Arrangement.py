@@ -1144,29 +1144,25 @@ def generate_permutations(algorithms):
             all_permutations.append([algo])
 
     # 2. 生成使用2种算法的排列
-    for perm in itertools.permutations(algorithm_list, 2):
-        # 确保两种算法都已选择
-        if perm[0][2] != "无" and perm[1][2] != "无":
+    for comb in itertools.combinations(algorithm_list, 2):
+        for perm in itertools.permutations(comb):  # 生成排列
             all_permutations.append(list(perm))
 
     # 3. 生成使用3种算法的排列
-    for perm in itertools.permutations(algorithm_list, 3):
-        # 确保三种算法都已选择
-        if perm[0][2] != "无" and perm[1][2] != "无" and perm[2][2] != "无":
+    for comb in itertools.combinations(algorithm_list, 3):
+        for perm in itertools.permutations(comb):  # 生成排列
             all_permutations.append(list(perm))
 
     # 4. 生成使用4种算法的排列
-    for perm in itertools.permutations(algorithm_list, 4):
-        # 确保四种算法都已选择
-        if (perm[0][2] != "无" and perm[1][2] != "无" and
-                perm[2][2] != "无" and perm[3][2] != "无"):
+    for comb in itertools.combinations(algorithm_list, 4):
+        for perm in itertools.permutations(comb):  # 生成排列
             all_permutations.append(list(perm))
 
     formatted_perms = []
     for i, perm in enumerate(all_permutations):
         perm_dict = {
             "name": "",
-            "order": [],
+            "order": [step[0] for step in perm],  # 正确生成order
             "details": perm,
             "count": len(perm),
             "first_step_type": "未知"
@@ -1183,12 +1179,10 @@ def generate_permutations(algorithms):
             for step in perm:
                 perm_details.append(f"{step[1]}({step[2]})")
             perm_dict["name"] = " → ".join(perm_details)
-            perm_dict["order"] = [step[0] for step in perm]
 
         formatted_perms.append(perm_dict)
 
     return formatted_perms
-
 
 def main():
     # 最优先初始化session state
@@ -1662,15 +1656,25 @@ def main():
 
                             for i, perm in enumerate(st.session_state.algorithm_permutations):
                                 st.write(f"[CHECK] perm {i}: {perm}")
-                                algorithm_order = perm.get('order', [])
+                                algorithm_order = perm.get('order', [])  # 获取顺序
+
+                                # 输出顺序
                                 st.write(f"[CHECK] algorithm_order: {algorithm_order}")
-                                bm = perm.get('params', {}).get('baseline', '无')
-                                sm = perm.get('params', {}).get('scaling', '无')
-                                fm = perm.get('params', {}).get('filtering', '无')
-                                qm = perm.get('params', {}).get('squashing', '无')
+
+                                # 从 details 中获取每个算法的参数
+                                bm = next((step[3].get('baseline', '无') for step in perm['details'] if
+                                           step[1] == '基线校准'), '无')
+                                sm = next(
+                                    (step[3].get('scaling', '无') for step in perm['details'] if step[1] == '缩放'),
+                                    '无')
+                                fm = next(
+                                    (step[3].get('filtering', '无') for step in perm['details'] if step[1] == '滤波'),
+                                    '无')
+                                qm = next(
+                                    (step[3].get('squashing', '无') for step in perm['details'] if step[1] == '挤压'),
+                                    '无')
 
                                 # 输出正在使用的预处理算法和参数
-                                # st.write(f"[CHECK] 使用的算法顺序：{algorithm_order}")
                                 st.write(f"[CHECK] 基线={bm}, 缩放={sm}, 滤波={fm}, 挤压={qm}")
 
                                 # 调用预处理函数进行处理
@@ -1687,13 +1691,6 @@ def main():
                                 # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
 
                                 arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
-
-                                # 输出转换后的数据形状
-                                # st.write(f"[CHECK] 处理后的数据形状 (排列 {i + 1}): {arr.shape}")
-
-                                if arr.shape[0] != N:
-                                    raise ValueError(f"排列 {i + 1} 处理后长度 {arr.shape[0]} 与 N={N} 不一致。")
-
                                 # 输出当前存储的数据
                                 # st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
 
