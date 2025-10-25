@@ -1690,16 +1690,21 @@ def main():
                                 fm = next((step[2] for step in perm['details'] if step[1] == '滤波'), '无')
                                 qm = next((step[2] for step in perm['details'] if step[1] == '挤压'), '无')
 
-                                baseline_params = next((step[3] for step in perm['details'] if step[1] == '基线校准'),
+                                # 修改这里，直接获取基线等算法的参数
+                                baseline_params = next((step[2] for step in perm['details'] if step[1] == '基线校准'),
                                                        None)
-                                scaling_params = next((step[3] for step in perm['details'] if step[1] == '缩放'), None)
-                                filtering_params = next((step[3] for step in perm['details'] if step[1] == '滤波'),
+                                scaling_params = next((step[2] for step in perm['details'] if step[1] == '缩放'), None)
+                                filtering_params = next((step[2] for step in perm['details'] if step[1] == '滤波'),
                                                         None)
-                                squashing_params = next((step[3] for step in perm['details'] if step[1] == '挤压'),
+                                squashing_params = next((step[2] for step in perm['details'] if step[1] == '挤压'),
                                                         None)
-                                # 输出正在使用的预处理算法和参数
-                                st.write(f"[CHECK] 基线={bm}, 缩放={sm}, 滤波={fm}, 挤压={qm}")
-                                st.write( f"[CHECK] 基线参数={baseline_params}, 缩放参数={scaling_params}, 滤波参数={filtering_params}, 挤压参数={squashing_params}")
+
+                                # 打印出来检查
+                                st.write(f"[CHECK] 基线方法: {bm}, 基线参数: {baseline_params}")
+                                st.write(f"[CHECK] 缩放方法: {sm}, 缩放参数: {scaling_params}")
+                                st.write(f"[CHECK] 滤波方法: {fm}, 滤波参数: {filtering_params}")
+                                st.write(f"[CHECK] 挤压方法: {qm}, 挤压参数: {squashing_params}")
+                               
 
                                 processed_data, _method_name = preprocessor.process(
                                     wavenumbers, spec_j,
