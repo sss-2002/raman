@@ -38,19 +38,35 @@ def polynomial_fit(wavenumbers, spectra, polyorder):
     return spectra - baseline  # 扣除基线
 
 
-def modpoly(wavenumbers, spectra,k):
+def modpoly(wavenumbers, spectra, k):
     """Modified Polynomial (ModPoly) 基线校正"""
 
     baseline = np.zeros_like(spectra)
     n_points = len(wavenumbers)
+
+    # 输出调试信息
+    st.write(f"[CHECK] n_points: {n_points}, spectra shape: {spectra.shape}")
+
+    # 遍历每个样本的光谱
     for i in range(spectra.shape[1]):
         y = spectra[:, i].copy()
+
+        # 输出当前光谱信息
+        st.write(f"[CHECK] Processing spectrum {i + 1}, shape: {y.shape}")
+
+        # 对每个光谱应用多项式拟合
         for _ in range(k):
             coeffs = np.polyfit(wavenumbers, y, deg=5)
             fitted = np.polyval(coeffs, wavenumbers)
+
+            # 输出拟合结果
+            st.write(f"[CHECK] Fitted values: {fitted[:5]}")  # 只显示前5个值
             mask = y < fitted
             y[~mask] = fitted[~mask]
+
+        # 将修正后的光谱添加到基线矩阵
         baseline[:, i] = y
+
     return spectra - baseline
 
 
