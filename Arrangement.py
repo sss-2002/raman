@@ -1585,24 +1585,26 @@ def main():
                 st.session_state.show_arrangements = not st.session_state.show_arrangements
 
                 if st.session_state.show_arrangements:
+                    # 动态构建 selected_algorithms 字典
                     selected_algorithms = {
                         'baseline': {
-                            'method': 'ModPoly',
-                            'params': {}  # 添加空的params字段
+                            'method': baseline_method,  # 使用用户选择的算法
+                            'params': baseline_params if baseline_method != '无' else {}  # 根据用户选择传递参数
                         },
                         'scaling': {
-                            'method': 'MSC',
-                            'params': {}  # 添加空的params字段
+                            'method': scaling_method,  # 使用用户选择的算法
+                            'params': scaling_params if scaling_method != '无' else {}
                         },
                         'filtering': {
-                            'method': 'sgolayfilt滤波器',
-                            'params': {}  # 添加空的params字段
+                            'method': filtering_method,  # 使用用户选择的算法
+                            'params': filtering_params if filtering_method != '无' else {}
                         },
                         'squashing': {
-                            'method': '逻辑函数',
-                            'params': {}  # 添加空的params字段
+                            'method': squashing_method,  # 使用用户选择的算法
+                            'params': squashing_params if squashing_method != '无' else {}
                         }
                     }
+
                     st.write("selected_algorithms: ", selected_algorithms)
                     # 生成排列组合并存储（原逻辑不变）
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
