@@ -259,6 +259,10 @@ class Preprocessor:
             if scaling_method != "无":
                 steps.append(("scaling", scaling_method, scaling_params))
 
+        # 调试输出参数
+        for step_type, method, params in steps:
+            print(f"[CHECK] {step_type} 方法: {method}, 参数: {params}")
+
         # 按顺序执行预处理步骤
         for step_type, method, params in steps:
             if method == "无":
@@ -267,6 +271,8 @@ class Preprocessor:
             try:
                 if step_type == "baseline":
                     algorithm_func = self.BASELINE_ALGORITHMS[method]
+                    print(f"[CHECK] 执行基线校正方法: {method}, 参数: {params}")  # 输出调试信息
+
                     if method in ["多项式拟合", "ModPoly", "I-ModPoly"]:
                         y_processed = algorithm_func(wavenumbers, y_processed, **params)
                     elif method in ["PLS"]:
@@ -284,6 +290,8 @@ class Preprocessor:
 
                 elif step_type == "squashing":
                     algorithm_func = self.SQUASHING_ALGORITHMS[method]
+                    print(f"[CHECK] 执行挤压方法: {method}, 参数: {params}")  # 输出调试信息
+
                     if method == "改进的Sigmoid挤压":
                         # 使用改进的i_sigmoid函数，支持maxn参数
                         maxn = params.get("maxn", 10)
@@ -313,6 +321,8 @@ class Preprocessor:
 
                 elif step_type == "filtering":
                     algorithm_func = self.FILTERING_ALGORITHMS[method]
+                    print(f"[CHECK] 执行滤波方法: {method}, 参数: {params}")  # 输出调试信息
+
                     y_processed = algorithm_func(y_processed, **params)
                     params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
                     method_name.append(f"{method}({params_str})")
@@ -324,6 +334,8 @@ class Preprocessor:
 
                 elif step_type == "scaling":
                     algorithm_func = self.SCALING_ALGORITHMS[method]
+                    print(f"[CHECK] 执行缩放方法: {method}, 参数: {params}")  # 输出调试信息
+
                     y_processed = algorithm_func(y_processed, **params)
                     params_str = ', '.join([f'{k}={v}' for k, v in params.items()])
                     method_name.append(f"{method}({params_str})")
