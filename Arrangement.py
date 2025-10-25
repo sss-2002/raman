@@ -57,7 +57,7 @@ def modpoly(wavenumbers, spectra, k):
         y = spectra[i, :].copy()  # 每个样本的光谱
 
         # 输出当前光谱信息
-        st.write(f"[CHECK] Processing spectrum {i+1}, shape: {y.shape}")
+        # st.write(f"[CHECK] Processing spectrum {i+1}, shape: {y.shape}")
 
         # 对每个光谱应用多项式拟合
         for _ in range(k):
