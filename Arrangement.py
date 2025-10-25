@@ -51,7 +51,7 @@ def modpoly(wavenumbers, spectra, k):
 
     # 输出调试信息
     # st.write(f"[CHECK] n_points: {n_points}, spectra shape: {spectra.shape}")
-
+    st.write(f"spectra 的第一维度 (行数): {spectra.shape[0]}")
     # 遍历每个样本的光谱
     for i in range(spectra.shape[0]):  # spectra.shape[0] 为样本数量
         y = spectra[i, :].copy()  # 每个样本的光谱
