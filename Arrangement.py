@@ -1700,12 +1700,12 @@ def main():
                     if st.session_state.get('raw_data'):
                         wavenumbers, y = st.session_state.raw_data
 
-                        # 将 y 合并为一维数组，合并所有光谱数据
-                        y = np.reshape(y, -1)  # 或者使用 y.flatten()，将二维数组转换为一维数组
+                        # 确保 y 是一维数组
+                        y = np.squeeze(y)  # 移除多余的维度，确保 y 是一维数组 (20,)
 
                         st.write(f"[CHECK] 原始 y 的维度: {y.shape}")  # 检查维度
 
-                        S = len(labels)  # 样本数（如果仍然需要）
+                        S = len(labels)  # 样本数
                         P = len(st.session_state.algorithm_permutations)  # 排列数
                         N = len(wavenumbers)  # 波数点数
                         st.write(f"[CHECK] 样本数 S: {S}, 排列数 P: {P}, 波数点数 N: {N}")
