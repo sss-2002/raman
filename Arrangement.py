@@ -1712,9 +1712,9 @@ def main():
                         def get_spectrum_j(j_idx: int) -> np.ndarray:
                             if y_arr.ndim == 2:
                                 if y_arr.shape[0] == N and y_arr.shape[1] == S:  # N×S
-                                    return y_arr[:, j_idx]
+                                    spec_j = y_arr[:, j_idx]
                                 elif y_arr.shape[0] == S and y_arr.shape[1] == N:  # S×N
-                                    return y_arr[j_idx, :]
+                                    spec_j = y_arr[j_idx, :]
                                 else:
                                     raise ValueError(
                                         f"原始光谱矩阵维度不匹配，期望含有 N={N} 与 S={S} 之一的维度，当前形状={y_arr.shape}")
@@ -1722,6 +1722,12 @@ def main():
                                 raise ValueError("原始光谱只有 1 条，无法构建 (S,P,N) 立方体。")
                             else:
                                 raise ValueError(f"不支持的原始光谱维度：{y_arr.ndim}")
+
+                            # 只在需要时移除多余的维度
+                            if spec_j.ndim == 2:  # 如果返回的是二维数组 (1, N)
+                                spec_j = np.squeeze(spec_j)  # 移除多余的维度，使其变为 (N,)
+
+                            return spec_j  # 返回处理后的光谱数据
 
                         # st.write(f"[CHECK] algorithm_permutations:", st.session_state.algorithm_permutations)
 
