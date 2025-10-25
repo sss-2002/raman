@@ -1570,10 +1570,10 @@ def main():
                         st.session_state.processed_data = (wavenumbers, processed_data)
                         st.session_state.process_method = " → ".join(method_name)
                         st.success(f"✅ 处理完成")
-                        # st.write(f"当前选择的基线校正方法: {baseline_method}，参数: {baseline_params}")
-                        # st.write(f"当前选择的缩放方法: {scaling_method}，参数: {scaling_params}")
-                        # st.write(f"当前选择的滤波方法: {filtering_method}，参数: {filtering_params}")
-                        # st.write(f"当前选择的挤压方法: {squashing_method}，参数: {squashing_params}")
+                        st.write(f"当前选择的基线校正方法: {baseline_method}，参数: {baseline_params}")
+                        st.write(f"当前选择的缩放方法: {scaling_method}，参数: {scaling_params}")
+                        st.write(f"当前选择的滤波方法: {filtering_method}，参数: {filtering_params}")
+                        st.write(f"当前选择的挤压方法: {squashing_method}，参数: {squashing_params}")
                     except Exception as e:
                         st.error(f"❌ 处理失败: {str(e)}")
 
