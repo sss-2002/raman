@@ -1654,15 +1654,22 @@ def main():
                         # 遍历填充立方体（原逻辑不变）
                         for j in range(S):
                             spec_j = get_spectrum_j(j).astype(np.float32)
+                            st.write(f"[CHECK] 第 {j + 1} 条光谱数据：", spec_j)  # 输出当前光谱数据
                             if spec_j.shape[0] != N:
                                 raise ValueError(f"第 {j + 1} 条光谱长度 {spec_j.shape[0]} 与波数长度 N={N} 不一致。")
+
                             for i, perm in enumerate(st.session_state.algorithm_permutations):
                                 algorithm_order = perm.get('order', [])
                                 bm = perm.get('params', {}).get('baseline', '无')
                                 sm = perm.get('params', {}).get('scaling', '无')
                                 fm = perm.get('params', {}).get('filtering', '无')
                                 qm = perm.get('params', {}).get('squashing', '无')
-                               
+
+                                # 输出正在使用的预处理算法和参数
+                                st.write(f"[CHECK] 使用的算法顺序：{algorithm_order}")
+                                st.write(f"[CHECK] 基线={bm}, 缩放={sm}, 滤波={fm}, 挤压={qm}")
+
+                                # 调用预处理函数进行处理
                                 processed_data, _method_name = preprocessor.process(
                                     wavenumbers, spec_j,
                                     baseline_method=bm, baseline_params=baseline_params,
@@ -1671,11 +1678,20 @@ def main():
                                     scaling_method=sm, scaling_params=scaling_params,
                                     algorithm_order=algorithm_order
                                 )
+
+                                # 输出处理后的数据
+                                st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
+
                                 arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
+
+                                # 输出转换后的数据形状
+                                st.write(f"[CHECK] 处理后的数据形状 (排列 {i + 1}): {arr.shape}")
+
                                 if arr.shape[0] != N:
                                     raise ValueError(f"排列 {i + 1} 处理后长度 {arr.shape[0]} 与 N={N} 不一致。")
-                                # st.write(f"Processed Spectrum for Arrangement {i + 1}, Sample {j + 1}: {arr[:5]} ...")  # 输出前5个数据
-                                # processed_cube[j, i, :] = arr
+
+                                # 输出当前存储的数据
+                                st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
 
                         # st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
                         # st.write("[CHECK] processed_cube[0, 0, :5] =", processed_cube[0, 0, :5].tolist())
