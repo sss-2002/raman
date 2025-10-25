@@ -216,6 +216,7 @@ class Preprocessor:
                 scaling_method="无", scaling_params=None,
                 algorithm_order=None):
         """执行预处理流程，支持指定算法顺序，空顺序表示返回原始数据"""
+
         if baseline_params is None: baseline_params = {}
         if squashing_params is None: squashing_params = {}
         if filtering_params is None: filtering_params = {}
@@ -227,6 +228,13 @@ class Preprocessor:
 
         y_processed = data.copy()
         method_name = []
+
+        # 确保每个算法顺序都是有效的
+        valid_orders = [1, 2, 3, 4]  # 仅支持 1-4
+        if algorithm_order is not None:
+            invalid_orders = [order for order in algorithm_order if order not in valid_orders]
+            if invalid_orders:
+                raise ValueError(f"无效的算法步骤编号: {invalid_orders}")
 
         # 如果指定了算法顺序，则按顺序执行
         if algorithm_order is not None and len(algorithm_order) > 0:
@@ -1680,7 +1688,7 @@ def main():
                                 # 输出正在使用的预处理算法和参数
                                 # st.write(f"[CHECK] 基线={bm}, 缩放={sm}, 滤波={fm}, 挤压={qm}")
                                 st.write( f"[CHECK] 基线参数={baseline_params}, 缩放参数={scaling_params}, 滤波参数={filtering_params}, 挤压参数={squashing_params}")
-                               
+
                                 processed_data, _method_name = preprocessor.process(
                                     wavenumbers, spec_j,
                                     baseline_method=bm, baseline_params=baseline_params,
