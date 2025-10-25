@@ -41,6 +41,10 @@ def polynomial_fit(wavenumbers, spectra, polyorder):
 def modpoly(wavenumbers, spectra, k):
     """Modified Polynomial (ModPoly) 基线校正"""
 
+    # 确保 spectra 是二维数组
+    if spectra.ndim == 1:
+        spectra = spectra.reshape(1, -1)  # 将其变为 1 × 20 的数组
+
     baseline = np.zeros_like(spectra)
     n_points = len(wavenumbers)
 
@@ -48,11 +52,11 @@ def modpoly(wavenumbers, spectra, k):
     st.write(f"[CHECK] n_points: {n_points}, spectra shape: {spectra.shape}")
 
     # 遍历每个样本的光谱
-    for i in range(spectra.shape[1]):
-        y = spectra[:, i].copy()
+    for i in range(spectra.shape[0]):  # spectra.shape[0] 为样本数量
+        y = spectra[i, :].copy()  # 每个样本的光谱
 
         # 输出当前光谱信息
-        st.write(f"[CHECK] Processing spectrum {i + 1}, shape: {y.shape}")
+        st.write(f"[CHECK] Processing spectrum {i+1}, shape: {y.shape}")
 
         # 对每个光谱应用多项式拟合
         for _ in range(k):
@@ -65,10 +69,9 @@ def modpoly(wavenumbers, spectra, k):
             y[~mask] = fitted[~mask]
 
         # 将修正后的光谱添加到基线矩阵
-        baseline[:, i] = y
+        baseline[i, :] = y
 
     return spectra - baseline
-
 
 def pls(spectra, lam):
     """Penalized Least Squares (PLS) 基线校正"""
