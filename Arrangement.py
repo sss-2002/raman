@@ -1695,9 +1695,9 @@ def main():
                     # 获取原始光谱数据并进行处理
                     if st.session_state.get('raw_data'):
                         wavenumbers, y = st.session_state.raw_data
-                        st.write(f"y 的维度: {y.shape}")
+                        # st.write(f"y 的维度: {y.shape}")
                         # 确保 y 是一维数组，去除多余维度
-                        
+
                         # 获取样本数、排列数和波数点数
                         S = len(labels)  # 样本数
                         P = len(st.session_state.algorithm_permutations)  # 排列数
@@ -1709,7 +1709,7 @@ def main():
 
                         # 将 y 转换为 NumPy 数组
                         y_arr = np.asarray(y)
-                        st.write(f"[CHECK] y_arr 的维度: {y_arr.shape}")
+                        # st.write(f"[CHECK] y_arr 的维度: {y_arr.shape}")
 
                         # 定义获取单条光谱数据的函数
                         def get_spectrum_j(j_idx: int) -> np.ndarray:
@@ -1729,7 +1729,7 @@ def main():
                             # 确保每条光谱数据是二维的 (1, N) 或 (N, 1)
                             if spec_j.ndim == 1:
                                 spec_j = spec_j.reshape(1, -1)  # 转换为 (1, N)，即1行，N列
-                            st.write(f"[CHECK] spec_j 的维度: {spec_j.shape}")
+                            # st.write(f"[CHECK] spec_j 的维度: {spec_j.shape}")
 
                             # 确保光谱数据的长度和波数长度一致
                             if spec_j.shape[1] != N:
@@ -1769,8 +1769,9 @@ def main():
                                     algorithm_order=algorithm_order
                                 )
 
+                                st.write(f"[CHECK] 处理后的 processed_data: {processed_data}")
                                 # 输出处理后的数据的维度
-                                st.write(f"[CHECK] 处理后的 processed_data 的维度: {processed_data.shape}")
+                                # st.write(f"[CHECK] 处理后的 processed_data 的维度: {processed_data.shape}")
                                 # 将处理后的数据转为 NumPy 数组，并进行必要的形状转换
                                 arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
                                 # st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
