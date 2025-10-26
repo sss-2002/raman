@@ -1,3 +1,4 @@
+import streamlit
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -1647,54 +1648,58 @@ def main():
 
             # 显示排列按钮（原逻辑不变）
             if st.button("🔍 显示排列", type="secondary", use_container_width=True, key="show_perm_btn"):
+                # 切换显示排列的状态，True 或 False
                 st.session_state.show_arrangements = not st.session_state.show_arrangements
 
+                # 如果需要显示排列组合
                 if st.session_state.show_arrangements:
-                    # 动态构建 selected_algorithms 字典
+                    # 动态构建 selected_algorithms 字典，保存用户选择的算法及其参数
                     selected_algorithms = {
                         'baseline': {
-                            'method': baseline_method,  # 使用用户选择的算法
-                            'params': baseline_params if baseline_method != '无' else {}  # 根据用户选择传递参数
+                            'method': baseline_method,  # 使用用户选择的基线校准算法
+                            'params': baseline_params if baseline_method != '无' else {}  # 根据用户选择传递基线校准的参数，若没有选择则为一个空字典
                         },
                         'scaling': {
-                            'method': scaling_method,  # 使用用户选择的算法
-                            'params': scaling_params if scaling_method != '无' else {}
+                            'method': scaling_method,  # 使用用户选择的缩放算法
+                            'params': scaling_params if scaling_method != '无' else {}  # 根据用户选择传递缩放算法的参数，若没有选择则为一个空字典
                         },
                         'filtering': {
-                            'method': filtering_method,  # 使用用户选择的算法
+                            'method': filtering_method,  # 使用用户选择的滤波算法
                             'params': filtering_params if filtering_method != '无' else {}
+                            # 根据用户选择传递滤波算法的参数，若没有选择则为一个空字典
                         },
                         'squashing': {
-                            'method': squashing_method,  # 使用用户选择的算法
+                            'method': squashing_method,  # 使用用户选择的挤压算法
                             'params': squashing_params if squashing_method != '无' else {}
+                            # 根据用户选择传递挤压算法的参数，若没有选择则为一个空字典
                         }
                     }
 
-                    # st.write("selected_algorithms: ", selected_algorithms)
-                    # 生成排列组合并存储（原逻辑不变）
+                    # 生成排列组合并存储在 session_state 中
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
+                    st.write(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
+                    st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
 
+
+                    # 将生成的排列组合存储为 filtered_perms
                     st.session_state.filtered_perms = st.session_state.algorithm_permutations
-                    # st.success(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
-                    # st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
 
-                    # 获取用户输入的标签（原逻辑不变）
+                    # 获取用户输入的标签，确保标签已设置
                     if 'labels' not in st.session_state or st.session_state.labels is None:
                         st.error("❌ 标签尚未设置！请先通过主函数获取并验证标签。")
-                        return
+                        return  # 如果标签没有设置，退出当前操作
 
-                    labels = st.session_state.labels  # 获取已存储的标签
-                    # st.write("标签已加载：", labels)
+                    # 获取已存储的标签
+                    labels = st.session_state.labels
 
-                    # 获取原始光谱数据并进行处理（原逻辑不变）
+                    # 获取原始光谱数据并进行处理
                     if st.session_state.get('raw_data'):
                         wavenumbers, y = st.session_state.raw_data
 
-                        # 确保 y 是一维数组
-                        y = np.squeeze(y)  # 移除多余的维度，确保 y 是一维数组 (20,)
+                        # 确保 y 是一维数组，去除多余维度
+                        y = np.squeeze(y)
 
-                        # st.write(f"[CHECK] 原始 y 的维度: {y.shape}")  # 检查维度
-
+                        # 获取样本数、排列数和波数点数
                         S = len(labels)  # 样本数
                         P = len(st.session_state.algorithm_permutations)  # 排列数
                         N = len(wavenumbers)  # 波数点数
@@ -1703,58 +1708,34 @@ def main():
                         # --- 1) 构建 (S, P, N) 的三维立方体 ---
                         processed_cube = np.empty((S, P, N), dtype=np.float32)
 
-                        # 获取每条光谱数据
+                        # 将 y 转换为 NumPy 数组
                         y_arr = np.asarray(y)
                         st.write(f"[CHECK] y_arr 的维度: {y_arr.shape}")
 
+                        # 定义获取单条光谱数据的函数
                         def get_spectrum_j(j_idx: int) -> np.ndarray:
-                            if y_arr.ndim == 1:  # y_arr 是一维数组
+                            if y_arr.ndim == 1:  # 如果 y_arr 是一维数组
                                 spec_j = y_arr[j_idx]  # 直接取第 j 条光谱
                             else:
                                 raise ValueError(f"原始光谱维度不匹配，期望为一维数组，当前维度为 {y_arr.ndim}")
 
                             return spec_j  # 返回一维光谱数据
 
-                        def get_spectrum_j(j_idx: int) -> np.ndarray:
-                            if y_arr.ndim == 2:
-                                if y_arr.shape[0] == N and y_arr.shape[1] == S:  # N×S
-                                    spec_j = y_arr[:, j_idx]
-                                elif y_arr.shape[0] == S and y_arr.shape[1] == N:  # S×N
-                                    spec_j = y_arr[j_idx, :]
-                                else:
-                                    raise ValueError(
-                                        f"原始光谱矩阵维度不匹配，期望含有 N={N} 与 S={S} 之一的维度，当前形状={y_arr.shape}")
-                            elif y_arr.ndim == 1:
-                                raise ValueError("原始光谱只有 1 条，无法构建 (S,P,N) 立方体。")
-                            else:
-                                raise ValueError(f"不支持的原始光谱维度：{y_arr.ndim}")
-
-                            # 确保返回的光谱数据是 (N,)
-                            if spec_j.ndim == 2:
-                                spec_j = np.squeeze(spec_j)  # 如果是二维的 (1, N)，去掉多余的维度
-                            if spec_j.ndim == 1:  # 确保是 (N,)
-                                return spec_j
-                            else:
-                                raise ValueError(f"光谱维度错误，预期为 (N,) 当前维度为: {spec_j.shape}")
-
-                        # st.write(f"[CHECK] algorithm_permutations:", st.session_state.algorithm_permutations)
-
-                        #遍历填充立方体（原逻辑不变）
+                        # 遍历所有样本，填充三维立方体
                         for j in range(S):
                             spec_j = get_spectrum_j(j).astype(np.float32)
-                            # 确保每条光谱数据 spec_j 是二维的 (1, N) 或 (N, 1)
+                            # 确保每条光谱数据是二维的 (1, N) 或 (N, 1)
                             if spec_j.ndim == 1:
                                 spec_j = spec_j.reshape(1, -1)  # 转换为 (1, N)，即1行，N列
                             st.write(f"[CHECK] spec_j 的维度: {spec_j.shape}")
-                            # st.write(f"[CHECK] 第 {j + 1} 条光谱数据：", spec_j)  # 输出当前光谱数据
+
+                            # 确保光谱数据的长度和波数长度一致
                             if spec_j.shape[1] != N:
                                 raise ValueError(f"第 {j + 1} 条光谱长度 {spec_j.shape[0]} 与波数长度 N={N} 不一致。")
 
+                            # 对每种排列组合进行处理
                             for i, perm in enumerate(st.session_state.algorithm_permutations):
-                                # st.write(f"[CHECK] perm {i}: {perm}")
-                                algorithm_order = perm.get('order', [])  # 获取顺序
-                                # st.write(f"[CHECK] algorithm_order: {algorithm_order}")
-                                # st.write(f"[CHECK] perm['details']: {perm['details']}")
+                                algorithm_order = perm.get('order', [])  # 获取排列的顺序
 
                                 # 从 details 中获取每个算法的参数
                                 bm = next((step[2] for step in perm['details'] if step[1] == '基线校准'), '无')
@@ -1762,7 +1743,7 @@ def main():
                                 fm = next((step[2] for step in perm['details'] if step[1] == '滤波'), '无')
                                 qm = next((step[2] for step in perm['details'] if step[1] == '挤压'), '无')
 
-                                # 获取参数，并确保它们是字典格式
+                                # 获取算法参数，确保它们是字典格式
                                 baseline_params = next(
                                     (step[3] if isinstance(step[3], dict) else {'k': step[3]} for step in
                                      perm['details'] if step[1] == '基线校准'), {'k': 8})
@@ -1776,7 +1757,7 @@ def main():
                                     (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
                                      step[1] == '挤压'), {})
 
-                                # st.write(f"[CHECK] spec_j 的维度: {spec_j.shape}")  # 使用 st.write 打印维度
+                                # 调用预处理函数处理数据
                                 processed_data, _method_name = preprocessor.process(
                                     wavenumbers, spec_j,
                                     baseline_method=bm, baseline_params=baseline_params,
@@ -1786,11 +1767,10 @@ def main():
                                     algorithm_order=algorithm_order
                                 )
 
-                                # 输出处理后的数据
-                                # st.write(f"[CHECK] 处理后的数据 (排列 {i + 1}): {processed_data}")
+                                # 输出处理后的数据的维度
                                 st.write(f"[CHECK] 处理后的 processed_data 的维度: {processed_data.shape}")
+                                # 将处理后的数据转为 NumPy 数组，并进行必要的形状转换
                                 arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
-                                #
                                 # st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
 
                         # st.write("[CHECK] processed_cube.shape =", processed_cube.shape)
