@@ -1613,7 +1613,7 @@ def main():
                 if st.session_state.raw_data is None:
                     st.warning("⚠️ 请先上传数据")
                 else:
-                    try                    
+                    try:
                         wavenumbers, y = st.session_state.raw_data
                         processed_data, method_name = preprocessor.process(
                             wavenumbers, y,
@@ -1640,7 +1640,7 @@ def main():
                         st.success(f"✅ 处理完成")
 
                     except Exception as e:
-                        st.error(f"❌ 处理失败: {str(e)}")
+                        # st.error(f"❌ 处理失败: {str(e)}")
 
         with preprocess_cols[4]:
             st.subheader("操作1")
