@@ -43,7 +43,7 @@ def polynomial_fit(wavenumbers, spectra, polyorder):
 def modpoly(wavenumbers, spectra, k):
     """Modified Polynomial (ModPoly) 基线校正"""
 
-    # 确保 spectra 是二维的 (1, N)，如果 spectra 是一维的，将其转换为二维
+    # 确保 spectra 是二维的 (S, N)，如果 spectra 是一维的，将其转换为二维
     if spectra.ndim == 1:
         spectra = spectra.reshape(1, -1)  # 转换为 (1, N)
 
@@ -64,7 +64,8 @@ def modpoly(wavenumbers, spectra, k):
 
         baseline[i, :] = y  # 更新基线修正后的光谱数据
 
-    return spectra - baseline  # 返回修正后的光谱数据，形状为 (S, N)
+    # 返回修正后的光谱数据，确保返回的也是二维数组，形状为 (S, N)
+    return spectra - baseline
 
 def pls(spectra, lam):
     """Penalized Least Squares (PLS) 基线校正"""
