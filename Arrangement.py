@@ -1677,8 +1677,8 @@ def main():
 
                     # 生成排列组合并存储在 session_state 中
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
-                    st.write(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
-                    st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
+                    # st.write(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
+                    # st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
 
 
                     # 将生成的排列组合存储为 filtered_perms
@@ -1691,14 +1691,14 @@ def main():
 
                     # 获取已存储的标签
                     labels = st.session_state.labels
-
+                    st.write("标签信息：", labels)
                     # 获取原始光谱数据并进行处理
                     if st.session_state.get('raw_data'):
                         wavenumbers, y = st.session_state.raw_data
-
+                        st.write(f"y1 的维度: {y.shape}")
                         # 确保 y 是一维数组，去除多余维度
                         y = np.squeeze(y)
-
+                        st.write(f"y1 的维度: {y.shape}")
                         # 获取样本数、排列数和波数点数
                         S = len(labels)  # 样本数
                         P = len(st.session_state.algorithm_permutations)  # 排列数
