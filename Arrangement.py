@@ -43,29 +43,22 @@ def polynomial_fit(wavenumbers, spectra, polyorder):
 def modpoly(wavenumbers, spectra, k):
     """Modified Polynomial (ModPoly) 基线校正"""
 
-    # 确保 spectra 是二维的 (S, N)，如果 spectra 是一维的，将其转换为二维
-    if spectra.ndim == 1:
-        spectra = spectra.reshape(1, -1)  # 转换为 (1, N)
-
-    baseline = np.zeros_like(spectra)  # 创建与 spectra 相同形状的基线矩阵
-    n_points = len(wavenumbers)  # 获取波数点数
-
     # 遍历每个样本的光谱
     for i in range(spectra.shape[0]):  # spectra.shape[0] 是样本数量
-        y = spectra[i, :].copy()  # 获取第 i 个样本的光谱数据
+        spec_j = spectra[i, :]  # 获取第 i 个样本的光谱数据（直接提取第 i 行）
 
         # 对每个光谱应用多项式拟合 k 次
         for _ in range(k):
-            coeffs = np.polyfit(wavenumbers, y, deg=5)  # 使用多项式拟合
+            coeffs = np.polyfit(wavenumbers, spec_j, deg=5)  # 使用多项式拟合
             fitted = np.polyval(coeffs, wavenumbers)  # 计算拟合值
 
-            mask = y < fitted
-            y[~mask] = fitted[~mask]  # 修正基线
+            mask = spec_j < fitted
+            spec_j[~mask] = fitted[~mask]  # 修正基线
 
-        baseline[i, :] = y  # 更新基线修正后的光谱数据
+        spectra[i, :] = spec_j  # 将处理后的光谱数据赋回原位置
 
-    # 返回修正后的光谱数据，确保返回的也是二维数组，形状为 (S, N)
-    return spectra - baseline
+    return spectra  # 返回修改后的光谱数据
+
 
 def pls(spectra, lam):
     """Penalized Least Squares (PLS) 基线校正"""
