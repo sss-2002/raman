@@ -1640,7 +1640,7 @@ def main():
                         st.success(f"✅ 处理完成")
 
                     except Exception as e:
-                        st.error(f"❌ 处理失败: {str(e)}")
+                        # st.error(f"❌ 处理失败: {str(e)}")
 
         with preprocess_cols[4]:
             st.subheader("操作1")
