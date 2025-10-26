@@ -1771,7 +1771,7 @@ def main():
 
                                 st.write(f"[CHECK] 处理后的 processed_data: {processed_data}")
                                 # 输出处理后的数据的维度
-                                # st.write(f"[CHECK] 处理后的 processed_data 的维度: {processed_data.shape}")
+                                st.write(f"[CHECK] 处理后的 processed_data 的维度: {processed_data.shape}")
                                 # 将处理后的数据转为 NumPy 数组，并进行必要的形状转换
                                 arr = np.asarray(processed_data, dtype=np.float32).reshape(-1)
                                 # st.write(f"[CHECK] 存入 processed_cube[{j}, {i}, :] 的数据: {arr}")
