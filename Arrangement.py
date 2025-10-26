@@ -43,21 +43,21 @@ def polynomial_fit(wavenumbers, spectra, polyorder):
 def modpoly(wavenumbers, spectra, k):
     """Modified Polynomial (ModPoly) 基线校正"""
 
-    # 遍历每个样本的光谱
-    for i in range(spectra.shape[0]):  # spectra.shape[0] 是样本数量
-        spec_j = spectra[i, :]  # 获取第 i 个样本的光谱数据（直接提取第 i 行）
+    # 遍历 spec_j 的每一行进行处理
+    for i in range(spectra.shape[0]):  # spec_j.shape[0] 是样本数量
+        row = spectra[i, :]  # 获取第 i 行（光谱数据）
 
         # 对每个光谱应用多项式拟合 k 次
         for _ in range(k):
-            coeffs = np.polyfit(wavenumbers, spec_j, deg=5)  # 使用多项式拟合
+            coeffs = np.polyfit(wavenumbers, row, deg=3)  # 使用低阶多项式拟合
             fitted = np.polyval(coeffs, wavenumbers)  # 计算拟合值
 
-            mask = spec_j < fitted
-            spec_j[~mask] = fitted[~mask]  # 修正基线
+            # 基线修正：将 row 减去拟合曲线
+            row = row - fitted  # 直接修正基线
 
-        spectra[i, :] = spec_j  # 将处理后的光谱数据赋回原位置
+        spectra[i, :] = row  # 将处理后的行重新赋回原位置
 
-    return spectra  # 返回修改后的光谱数据
+    return spectra  # 返回修改后的 spec_j（即 spectra）
 
 
 def pls(spectra, lam):
