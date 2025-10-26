@@ -1695,10 +1695,9 @@ def main():
                     # 获取原始光谱数据并进行处理
                     if st.session_state.get('raw_data'):
                         wavenumbers, y = st.session_state.raw_data
-                        st.write(f"y1 的维度: {y.shape}")
+                        st.write(f"y 的维度: {y.shape}")
                         # 确保 y 是一维数组，去除多余维度
-                        y = np.squeeze(y)
-                        st.write(f"y1 的维度: {y.shape}")
+                        
                         # 获取样本数、排列数和波数点数
                         S = len(labels)  # 样本数
                         P = len(st.session_state.algorithm_permutations)  # 排列数
