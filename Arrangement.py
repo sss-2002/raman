@@ -1717,11 +1717,12 @@ def main():
                             if y_arr.ndim == 1:  # 如果 y_arr 是一维数组
                                 spec_j = y_arr[j_idx]  # 直接取第 j 条光谱
                             elif y_arr.ndim == 2:  # 如果 y_arr 是二维数组
-                                spec_j = y_arr[j_idx, :]  # 取第 j 行光谱
+                                # 先取第 j 列，再转置为行
+                                spec_j = y_arr[:, j_idx].T  # 获取第 j 列数据并转置为一行
                             else:
                                 raise ValueError(f"原始光谱维度不匹配，期望为一维或二维数组，当前维度为 {y_arr.ndim}")
 
-                            return spec_j  # 返回
+                            return spec_j  # 返回一维光谱数据
 
                         # 遍历所有样本，填充三维立方体
                         for j in range(S):
