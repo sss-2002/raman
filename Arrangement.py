@@ -1714,7 +1714,7 @@ def main():
 
                         # 定义获取单条光谱数据的函数
                         def get_spectrum_j(j_idx: int) -> np.ndarray:
-                            if y_arr.ndim == 1:  # 如果 y_arr 是一维数组
+                            if y_arr.ndim == 2:  # 如果 y_arr 是一维数组
                                 spec_j = y_arr[j_idx]  # 直接取第 j 条光谱
                             else:
                                 raise ValueError(f"原始光谱维度不匹配，期望为一维数组，当前维度为 {y_arr.ndim}")
