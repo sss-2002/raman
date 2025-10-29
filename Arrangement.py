@@ -452,8 +452,8 @@ class Preprocessor:
                     st.error(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
                     return
 
-                # 获取每列的最大值
-                max_value = np.max(spectra, axis=0)  # 按列计算最大值
+                # 获取每行的最大值
+                max_value = np.max(spectra, axis=1)  # 按行计算最大值
 
                 # 检查是否有最大值为零的列
                 zero_max_columns = np.where(max_value == 0)[0]
