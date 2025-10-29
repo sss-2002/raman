@@ -444,8 +444,8 @@ class Preprocessor:
 
     def peak_norm(self, spectra):
                 # 打印 spectra 的维度和内容，检查它的实际结构
-                st.write(f"spectra shape: {spectra.shape}")  # 使用 st.write 打印 spectra 的维度
-                st.write(f"spectra: {spectra}")  # 使用 st.write 打印 spectra 的内容，查看具体数据
+                # st.write(f"spectra shape: {spectra.shape}")  # 使用 st.write 打印 spectra 的维度
+                # st.write(f"spectra: {spectra}")  # 使用 st.write 打印 spectra 的内容，查看具体数据
 
                 # 确保 spectra 是二维数组
                 if spectra.ndim != 2:
