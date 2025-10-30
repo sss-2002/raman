@@ -1741,9 +1741,9 @@ def main():
                     }
 
                     # 生成排列组合并存储在 session_state 中
-                    
+
                     st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
-                    
+
                     # st.write(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
                     # st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
 
@@ -1816,6 +1816,8 @@ def main():
                                 baseline_params = next(
                                     (step[3] if isinstance(step[3], dict) else {'k': step[3]} for step in
                                      perm['details'] if step[1] == '基线校准'), {'k': 8})
+                                st.write(f"基线校准参数: {baseline_params}")
+
                                 scaling_params = next(
                                     (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
                                      step[1] == '缩放'), {})
