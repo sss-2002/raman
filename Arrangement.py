@@ -1819,13 +1819,15 @@ def main():
                                 # st.write(f"perm['details']: {perm['details']}")
                                 # 从 details 中获取每个算法的参数
                                 bm = next((step[2] for step in perm['details'] if step[1] == '基线校准'), '无')
+                                if bm == '多项式拟合':
+                                    bm = polynomial_fit
                                 sm = next((step[2] for step in perm['details'] if step[1] == '缩放'), '无')
                                 fm = next((step[2] for step in perm['details'] if step[1] == '滤波'), '无')
                                 qm = next((step[2] for step in perm['details'] if step[1] == '挤压'), '无')
 
                                 # 获取算法参数，确保它们是字典格式
                                 baseline_params = next(
-                                    (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if 
+                                    (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
                                      step[1] == '基线校准'), {})
                                 st.write(f"基线校准参数: {baseline_params}")
 
