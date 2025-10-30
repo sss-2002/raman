@@ -772,18 +772,26 @@ def D2(sdata):
     返回:
         二阶差分结果，形状与输入相同
     """
-    row = sdata.shape[0]
-    col = sdata.shape[1]
-    D2_result = np.zeros((row, col))
-    for i in range(row):
-        tem = np.diff(sdata[i], 2)
-        temp = tem.tolist()
-        # 填充最后两个元素以保持与输入相同的尺寸
-        temp.append(temp[-1])
-        temp.append(temp[-1])
-        D2_result[i] = temp
-    return D2_result
+    row = sdata.shape[0]  # 获取样本数
+    col = sdata.shape[1]  # 获取特征数
+    D2_result = np.zeros((row, col))  # 初始化结果矩阵
 
+    for i in range(row):
+        # 计算每一行的二阶差分
+        tem = np.diff(sdata[i], 2)  # 计算二阶差分
+        temp = tem.tolist()  # 将结果转为列表
+
+        # 填充前两个元素和最后两个元素以保持与输入相同的尺寸
+        # 填充方法：重复差分计算的首尾元素
+        temp.insert(0, temp[0])  # 将第一个元素插入到前面
+        temp.insert(0, temp[0])  # 再将第一个元素插入，确保填充正确
+
+        temp.append(temp[-1])  # 将最后一个元素添加到列表末尾
+        temp.append(temp[-1])  # 再将最后一个元素添加
+
+        D2_result[i] = temp  # 将计算结果存储到结果矩阵中
+
+    return D2_result
 
 # LP范数归一化函数
 def LPnorm(arr, ord):
