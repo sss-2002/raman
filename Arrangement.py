@@ -33,12 +33,21 @@ cloud_storage_dir = "/mnt/data/processed_spectra"  # 临时目录，用于存储
 # ===== 算法实现 =====
 def polynomial_fit(wavenumbers, spectra, polyorder):
     """多项式拟合基线校正"""
-    baseline = np.zeros_like(spectra)
-    for i in range(spectra.shape[1]):
-        coeffs = np.polyfit(wavenumbers, spectra[:, i], deg=polyorder)
-        baseline[:, i] = np.polyval(coeffs, wavenumbers)
-    return spectra - baseline  # 扣除基线
 
+    # 确保 spectra 是二维数组
+    if spectra.ndim != 2:
+        st.error(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
+        return
+
+    baseline = np.zeros_like(spectra)
+
+    # 按行进行多项式拟合基线校正
+    for i in range(spectra.shape[0]):  # 每行是一个光谱
+        coeffs = np.polyfit(wavenumbers, spectra[i, :], deg=polyorder)
+        baseline[i, :] = np.polyval(coeffs, wavenumbers)
+
+    # 扣除基线
+    return spectra - baseline
 
 def modpoly(wavenumbers, spectra, k):
     """Modified Polynomial (ModPoly) 基线校正"""
@@ -62,43 +71,72 @@ def modpoly(wavenumbers, spectra, k):
 
 def pls(spectra, lam):
     """Penalized Least Squares (PLS) 基线校正"""
+
+    # 确保 spectra 是二维数组
+    if spectra.ndim != 2:
+        st.error(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
+        return
+
     n_points = spectra.shape[0]
     baseline = np.zeros_like(spectra)
+
+    # 创建稀疏矩阵 D
     D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(n_points, n_points - 2))
     D = lam * D.dot(D.transpose())
-    for i in range(spectra.shape[1]):
+
+    # 按行进行基线校正
+    for i in range(spectra.shape[1]):  # 每列是一个光谱
         y = spectra[:, i]
         A = sparse.eye(n_points) + D
         baseline[:, i] = spsolve(A, y)
+
+    # 返回扣除基线后的光谱数据
     return spectra - baseline
 
 
 def airpls(spectra, lam, max_iter=15, threshold=0.001):
     """Adaptive Iteratively Reweighted Penalized Least Squares (airPLS) 基线校正"""
+
+    # 确保 spectra 是二维数组
+    if spectra.ndim != 2:
+        st.error(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
+        return
+
     n_points = spectra.shape[0]
     baseline = np.zeros_like(spectra)
+
+    # 创建稀疏矩阵 D
     D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(n_points, n_points - 2))
     D = lam * D.dot(D.transpose())
-    for i in range(spectra.shape[1]):
+
+    # 按行进行基线校正
+    for i in range(spectra.shape[1]):  # 每列是一个光谱
         y = spectra[:, i]
         w = np.ones(n_points)
         baseline_i = np.zeros(n_points)
+
         for j in range(max_iter):
             W = sparse.diags(w, 0)
             Z = W + D
-            b = spsolve(Z, W * y)
-            d = y - b
+            b = spsolve(Z, W * y)  # 计算基线
+            d = y - b  # 残差
+
+            # 更新权重
             neg_mask = d < 0
             w[neg_mask] = np.exp(j * np.abs(d[neg_mask]) / np.std(d[neg_mask]))
             w[~neg_mask] = 0
+
+            # 判断是否满足停止条件
             if j > 0:
                 diff = np.sum(np.abs(b - baseline_i)) / np.sum(np.abs(baseline_i)) if np.sum(
                     np.abs(baseline_i)) > 0 else 0
                 if diff < threshold:
                     break
             baseline_i = b
-        baseline[:, i] = baseline_i
-    return spectra - baseline
+
+        baseline[:, i] = baseline_i  # 存储校正后的基线
+
+    return spectra - baseline  # 返回扣除基线后的光谱数据
 
 
 def dtw_squashing(x, l, k1, k2):
@@ -1750,7 +1788,7 @@ def main():
                             # 确保每条光谱数据是二维的 (1, N) 或 (N, 1)
                             if spec_j.ndim == 1:
                                 spec_j = spec_j.reshape(1, -1)  # 转换为 (1, N)，即1行，N列
-                            st.write(f": {spec_j}")
+                            # st.write(f": {spec_j}")
 
                             # 确保光谱数据的长度和波数长度一致
                             if spec_j.shape[1] != N:
