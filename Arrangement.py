@@ -97,37 +97,70 @@ def pls(spectra, lam):
 def airpls(spectra, lam, max_iter=15, threshold=0.001):
     """Adaptive Iteratively Reweighted Penalized Least Squares (airPLS) 基线校正"""
 
-    if spectra.ndim != 2:
-        st.error(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
-        return
-    n_points = spectra.shape[0]
-    baseline = np.zeros_like(spectra)
-    D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(n_points, n_points))
-    D = lam * D.dot(D.transpose())
+    def airpls(spectra, lam, max_iter=15, threshold=0.001):
+        """Adaptive Iteratively Reweighted Penalized Least Squares (airPLS) 基线校正"""
+        st.write("准备调用 airpls 函数")
 
-    for i in range(spectra.shape[1]):
-        y = spectra[:, i]
-        w = np.ones(n_points)
-        baseline_i = np.zeros(n_points)
-        for j in range(max_iter):
-            W = sparse.diags(w, 0)
-            Z = W + D
-            b = spsolve(Z, W @ y)
-            d = y - b
-            neg_mask = d < 0
-            if np.std(d[neg_mask]) == 0:
-                break
-            w[neg_mask] = np.exp(j * np.abs(d[neg_mask]) / np.std(d[neg_mask]))
-            w[~neg_mask] = 0
-            if j > 0:
-                denom = np.sum(np.abs(baseline_i))
-                diff = np.sum(np.abs(b - baseline_i)) / denom if denom > 0 else 0
-                if diff < threshold:
+        # 确保 spectra 是二维数组
+        if spectra.ndim != 2:
+            st.error(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
+            return
+
+        n_points = spectra.shape[0]  # 光谱数据的点数
+        baseline = np.zeros_like(spectra)
+
+        # 创建稀疏矩阵 D
+        D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(n_points, n_points))
+        D = lam * D.dot(D.transpose())  # 增加平滑效果
+
+        # 输出调试信息：打印矩阵形状
+        st.write(f"spectra shape: {spectra.shape}, D shape: {D.shape}")
+
+        # 按行进行基线校正
+        for i in range(spectra.shape[1]):  # 每列是一个光谱
+            y = spectra[:, i]
+            st.write(f"y shape: {y.shape}")  # 打印 y 的形状
+
+            w = np.ones(n_points)  # 权重初始化
+            baseline_i = np.zeros(n_points)  # 基线初始化
+
+            for j in range(max_iter):
+                W = sparse.diags(w, 0)  # 生成对角矩阵 W
+                Z = W + D  # 计算 Z 矩阵
+
+                # 输出调试信息：打印 W 和 Z 矩阵形状
+                st.write(f"W shape: {W.shape}, Z shape: {Z.shape}")
+
+                # 确保矩阵维度兼容
+                st.write(f"W * y shape: {(W * y).shape}")
+
+                # 求解基线
+                try:
+                    b = spsolve(Z, W @ y)  # 求解基线
+                except Exception as e:
+                    st.error(f"求解基线时发生错误: {e}")
+                    return
+
+                d = y - b  # 计算残差
+
+                # 更新权重
+                neg_mask = d < 0
+                if np.std(d[neg_mask]) == 0:
                     break
-            baseline_i = b
-        baseline[:, i] = baseline_i
+                w[neg_mask] = np.exp(j * np.abs(d[neg_mask]) / np.std(d[neg_mask]))
+                w[~neg_mask] = 0
 
-    return spectra - baseline
+                # 判断是否满足停止条件
+                if j > 0:
+                    diff = np.sum(np.abs(b - baseline_i)) / np.sum(np.abs(baseline_i)) if np.sum(
+                        np.abs(baseline_i)) > 0 else 0
+                    if diff < threshold:
+                        break
+                baseline_i = b
+
+            baseline[:, i] = baseline_i  # 存储校正后的基线
+
+        return spectra - baseline  # 返回扣除基线后的光谱数据
 
 def dtw_squashing(x, l, k1, k2):
     """动态时间规整(DTW)挤压算法"""
