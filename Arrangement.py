@@ -1829,7 +1829,13 @@ def main():
                                      step[1] == '挤压'), {})
 
                                 # 调用预处理函数处理数据
-                               
+                                st.write(f"wavenumbers: {wavenumbers}")
+                                st.write(f"spec_j: {spec_j}")
+                                st.write(f"baseline_method: {bm}, baseline_params: {baseline_params}")
+                                st.write(f"squashing_method: {qm}, squashing_params: {squashing_params}")
+                                st.write(f"filtering_method: {fm}, filtering_params: {filtering_params}")
+                                st.write(f"scaling_method: {sm}, scaling_params: {scaling_params}")
+                                st.write(f"algorithm_order: {algorithm_order}")
                                 processed_data, _method_name = preprocessor.process(
                                     wavenumbers, spec_j,
                                     baseline_method=bm, baseline_params=baseline_params,
