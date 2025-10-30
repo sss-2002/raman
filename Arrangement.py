@@ -106,8 +106,11 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
     baseline = np.zeros_like(spectra)
 
     # 创建稀疏矩阵 D
-    D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(n_points, n_points - 2))
-    D = lam * D.dot(D.transpose())
+    D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(n_points, n_points))
+    D = lam * D.dot(D.transpose())  # 通过平方 D 增加平滑效果
+
+    # 调试：打印矩阵形状
+    print(f"spectra shape: {spectra.shape}, D shape: {D.shape}")
 
     # 按行进行基线校正
     for i in range(spectra.shape[1]):  # 每列是一个光谱
@@ -116,10 +119,14 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
         baseline_i = np.zeros(n_points)
 
         for j in range(max_iter):
-            W = sparse.diags(w, 0)
-            Z = W + D
-            b = spsolve(Z, W * y)  # 计算基线
-            d = y - b  # 残差
+            W = sparse.diags(w, 0)  # 生成对角矩阵 W
+            Z = W + D  # 计算 Z 矩阵
+
+            # 调试：打印 W 和 Z 矩阵形状
+            print(f"W shape: {W.shape}, Z shape: {Z.shape}")
+
+            b = spsolve(Z, W * y)  # 求解基线
+            d = y - b  # 计算残差
 
             # 更新权重
             neg_mask = d < 0
