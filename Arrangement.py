@@ -78,7 +78,7 @@ def pls(spectra, lam):
         raise ValueError(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
         return
 
-    n_points, n_spectra = spectra.shape  # 获取数据点数和光谱数量
+    n_spectra, n_points = spectra.shape  # 获取数据点数和光谱数量
     baseline = np.zeros_like(spectra)  # 初始化基线矩阵
 
     # 创建稀疏矩阵 D
