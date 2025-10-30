@@ -772,8 +772,8 @@ def D2(sdata):
     返回:
         二阶差分结果，形状与输入相同
     """
-    row = sdata.shape[0]  # 获取样本数
-    col = sdata.shape[1]  # 获取特征数
+    row = sdata.shape[1]  # 获取样本数
+    col = sdata.shape[0]  # 获取特征数
     D2_result = np.zeros((row, col))  # 初始化结果矩阵
 
     for i in range(row):
