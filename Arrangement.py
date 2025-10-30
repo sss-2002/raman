@@ -97,6 +97,7 @@ def pls(spectra, lam):
 def airpls(spectra, lam, max_iter=15, threshold=0.001):
     """Adaptive Iteratively Reweighted Penalized Least Squares (airPLS) 基线校正"""
     st.write("准备调用 airpls 函数")
+
     # 确保 spectra 是二维数组
     if spectra.ndim != 2:
         st.error(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
@@ -115,6 +116,8 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
     # 按行进行基线校正
     for i in range(spectra.shape[1]):  # 每列是一个光谱
         y = spectra[:, i]
+        st.write(f"y shape: {y.shape}")  # 打印 y 的形状
+
         w = np.ones(n_points)
         baseline_i = np.zeros(n_points)
 
@@ -125,6 +128,10 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
             # 输出调试信息：打印 W 和 Z 矩阵形状
             st.write(f"W shape: {W.shape}, Z shape: {Z.shape}")
 
+            # 确保矩阵维度兼容
+            st.write(f"W * y shape: {(W * y).shape}")
+
+            # 求解基线
             b = spsolve(Z, W * y)  # 求解基线
             d = y - b  # 计算残差
 
@@ -144,7 +151,6 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
         baseline[:, i] = baseline_i  # 存储校正后的基线
 
     return spectra - baseline  # 返回扣除基线后的光谱数据
-
 def dtw_squashing(x, l, k1, k2):
     """动态时间规整(DTW)挤压算法"""
     n_samples, n_features = x.shape
@@ -1805,7 +1811,7 @@ def main():
                             # 对每种排列组合进行处理
                             for i, perm in enumerate(st.session_state.algorithm_permutations):
                                 algorithm_order = perm.get('order', [])  # 获取排列的顺序
-                                st.write(f"perm['details']: {perm['details']}")
+                                # st.write(f"perm['details']: {perm['details']}")
                                 # 从 details 中获取每个算法的参数
                                 bm = next((step[2] for step in perm['details'] if step[1] == '基线校准'), '无')
                                 sm = next((step[2] for step in perm['details'] if step[1] == '缩放'), '无')
