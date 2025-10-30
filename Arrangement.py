@@ -96,9 +96,11 @@ def pls(spectra, lam):
 
 def airpls(spectra, lam, max_iter=15, threshold=0.001):
     """Adaptive Iteratively Reweighted Penalized Least Squares (airPLS) 基线校正"""
-    st.write("准备调用 airpls 函数")
-    # 确保 spectra 是二维数组
-   
+
+    st.write("▶ 进入 airpls()")
+    st.write({"lam": lam, "max_iter": max_iter, "threshold": threshold})
+    st.write("spectra shape:", getattr(spectra, "shape", None))
+    st.write("spectra (预览):", spectra if getattr(spectra, "size", 0) <= 200 else "数据较大，省略打印")
     return 0 # 返回扣除基线后的光谱数据
 
 def dtw_squashing(x, l, k1, k2):
