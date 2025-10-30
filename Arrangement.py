@@ -95,37 +95,30 @@ def pls(spectra, lam):
 
 def airpls(spectra, lam, max_iter=15, threshold=0.001):
     """Adaptive Iteratively Reweighted Penalized Least Squares (airPLS) 基线校正"""
-    st.write("准备调用 airpls 函数")
 
     # 确保 spectra 是二维数组
     if spectra is None:
-        st.error("输入的光谱数据为 None，请检查输入数据。")
-        return
+        raise ValueError("输入的光谱数据为 None，请检查输入数据。")
 
     if spectra.ndim != 2:
-        st.error(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
-        return
+        raise ValueError(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
 
     # 获取光谱数据的点数和列数
     n_points = spectra.shape[1]  # 光谱数据的点数，即每条光谱的 20 个数据点
-    st.write(f"spectra shape: {spectra.shape}")  # 打印 spectra 的形状
 
     # 初始化基线数组
     baseline = np.zeros_like(spectra)
 
-    # 创建稀疏矩阵 D，使用 n_points 作为维度
+    # 创建稀疏矩阵 D
     try:
         D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(n_points, n_points))
         D = lam * D.dot(D.transpose())  # 增加平滑效果
-        st.write(f"D shape: {D.shape}")  # 打印 D 矩阵的形状
     except Exception as e:
-        st.error(f"创建 D 矩阵时发生错误: {e}")
-        return
+        raise ValueError(f"创建 D 矩阵时发生错误: {e}")
 
     # 按行进行基线校正
     for i in range(spectra.shape[0]):  # 每行是一个光谱
         y = spectra[i, :]
-        st.write(f"y shape: {y.shape}")  # 打印 y 的形状
 
         w = np.ones(n_points)  # 权重初始化
         baseline_i = np.zeros(n_points)  # 基线初始化
@@ -134,18 +127,11 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
             W = sparse.diags(w, 0)  # 生成对角矩阵 W
             Z = W + D  # 计算 Z 矩阵
 
-            # 输出调试信息：打印 W 和 Z 矩阵形状
-            st.write(f"W shape: {W.shape}, Z shape: {Z.shape}")
-
-            # 确保矩阵维度兼容
-            st.write(f"W * y shape: {(W * y).shape}")
-
             # 求解基线
             try:
                 b = spsolve(Z, W @ y)  # 求解基线
             except Exception as e:
-                st.error(f"求解基线时发生错误: {e}")
-                return
+                raise ValueError(f"求解基线时发生错误: {e}")
 
             d = y - b  # 计算残差
 
