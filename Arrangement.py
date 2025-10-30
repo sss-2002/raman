@@ -765,33 +765,10 @@ def i_squashing(Data):
 
 # 二阶差分(D2)函数
 def D2(sdata):
-    """
-    计算二阶差分，保持输出尺寸与输入相同
-    参数:
-        sdata: 输入光谱数据 (1, 20) —— 每个样本是1行20列的数据
-    返回:
-        二阶差分结果，形状与输入相同
-    """
-    row = sdata.shape[0]  # 获取样本数，这里为1
-    col = sdata.shape[1]  # 获取特征数，这里为20
-    D2_result = np.zeros((row, col))  # 初始化结果矩阵
+   
+    
 
-    for i in range(row):
-        # 计算该行的二阶差分
-        tem = np.diff(sdata[i], 2)  # 计算二阶差分
-        temp = tem.tolist()  # 将结果转为列表
-
-        # 填充前两个元素和最后两个元素以保持与输入相同的尺寸
-        # 填充方法：重复差分计算的首尾元素
-        temp.insert(0, temp[0])  # 将第一个元素插入到前面
-        temp.insert(0, temp[0])  # 再将第一个元素插入，确保填充正确
-
-        temp.append(temp[-1])  # 将最后一个元素添加到列表末尾
-        temp.append(temp[-1])  # 再将最后一个元素添加
-
-        D2_result[i] = temp  # 将计算结果存储到结果矩阵中
-
-    return D2_result
+    return sdata
 # LP范数归一化函数
 def LPnorm(arr, ord):
     """
