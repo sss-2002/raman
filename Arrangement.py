@@ -1909,8 +1909,10 @@ def main():
                         pca_acc = np.empty(P, dtype=np.float32)
 
                         for p in range(P):
-                            st.write(f"当前排列组合 P = {p + 1}")
+                            # st.write(f"当前排列组合 P = {p + 1}")
                             X_p = processed_cube[:, p, :]
+                            st.write(f"排列组合 P={p + 1} 下的光谱数据：")
+                            st.write(X_p)  # 输出第 p 个排列组合下的所有样本的光谱数据
                             n_components = min(max(1, S - 1), X_p.shape[1])
                             pca = PCA(n_components=n_components, svd_solver="auto", random_state=0)
                             Z = pca.fit_transform(X_p)
@@ -1928,38 +1930,38 @@ def main():
                         #排序与投票（原逻辑不变）
                         # st.session_state.pca_pred_matrix = pca_pred_matrix
                         # st.session_state.pca_acc = pca_acc
-
+                        # 
                         # sorted_idx = np.argsort(-st.session_state.pca_acc, kind="mergesort")
                         # st.session_state.pca_sorted_perm_indices = sorted_idx
                         # st.session_state.pca_sorted_acc = st.session_state.pca_acc[sorted_idx]
                         # st.session_state.pca_sorted_pred_matrix = st.session_state.pca_pred_matrix[sorted_idx]
-
+                        # 
                         # st.write("[CHECK] pca_pred_matrix.shape =", st.session_state.pca_pred_matrix.shape)
                         # st.write("[CHECK] pca_acc.shape =", st.session_state.pca_acc.shape)
                         # st.write("[CHECK] top-5 acc =", st.session_state.pca_sorted_acc[:5].round(3).tolist())
                         # st.write("[CHECK] top-1 preds =", st.session_state.pca_sorted_pred_matrix[0].tolist())
-
+                        # 
                         # from scipy.stats import mode
                         # P2, S2 = st.session_state.pca_sorted_pred_matrix.shape
                         # vote_pred_matrix_by_k = np.empty((P2, S2), dtype=int)
-
+                        # 
                         # for k in range(1, P2 + 1):
                         #     topk = st.session_state.pca_sorted_pred_matrix[:k, :]
                         #     voted = mode(topk, axis=0, keepdims=False).mode
                         #     vote_pred_matrix_by_k[k - 1, :] = voted
-
+                        # 
                         # st.session_state.vote_pred_matrix_by_k = vote_pred_matrix_by_k
                         # vote_acc_by_k = (vote_pred_matrix_by_k == st.session_state.labels.reshape(1, S2)).mean(
                         #     axis=1).astype(np.float32)
                         # st.session_state.vote_acc_by_k = vote_acc_by_k
-
+                        # 
                         # st.write("[CHECK] vote_pred_matrix_by_k.shape =", st.session_state.vote_pred_matrix_by_k.shape)
                         # st.write("[CHECK] vote_acc_by_k[:5] =", st.session_state.vote_acc_by_k[:5].round(3).tolist())
                         # st.write("[CHECK] k=5 voted preds =",st.session_state.vote_pred_matrix_by_k[4].tolist() if P2 >= 5 else "P<5")
                         # k_vals = np.arange(1, st.session_state.vote_acc_by_k.shape[0] + 1)
                         # best_k = int(k_vals[np.argmax(st.session_state.vote_acc_by_k)])
                         # best_acc = float(st.session_state.vote_acc_by_k.max())
-
+                        # 
                         # import matplotlib.pyplot as plt
                         # fig, ax = plt.subplots()
                         # ax.plot(k_vals, st.session_state.vote_acc_by_k, marker='o')
@@ -1970,7 +1972,7 @@ def main():
                         # ax.set_ylim(0, 1)
                         # ax.grid(True, linestyle='--', alpha=0.4)
                         # st.pyplot(fig)
-
+                        # 
                         # st.write("[CHECK] best k =", best_k, "; preds =",
                         #          st.session_state.vote_pred_matrix_by_k[best_k - 1].tolist())
                         # st.success(
