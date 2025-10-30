@@ -96,7 +96,7 @@ def pls(spectra, lam):
 
 def airpls(spectra, lam, max_iter=15, threshold=0.001):
     """Adaptive Iteratively Reweighted Penalized Least Squares (airPLS) 基线校正"""
-
+    st.write("准备调用 airpls 函数")
     # 确保 spectra 是二维数组
     if spectra.ndim != 2:
         st.error(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
