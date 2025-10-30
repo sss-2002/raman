@@ -107,13 +107,13 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
         return
 
     # 获取光谱数据的点数和列数
-    n_points = spectra.shape[0]  # 光谱数据的点数
+    n_points = spectra.shape[1]  # 光谱数据的点数，即每条光谱的 20 个数据点
     st.write(f"spectra shape: {spectra.shape}")  # 打印 spectra 的形状
 
     # 初始化基线数组
     baseline = np.zeros_like(spectra)
 
-    # 创建稀疏矩阵 D
+    # 创建稀疏矩阵 D，使用 n_points 作为维度
     try:
         D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(n_points, n_points))
         D = lam * D.dot(D.transpose())  # 增加平滑效果
@@ -123,8 +123,8 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
         return
 
     # 按行进行基线校正
-    for i in range(spectra.shape[1]):  # 每列是一个光谱
-        y = spectra[:, i]
+    for i in range(spectra.shape[0]):  # 每行是一个光谱
+        y = spectra[i, :]
         st.write(f"y shape: {y.shape}")  # 打印 y 的形状
 
         w = np.ones(n_points)  # 权重初始化
@@ -164,10 +164,10 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
                     break
             baseline_i = b
 
-        baseline[:, i] = baseline_i  # 存储校正后的基线
+        baseline[i, :] = baseline_i  # 存储校正后的基线
 
     return spectra - baseline  # 返回扣除基线后的光谱数据
-    
+
 
 def dtw_squashing(x, l, k1, k2):
     """动态时间规整(DTW)挤压算法"""
