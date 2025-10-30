@@ -768,16 +768,16 @@ def D2(sdata):
     """
     计算二阶差分，保持输出尺寸与输入相同
     参数:
-        sdata: 输入光谱数据 (n_samples, n_features)
+        sdata: 输入光谱数据 (1, 20) —— 每个样本是1行20列的数据
     返回:
         二阶差分结果，形状与输入相同
     """
-    row = sdata.shape[1]  # 获取样本数
-    col = sdata.shape[0]  # 获取特征数
+    row = sdata.shape[0]  # 获取样本数，这里为1
+    col = sdata.shape[1]  # 获取特征数，这里为20
     D2_result = np.zeros((row, col))  # 初始化结果矩阵
 
     for i in range(row):
-        # 计算每一行的二阶差分
+        # 计算该行的二阶差分
         tem = np.diff(sdata[i], 2)  # 计算二阶差分
         temp = tem.tolist()  # 将结果转为列表
 
@@ -792,7 +792,6 @@ def D2(sdata):
         D2_result[i] = temp  # 将计算结果存储到结果矩阵中
 
     return D2_result
-
 # LP范数归一化函数
 def LPnorm(arr, ord):
     """
