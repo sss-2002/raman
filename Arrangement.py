@@ -75,21 +75,20 @@ def pls(spectra, lam):
 
     # 确保 spectra 是二维数组
     if spectra.ndim != 2:
-        st.error(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
+        raise ValueError(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
         return
 
-    n_points = spectra.shape[0]
-    baseline = np.zeros_like(spectra)
+    n_points, n_spectra = spectra.shape  # 获取数据点数和光谱数量
+    baseline = np.zeros_like(spectra)  # 初始化基线矩阵
 
     # 创建稀疏矩阵 D
     D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(n_points, n_points - 2))
-    D = lam * D.dot(D.transpose())
+    D = lam * D.dot(D.transpose())  # D 的加权
 
-    # 按行进行基线校正
-    for i in range(spectra.shape[1]):  # 每列是一个光谱
-        y = spectra[:, i]
-        A = sparse.eye(n_points) + D
-        baseline[:, i] = spsolve(A, y)
+    # 由于只有一个光谱（1行20列），按列进行基线校正
+    y = spectra[0, :]  # 提取光谱数据，只有一行
+    A = sparse.eye(n_points) + D  # 构造方程 A
+    baseline[0, :] = spsolve(A, y)  # 求解基线
 
     # 返回扣除基线后的光谱数据
     return spectra - baseline
