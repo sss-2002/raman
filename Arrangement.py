@@ -97,11 +97,37 @@ def pls(spectra, lam):
 def airpls(spectra, lam, max_iter=15, threshold=0.001):
     """Adaptive Iteratively Reweighted Penalized Least Squares (airPLS) 基线校正"""
 
-    st.write("▶ 进入 airpls()")
-    st.write({"lam": lam, "max_iter": max_iter, "threshold": threshold})
-    st.write("spectra shape:", getattr(spectra, "shape", None))
-    st.write("spectra (预览):", spectra if getattr(spectra, "size", 0) <= 200 else "数据较大，省略打印")
-    return 0 # 返回扣除基线后的光谱数据
+    if spectra.ndim != 2:
+        st.error(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
+        return
+    n_points = spectra.shape[0]
+    baseline = np.zeros_like(spectra)
+    D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(n_points, n_points))
+    D = lam * D.dot(D.transpose())
+
+    for i in range(spectra.shape[1]):
+        y = spectra[:, i]
+        w = np.ones(n_points)
+        baseline_i = np.zeros(n_points)
+        for j in range(max_iter):
+            W = sparse.diags(w, 0)
+            Z = W + D
+            b = spsolve(Z, W @ y)
+            d = y - b
+            neg_mask = d < 0
+            if np.std(d[neg_mask]) == 0:
+                break
+            w[neg_mask] = np.exp(j * np.abs(d[neg_mask]) / np.std(d[neg_mask]))
+            w[~neg_mask] = 0
+            if j > 0:
+                denom = np.sum(np.abs(baseline_i))
+                diff = np.sum(np.abs(b - baseline_i)) / denom if denom > 0 else 0
+                if diff < threshold:
+                    break
+            baseline_i = b
+        baseline[:, i] = baseline_i
+
+    return spectra - baseline
 
 def dtw_squashing(x, l, k1, k2):
     """动态时间规整(DTW)挤压算法"""
