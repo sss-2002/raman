@@ -109,8 +109,8 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
     D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(n_points, n_points))
     D = lam * D.dot(D.transpose())  # 通过平方 D 增加平滑效果
 
-    # 调试：打印矩阵形状
-    print(f"spectra shape: {spectra.shape}, D shape: {D.shape}")
+    # 输出调试信息：打印矩阵形状
+    st.write(f"spectra shape: {spectra.shape}, D shape: {D.shape}")
 
     # 按行进行基线校正
     for i in range(spectra.shape[1]):  # 每列是一个光谱
@@ -122,8 +122,8 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
             W = sparse.diags(w, 0)  # 生成对角矩阵 W
             Z = W + D  # 计算 Z 矩阵
 
-            # 调试：打印 W 和 Z 矩阵形状
-            print(f"W shape: {W.shape}, Z shape: {Z.shape}")
+            # 输出调试信息：打印 W 和 Z 矩阵形状
+            st.write(f"W shape: {W.shape}, Z shape: {Z.shape}")
 
             b = spsolve(Z, W * y)  # 求解基线
             d = y - b  # 计算残差
@@ -144,7 +144,6 @@ def airpls(spectra, lam, max_iter=15, threshold=0.001):
         baseline[:, i] = baseline_i  # 存储校正后的基线
 
     return spectra - baseline  # 返回扣除基线后的光谱数据
-
 
 def dtw_squashing(x, l, k1, k2):
     """动态时间规整(DTW)挤压算法"""
