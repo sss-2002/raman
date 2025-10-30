@@ -1816,7 +1816,7 @@ def main():
                                 baseline_params = next(
                                     (step[3] if isinstance(step[3], dict) else {'k': step[3]} for step in
                                      perm['details'] if step[1] == '基线校准'), {'k': 8})
-                                st.write(f"基线校准参数: {baseline_params}")
+                                # st.write(f"基线校准参数: {baseline_params}")
 
                                 scaling_params = next(
                                     (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
