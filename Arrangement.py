@@ -1827,8 +1827,9 @@ def main():
                                 squashing_params = next(
                                     (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
                                      step[1] == '挤压'), {})
-
+            
                                 # 调用预处理函数处理数据
+                                st.write("准备调用 airpls 函数")
                                 processed_data, _method_name = preprocessor.process(
                                     wavenumbers, spec_j,
                                     baseline_method=bm, baseline_params=baseline_params,
