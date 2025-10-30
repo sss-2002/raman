@@ -1741,8 +1741,9 @@ def main():
                     }
 
                     # 生成排列组合并存储在 session_state 中
-                    st.write(f"perm['details']: {perm['details']}")
-                    # st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
+                    
+                    st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
+                    
                     # st.write(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
                     # st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
 
@@ -1804,7 +1805,7 @@ def main():
                             # 对每种排列组合进行处理
                             for i, perm in enumerate(st.session_state.algorithm_permutations):
                                 algorithm_order = perm.get('order', [])  # 获取排列的顺序
-
+                                st.write(f"perm['details']: {perm['details']}")
                                 # 从 details 中获取每个算法的参数
                                 bm = next((step[2] for step in perm['details'] if step[1] == '基线校准'), '无')
                                 sm = next((step[2] for step in perm['details'] if step[1] == '缩放'), '无')
