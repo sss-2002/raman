@@ -1741,9 +1741,10 @@ def main():
                     }
 
                     # 生成排列组合并存储在 session_state 中
-                    st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
-                    st.write(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
-                    st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
+                    st.write(f"perm['details']: {perm['details']}")
+                    # st.session_state.algorithm_permutations = generate_permutations(selected_algorithms)
+                    # st.write(f"✅ 生成了 {len(st.session_state.algorithm_permutations)} 种排列组合")
+                    # st.write("生成的排列组合: ", st.session_state.algorithm_permutations)
 
 
                     # 将生成的排列组合存储为 filtered_perms
