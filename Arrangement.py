@@ -50,7 +50,6 @@ def polynomial_fit(wavenumbers, spectra, polyorder):
     corrected_spectra = spectra - baseline
 
     return corrected_spectra  # 返回二维数组
-
 def modpoly(wavenumbers, spectra, k):
     """Modified Polynomial (ModPoly) 基线校正"""
 
@@ -229,7 +228,7 @@ class Preprocessor:
         self.BASELINE_ALGORITHMS = {
             "SD": self._sd_baseline,
             "FD": self._fd_baseline,
-            "polynomial_fit": polynomial_fit,
+            "多项式拟合": polynomial_fit,
             "ModPoly": modpoly,
             "I-ModPoly": IModPoly,  # 集成IModPoly算法
             "PLS": pls,
@@ -1828,7 +1827,7 @@ def main():
                                 baseline_params = next(
                                     (step[3] if isinstance(step[3], dict) else {'k': step[3]} for step in
                                      perm['details'] if step[1] == '基线校准'), {'k': 8})
-                                # st.write(f"基线校准参数: {baseline_params}")
+                                st.write(f"基线校准参数: {baseline_params}")
 
                                 scaling_params = next(
                                     (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
