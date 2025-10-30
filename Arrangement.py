@@ -1819,8 +1819,6 @@ def main():
                                 # st.write(f"perm['details']: {perm['details']}")
                                 # 从 details 中获取每个算法的参数
                                 bm = next((step[2] for step in perm['details'] if step[1] == '基线校准'), '无')
-                                if bm == '多项式拟合':
-                                    bm = polynomial_fit
                                 sm = next((step[2] for step in perm['details'] if step[1] == '缩放'), '无')
                                 fm = next((step[2] for step in perm['details'] if step[1] == '滤波'), '无')
                                 qm = next((step[2] for step in perm['details'] if step[1] == '挤压'), '无')
