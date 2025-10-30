@@ -409,7 +409,13 @@ class Preprocessor:
         return y_processed, method_name
 
     def _sd_baseline(self, spectra):
-        return spectra - np.min(spectra, axis=0)
+        """基线校正：每行减去该行的最小值，保持二维输入输出"""
+        # 确保 spectra 是二维数组
+        if spectra.ndim != 2:
+            raise ValueError(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
+
+        # 每行减去该行的最小值，保持输出为二维
+        return spectra - np.min(spectra, axis=1, keepdims=True)
 
     def _fd_baseline(self, spectra):
         return spectra - np.percentile(spectra, 5, axis=0)
