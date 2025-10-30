@@ -1856,7 +1856,7 @@ def main():
                                     st.write(f"wavenumbers: {wavenumbers}")
                                     st.write(f"spec_j: {spec_j}")
 
-                                # st.write(f"[CHECK] 处理后的 processed_data: {processed_data}")
+                                st.write(f"[CHECK] 处理后的 processed_data: {processed_data}")
                                 # 输出处理后的数据的维度
                                 # st.write(f"[CHECK] 处理后的 processed_data（）: {processed_data.flatten()}")
                                 # 将处理后的数据转为 NumPy 数组，并进行必要的形状转换
