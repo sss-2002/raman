@@ -1827,9 +1827,9 @@ def main():
                                 squashing_params = next(
                                     (step[3] if isinstance(step[3], dict) else {} for step in perm['details'] if
                                      step[1] == '挤压'), {})
-            
+
                                 # 调用预处理函数处理数据
-                                st.write("准备调用 airpls 函数")
+                               
                                 processed_data, _method_name = preprocessor.process(
                                     wavenumbers, spec_j,
                                     baseline_method=bm, baseline_params=baseline_params,
@@ -1838,6 +1838,7 @@ def main():
                                     scaling_method=sm, scaling_params=scaling_params,
                                     algorithm_order=algorithm_order
                                 )
+                                st.write("准备调用 airpls 函数")
 
                                 # st.write(f"[CHECK] 处理后的 processed_data: {processed_data}")
                                 # 输出处理后的数据的维度
