@@ -472,19 +472,45 @@ class Preprocessor:
                 return spectra
 
     def snv(self, spectra):
-        mean = np.mean(spectra, axis=0)
-        std = np.std(spectra, axis=0)
+        # 确保 spectra 是二维数组
+        if spectra.ndim != 2:
+            st.error(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
+            return
+
+        # 计算每行的均值和标准差
+        mean = np.mean(spectra, axis=1, keepdims=True)  # 每行的均值
+        std = np.std(spectra, axis=1, keepdims=True)  # 每行的标准差
+
+        # 防止除以零的情况：如果标准差为零，将其设置为1
+        std[std == 0] = 1
+
+        # 按行进行标准化处理
         return (spectra - mean) / std
 
     def msc(self, spectra):
         """使用新的MSC函数实现多元散射校正"""
-        # 注意：输入数据形状需要与MSC函数要求一致 (n_samples, n_features)
-        # 如果当前数据形状为(n_features, n_samples)，需要先转置
-        if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数，说明需要转置
-            corrected = MSC(spectra.T)  # 转置后处理
-            return corrected.T  # 转回原始形状
-        else:
-            return MSC(spectra)
+
+        # 确保 spectra 是二维数组
+        if spectra.ndim != 2:
+            st.error(f"数据应为二维数组，但当前维度为 {spectra.ndim}。")
+            return
+
+        # 如果特征数小于样本数，需要转置
+        if spectra.shape[0] < spectra.shape[1]:  # 特征数 < 样本数
+            spectra = spectra.T  # 转置后处理
+
+        # 计算每个波长的均值和标准差
+        mean_spectrum = np.mean(spectra, axis=0)  # 按列计算均值（即对每个波长）
+        std_spectrum = np.std(spectra, axis=0)  # 按列计算标准差
+
+        # 防止除以零的情况：如果标准差为零，将其设置为1
+        std_spectrum[std_spectrum == 0] = 1
+
+        # 按行进行MSC校正
+        corrected_spectra = (spectra - mean_spectrum) / std_spectrum
+
+        # 返回校正后的光谱数据
+        return corrected_spectra
 
     def mm_norm(self, spectra):
         min_vals = np.min(spectra, axis=0)
@@ -1724,7 +1750,7 @@ def main():
                             # 确保每条光谱数据是二维的 (1, N) 或 (N, 1)
                             if spec_j.ndim == 1:
                                 spec_j = spec_j.reshape(1, -1)  # 转换为 (1, N)，即1行，N列
-                            # st.write(f"[CHECK] spec_j 的维度: {spec_j.shape}")
+                            st.write(f": {spec_j}")
 
                             # 确保光谱数据的长度和波数长度一致
                             if spec_j.shape[1] != N:
