@@ -46,8 +46,10 @@ def polynomial_fit(wavenumbers, spectra, polyorder):
         coeffs = np.polyfit(wavenumbers, spectra[i, :], deg=polyorder)
         baseline[i, :] = np.polyval(coeffs, wavenumbers)
 
-    # 扣除基线
-    return spectra - baseline
+    # 扣除基线，确保输出是二维数组
+    corrected_spectra = spectra - baseline
+
+    return corrected_spectra  # 返回二维数组
 
 def modpoly(wavenumbers, spectra, k):
     """Modified Polynomial (ModPoly) 基线校正"""
@@ -227,7 +229,7 @@ class Preprocessor:
         self.BASELINE_ALGORITHMS = {
             "SD": self._sd_baseline,
             "FD": self._fd_baseline,
-            "多项式拟合": polynomial_fit,
+            "polynomial_fit": polynomial_fit,
             "ModPoly": modpoly,
             "I-ModPoly": IModPoly,  # 集成IModPoly算法
             "PLS": pls,
@@ -1856,7 +1858,7 @@ def main():
                                     st.write(f"wavenumbers: {wavenumbers}")
                                     st.write(f"spec_j: {spec_j}")
 
-                                st.write(f"[CHECK] 处理后的 processed_data: {processed_data}")
+                                # st.write(f"[CHECK] 处理后的 processed_data: {processed_data}")
                                 # 输出处理后的数据的维度
                                 # st.write(f"[CHECK] 处理后的 processed_data（）: {processed_data.flatten()}")
                                 # 将处理后的数据转为 NumPy 数组，并进行必要的形状转换
